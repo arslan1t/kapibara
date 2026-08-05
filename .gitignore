@@ -1,0 +1,52 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files — never commit real secrets
+.env
+.env*.local
+
+# database (SQLite dev database and Prisma artefacts)
+*.db
+*.db-journal
+/prisma/*.db
+/prisma/*.db-journal
+
+# generated Prisma client
+/src/generated/
+
+# private uploads (customer photos must never reach the repo)
+/private-uploads/
+
+# admin-uploaded catalogue artwork (kept out of the repo like any upload)
+/public-uploads/
+
+# typescript
+*.tsbuildinfo
+
+# vercel
+.vercel
+
+# local PostgreSQL data (PGlite) — development only
+/.pglite/
+
+# agent session scratch space — not part of the project
+/.claude/

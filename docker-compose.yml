@@ -1,0 +1,122 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Капибара — docker-compose                                                  ║
+# ║                                                                              ║
+# ║  PRODUCTION  →  docker compose up app --build                               ║
+# ║  DEVELOPMENT →  docker compose up app-dev                                   ║
+# ║                                                                              ║
+# ║  Copy .env.example → .env and fill in values before first run.              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+name: kapibara
+
+# ── Re-usable anchors ─────────────────────────────────────────────────────────
+x-common-env: &common-env
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Override in .env or with -e flags:
+  # NEXT_PUBLIC_API_URL: https://api.kapibara.ru
+
+services:
+
+  # ── Production ──────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner          # final minimal stage
+      args:
+        NODE_VERSION: "20"
+        ALPINE_VERSION: "3.20"
+    image: kapibara:latest
+    container_name: kapibara-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      <<: *common-env
+      NODE_ENV: production
+    env_file:
+      - path: .env
+        required: false        # graceful if .env is absent
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health 2>/dev/null || wget -qO- http://localhost:3000 | grep -q 'Капибара' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    # Uncomment when you add a database:
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+
+  # ── Development (hot-reload, bind-mount) ────────────────────────────────────
+  app-dev:
+    image: node:20-alpine
+    container_name: kapibara-dev
+    working_dir: /app
+    # Install deps if node_modules is missing, then start dev server
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "${DEV_PORT:-3001}:3000"   # 3001 so prod and dev can run side-by-side
+    volumes:
+      - .:/app                     # bind-mount entire project for hot-reload
+      - kapibara_nm:/app/node_modules   # anonymous volume so host nm doesn't shadow
+      - kapibara_next:/app/.next        # persist .next cache between restarts
+    environment:
+      <<: *common-env
+      NODE_ENV: development
+    env_file:
+      - path: .env
+        required: false
+    stdin_open: true
+    tty: true
+
+  # ── Future: PostgreSQL ───────────────────────────────────────────────────────
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: kapibara-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: kapibara
+  #     POSTGRES_USER: kapibara
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+  #   volumes:
+  #     - kapibara_pgdata:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U kapibara"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # ── Future: Redis (session / cache) ─────────────────────────────────────────
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: kapibara-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - kapibara_redis:/data
+
+  # ── Future: Nginx reverse-proxy ──────────────────────────────────────────────
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: kapibara-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/certs:/etc/nginx/certs:ro
+  #   depends_on:
+  #     - app
+
+volumes:
+  kapibara_nm:     # node_modules for dev container
+    driver: local
+  kapibara_next:   # .next cache for dev container
+    driver: local
+  # kapibara_pgdata:
+  # kapibara_redis:
