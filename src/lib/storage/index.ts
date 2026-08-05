@@ -1,12 +1,12 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import type { Bucket, StorageDriver } from "./types";
+import type { Bucket, StorageDriver, StorageVerification } from "./types";
 import { localDriver } from "./local";
 import { s3Driver } from "./s3";
 import { supabaseDriver } from "./supabase";
 
-export type { Bucket, StorageDriver, StoredObject } from "./types";
+export type { Bucket, StorageDriver, StoredObject, StorageVerification } from "./types";
 
 /**
  * Storage facade.
@@ -78,6 +78,17 @@ export interface StorageStatus {
   configured: boolean;
   /** True when this driver is safe to run in production. */
   durable: boolean;
+}
+
+/**
+ * Asks the active driver to prove its configuration actually works.
+ *
+ * Separate from `storageStatus` because this one costs a network round trip:
+ * callers that only need to know which driver is selected should not pay for
+ * it, and it must never sit on a customer request path.
+ */
+export async function verifyStorage(): Promise<StorageVerification> {
+  return activeDriver().verify();
 }
 
 export function storageStatus(): StorageStatus {

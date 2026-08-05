@@ -5,6 +5,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  HeadBucketCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Bucket, StorageDriver, StoredObject } from "./types";
@@ -86,6 +87,33 @@ export const s3Driver: StorageDriver = {
 
   isConfigured() {
     return readConfig() !== null;
+  },
+
+  /**
+   * HEAD on both buckets: proves the credential is accepted and that each
+   * bucket exists and is reachable by this identity. Cheap enough for a health
+   * check, and catches a wrong key, a typo'd bucket name, and a missing policy
+   * — none of which `isConfigured` can see.
+   */
+  async verify() {
+    const config = readConfig();
+    if (!config) return { ok: false as const, error: "S3 не настроен" };
+
+    try {
+      const client = getClient(config);
+      for (const bucket of [config.privateBucket, config.publicBucket]) {
+        await client.send(new HeadBucketCommand({ Bucket: bucket }));
+      }
+      return { ok: true as const };
+    } catch (error) {
+      return {
+        ok: false as const,
+        error:
+          error instanceof Error
+            ? `Бакет недоступен: ${error.message}`
+            : "Бакет недоступен",
+      };
+    }
   },
 
   async put(bucket, key, bytes, contentType) {
