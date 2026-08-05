@@ -47,6 +47,37 @@ describe("log redaction", () => {
     assert.ok(serialised.includes("keep-me"));
   });
 
+  test("mail recipients are masked under every key the mail layer uses", () => {
+    // Regression: the mail layer logs the recipient as `to`, which an
+    // "email"-substring rule does not catch. Found by reading a real log line
+    // from a live send, not by reading the code.
+    const out = redact({
+      to: "arslan.shipulin@gmail.com",
+      from: "shop@example.com",
+      recipient: "buyer@example.com",
+      cc: "manager@example.com",
+    }) as Record<string, string>;
+
+    for (const [key, value] of Object.entries(out)) {
+      assert.ok(
+        !value.includes("shipulin") && !value.includes("buyer") && !value.includes("manager"),
+        `recipient leaked into the log under key "${key}": ${value}`
+      );
+      assert.match(value, /\*\*\*@/, `key "${key}" was not masked`);
+    }
+  });
+
+  test("short masked keys do not swallow unrelated fields", () => {
+    // "to" must be masked; "total" and "tokensPruned" must not be mangled by it.
+    const out = redact({ total: 9990, tokensPruned: 3, storageKeyCount: 6 }) as Record<
+      string,
+      unknown
+    >;
+    assert.equal(out.total, 9990);
+    assert.equal(out.tokensPruned, 3);
+    assert.equal(out.storageKeyCount, 6);
+  });
+
   test("personal data is masked, not printed in full", () => {
     const out = redact({
       email: "anna.smirnova@example.com",

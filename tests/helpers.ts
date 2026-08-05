@@ -11,8 +11,47 @@ import { PrismaClient } from "../src/generated/prisma";
 
 export const db = new PrismaClient();
 
+/**
+ * Refuses to run destructive tests against anything but a local database.
+ *
+ * `resetDatabase` truncates every table. A .env pointed at production — which
+ * is a completely ordinary thing to do while debugging a deployment — turns
+ * `npm test` into a command that erases the shop. A comment in the README is
+ * not a safeguard; this is. Learned the hard way: this exact mistake wiped the
+ * seeded catalogue and the administrator account from a live database.
+ */
+function assertLocalDatabase(): void {
+  const url = process.env.DATABASE_URL ?? "";
+
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    throw new Error("DATABASE_URL is missing or unparseable; refusing to run tests.");
+  }
+
+  const isLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host.endsWith(".local") ||
+    // Explicit opt-in for a throwaway database in CI.
+    process.env.ALLOW_DESTRUCTIVE_TESTS === "yes-i-am-sure";
+
+  if (!isLocal) {
+    throw new Error(
+      `Refusing to run destructive tests against "${host}".\n` +
+        "These tests TRUNCATE every table. Point DATABASE_URL at a local\n" +
+        "database (npm run db:local), or set\n" +
+        "ALLOW_DESTRUCTIVE_TESTS=yes-i-am-sure if this really is a throwaway."
+    );
+  }
+}
+
 /** Wipes every table, in dependency order. */
 export async function resetDatabase(): Promise<void> {
+  assertLocalDatabase();
+
   await db.$executeRawUnsafe(`
     TRUNCATE TABLE
       generation_results, generation_jobs, reviews, payments,

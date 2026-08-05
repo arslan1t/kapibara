@@ -69,6 +69,25 @@ const REDACTED_KEY_PATTERNS = [
  */
 const MASKED_KEY_PATTERNS = ["email", "phone", "fullname", "customername", "address"];
 
+/**
+ * Short key names matched exactly rather than by substring.
+ *
+ * "to" is the mail layer's name for the recipient and must be masked, but as a
+ * substring it also appears in "total", "token" and "storageKey" — matching it
+ * loosely would either mangle unrelated fields or, worse, lull a reader into
+ * thinking a field is handled when it is not.
+ */
+const MASKED_EXACT_KEYS = new Set([
+  "to",
+  "cc",
+  "bcc",
+  "from",
+  "recipient",
+  "sender",
+  "name",
+  "contact",
+]);
+
 function isRedactedKey(key: string): boolean {
   const k = key.toLowerCase();
   return REDACTED_KEY_PATTERNS.some((p) => k.includes(p));
@@ -76,7 +95,7 @@ function isRedactedKey(key: string): boolean {
 
 function isMaskedKey(key: string): boolean {
   const k = key.toLowerCase();
-  return MASKED_KEY_PATTERNS.some((p) => k.includes(p));
+  return MASKED_EXACT_KEYS.has(k) || MASKED_KEY_PATTERNS.some((p) => k.includes(p));
 }
 
 /** ivan@example.com → i***@example.com; +7 999 123-45-67 → +7…67 */
