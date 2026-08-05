@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Brand colour — single source of truth.
+
+   Every orange in the interface resolves to one of these tokens; nothing
+   hardcodes a hex. Values are space-separated RGB channels so Tailwind can
+   apply opacity modifiers (bg-brand-500/20) via <alpha-value>.
+
+   400 is the warm brand hue, used decoratively (glows, chips, borders).
+   500 is the action colour: it clears WCAG AA both as a button fill with
+   white text (4.83:1) and as link text on parchment (4.61:1).
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --brand-50: 253 244 239;
+  --brand-100: 250 229 217;
+  --brand-200: 243 200 175;
+  --brand-300: 235 165 127;
+  --brand-400: 232 118 63;
+  --brand-500: 188 81 41;
+  --brand-600: 155 63 30;
+  --brand-700: 122 49 22;
+  --brand-800: 78 32 16;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #FFF9EE;
+    color: #402D21;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: #402D21;
+    letter-spacing: -0.015em;
+  }
+
+  /* Visible, on-brand focus ring for keyboard users everywhere. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand-500));
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-7 py-3.5 text-base font-bold text-white shadow-[0_8px_24px_rgba(188,81,41,0.30)] transition-all duration-300 hover:bg-brand-600 hover:shadow-[0_12px_32px_rgba(188,81,41,0.40)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border-2 border-brown-200 bg-white/70 px-7 py-3.5 text-base font-bold text-brown-dark transition-all duration-300 hover:border-brand-300 hover:bg-white active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-brown transition-all duration-300 hover:bg-cream-200 active:scale-[0.98];
+  }
+
+  .card {
+    @apply rounded-4xl bg-white shadow-card transition-all duration-500;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-elevated hover:-translate-y-1.5;
+  }
+
+  .input-base {
+    @apply w-full rounded-2xl border-2 border-cream-300 bg-white px-4 py-3 text-base text-brown-dark placeholder:text-brown-300 outline-none transition-all duration-300 focus:border-brand-300 focus:ring-4 focus:ring-brand-100;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-brand-500 ring-1 ring-brand-100 sm:text-xs sm:tracking-[0.14em];
+  }
+
+  .section-title {
+    @apply font-display text-3xl font-extrabold leading-[1.15] text-brown-dark sm:text-4xl md:text-[2.75rem];
+  }
+
+  .section-subtitle {
+    @apply mt-4 text-base leading-relaxed text-brown md:text-lg;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold;
+  }
+
+  .page-container {
+    @apply mx-auto max-w-7xl px-5 sm:px-6 lg:px-8;
+  }
+
+  /* Warm paper texture — sits above the background, below content. */
+  .paper-texture::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: theme("backgroundImage.paper-grain");
+    opacity: 0.035;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Storybook hill divider between sections. */
+  .edge-top-curve {
+    clip-path: ellipse(140% 100% at 50% 100%);
+  }
+  .edge-bottom-curve {
+    clip-path: ellipse(140% 100% at 50% 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

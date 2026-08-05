@@ -1,0 +1,534 @@
+// Капибара — database schema (PostgreSQL)
+//
+// Status columns are plain text rather than Prisma enums. The allowed values
+// are enforced two ways: the TypeScript unions in src/lib/constants.ts, and
+// CHECK constraints added by migration 0002. Text plus a CHECK is deliberate —
+// adding a value to a Postgres enum takes an exclusive lock on every table
+// using it, while a CHECK can be swapped in a transaction.
+//
+// Money is stored as whole roubles in integer columns; there is no fractional
+// pricing and integers remove any chance of floating-point drift in totals.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Connection poolers (Supabase pgbouncer, Neon, RDS Proxy) hand out a
+  // different session per statement, which breaks Prisma's migration advisory
+  // locks. DIRECT_URL points at the database itself and is used only by
+  // `prisma migrate`; the app keeps using the pooled DATABASE_URL.
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── People ───────────────────────────────────────────────────────────────────
+
+/// A customer or administrator. Doubles as the profile record.
+/// `role` is the single source of truth for authorization and is only ever read
+/// on the server — never trusted from the client.
+model User {
+  id                String    @id @default(cuid())
+  /// Always stored lower-cased and trimmed so duplicates cannot slip in.
+  email             String    @unique
+  passwordHash      String
+  fullName          String
+  phone             String?
+  /// "customer" | "admin"
+  role              String    @default("customer")
+  emailVerified     DateTime?
+  /// When the password last changed. Sessions issued before this moment are
+  /// rejected, so changing a password logs out every other device — which is
+  /// what a person does when they suspect their account is compromised.
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  consents           Consent[]
+  orders             Order[]
+  verificationTokens VerificationToken[]
+  statusChanges      OrderStatusHistory[] @relation("StatusChangedBy")
+  reviews            Review[]
+  generationJobs     GenerationJob[]
+  auditEntries       AdminAuditLog[]      @relation("AuditActor")
+
+  @@index([role])
+  @@map("users")
+}
+
+/// One row per legal document the user accepted, captured at the moment of
+/// consent. Kept append-only so the record of what was agreed to, and when,
+/// survives later edits to the documents themselves.
+model Consent {
+  id              String   @id @default(cuid())
+  userId          String
+  /// "personal_data" | "promo_rules" | "user_agreement"
+  type            String
+  accepted        Boolean
+  acceptedAt      DateTime @default(now())
+  /// Version of the document shown at acceptance time.
+  documentVersion String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@map("consents")
+}
+
+/// Single-use token for email verification and password reset.
+model VerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  /// "email_verify" | "password_reset"
+  type      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+// ─── Catalogue ────────────────────────────────────────────────────────────────
+
+model Product {
+  id                     String  @id @default(cuid())
+  slug                   String  @unique
+  title                  String
+  shortTitle             String
+  shortDescription       String
+  description            String
+  /// Whole roubles. The catalogue has no fractional prices, and an integer
+  /// removes any chance of floating-point drift in order totals.
+  price                  Int
+  oldPrice               Int?
+  /// "available" | "coming_soon" | "archived"
+  status                 String  @default("coming_soon")
+  /// Only published AND available products can be bought.
+  published              Boolean @default(false)
+  featured               Boolean @default(false)
+  /// "in_stock" | "out_of_stock"
+  stockStatus            String  @default("in_stock")
+  ageRange               String
+  ageMin                 Int
+  ageMax                 Int
+  pageCount              Int
+  /// "hardcover-square"
+  format                 String
+  coverType              String  @default("hardcover")
+  /// "boy" | "girl" | null — which child the story is written for.
+  childGender            String?
+  personalizationEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images         ProductImage[]
+  variants       ProductVariant[]
+  items          OrderItem[]
+  reviews        Review[]
+  generationJobs GenerationJob[]
+
+  @@index([published, status])
+  @@index([featured])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  url       String
+  /// Russian alt text, required for accessibility.
+  alt       String
+  sortOrder Int     @default(0)
+  isPrimary Boolean @default(false)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  sku       String?  @unique
+  /// Overrides Product.price when set. Whole roubles.
+  price     Int?
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// ─── Orders ───────────────────────────────────────────────────────────────────
+
+model Order {
+  id             String  @id @default(cuid())
+  /// Human-readable, e.g. KPB-2026-0007.
+  orderNumber    String  @unique
+  /// Client-supplied key that makes order creation idempotent. A double-click,
+  /// a retried request or a refresh replays the same key and returns the
+  /// original order instead of creating a second one.
+  idempotencyKey String? @unique
+  /// Null for guest checkout; orders still resolve by email.
+  userId         String?
+
+  customerEmail String
+  customerName  String
+  customerPhone String
+
+  /// All amounts in whole roubles, computed server-side from database prices.
+  subtotal      Int
+  deliveryPrice Int @default(0)
+  total         Int
+
+  /// See PAYMENT_STATUSES in src/lib/constants.ts
+  paymentStatus String @default("unpaid")
+  /// See ORDER_STATUSES in src/lib/constants.ts
+  orderStatus   String @default("new")
+
+  deliveryMethod  String
+  deliveryAddress String
+  customerComment String?
+  /// Internal, never shown to the customer.
+  adminNote       String?
+
+  /// Lets the browser that placed a guest order read its own confirmation
+  /// without signing in. Held in an httpOnly cookie; knowing an order id alone
+  /// is never enough.
+  guestClaimToken String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items    OrderItem[]
+  history  OrderStatusHistory[]
+  payments Payment[]
+
+  @@index([userId])
+  @@index([orderStatus])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([customerEmail])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String?
+
+  /// Snapshots taken at purchase time so historical orders stay accurate even
+  /// if the product is later renamed, repriced or deleted.
+  productTitle String
+  productSlug  String
+  unitPrice    Int
+  quantity     Int    @default(1)
+  lineTotal    Int
+
+  order           Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+  personalization Personalization?
+  review          Review?
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+/// Everything the customer configured for one ordered book.
+model Personalization {
+  id          String @id @default(cuid())
+  orderItemId String @unique
+
+  childName   String
+  /// "boy" | "girl" | null
+  childGender String?
+  childAge    Int?
+  dedication  String?
+  /// Storage key for the uploaded photo — NOT a public URL. Access goes through
+  /// an authorization-checked route that streams the file.
+  photoKey    String?
+  format      String  @default("hardcover-square")
+
+  createdAt DateTime @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("personalizations")
+}
+
+/// Append-only audit trail of order status changes.
+model OrderStatusHistory {
+  id          String   @id @default(cuid())
+  orderId     String
+  fromStatus  String?
+  toStatus    String
+  /// Which admin made the change.
+  changedById String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy User? @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
+}
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+/// One attempt to collect money for an order.
+///
+/// Kept separate from `Order.paymentStatus` so the order carries the settled
+/// answer while this table carries the full attempt history: a customer may
+/// abandon a payment, retry, and succeed on the third try. `providerPaymentId`
+/// is what the provider calls the transaction and is how webhooks find us.
+model Payment {
+  id      String @id @default(cuid())
+  orderId String
+
+  /// See PAYMENT_PROVIDERS in src/lib/constants.ts — "manual" | "yookassa".
+  provider          String
+  /// The provider's own identifier. Null until the provider has accepted the
+  /// payment creation request.
+  providerPaymentId String? @unique
+  /// See PAYMENT_ATTEMPT_STATUSES — pending | waiting_for_capture | succeeded |
+  /// canceled | failed.
+  status            String  @default("pending")
+
+  /// Whole roubles, copied from the order at creation so a later order edit
+  /// cannot silently change what was charged.
+  amount   Int
+  currency String @default("RUB")
+
+  /// Where the customer is sent to pay. Null for providers that take no
+  /// redirect (the manual provider).
+  confirmationUrl String?
+  /// Provider-reported failure reason, stored for support. Never rendered to
+  /// the customer verbatim.
+  failureReason   String?
+  /// Raw provider payload of the last event, as JSON text. Useful when
+  /// reconciling a disputed payment.
+  rawPayload      String?
+
+  /// Guards against a replayed webhook being applied twice.
+  idempotencyKey String    @unique
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+/// A customer review. Only written by someone who actually received the book:
+/// `orderItemId` ties the review to a completed order line, so nothing here can
+/// be fabricated through the public site.
+model Review {
+  id          String @id @default(cuid())
+  userId      String
+  productId   String
+  /// The specific delivered order line being reviewed. Unique, so one purchase
+  /// yields at most one review.
+  orderItemId String @unique
+
+  rating Int
+  text   String
+
+  /// "pending" | "approved" | "rejected" — reviews are invisible until an
+  /// administrator approves them.
+  status        String  @default("pending")
+  /// Shown on the homepage when true.
+  featured      Boolean @default(false)
+  /// Administrator's reason for rejecting, shown back to the author only.
+  moderatorNote String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  moderatedAt DateTime?
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([productId, status])
+  @@index([userId])
+  @@index([status, createdAt])
+  @@map("reviews")
+}
+
+// ─── AI illustration generation ───────────────────────────────────────────────
+
+/// One request to the illustration provider to place a child's face into the
+/// book artwork.
+///
+/// The job is durable so a page reload, a slow provider or a server restart
+/// cannot lose work already paid for. `photoKey` points at private storage and
+/// is never a public URL.
+model GenerationJob {
+  id          String  @id @default(cuid())
+  orderItemId String?
+  /// Set for previews generated before an order exists.
+  userId      String?
+
+  productId String
+  childName String
+  /// Private storage key of the source photograph.
+  photoKey  String
+
+  /// Hash of the claim token held by the browser that started an anonymous
+  /// preview. Without it a job with no userId would be readable by anyone who
+  /// learned its id — and it addresses illustrations of a named child.
+  claimToken String? @unique
+
+  /// "queued" | "processing" | "succeeded" | "failed" | "cancelled"
+  status        String  @default("queued")
+  /// Provider's job identifier, once accepted.
+  providerJobId String? @unique
+  /// "nano_banana" — see GENERATION_PROVIDERS.
+  provider      String
+
+  /// Number of delivery attempts, so a permanently failing job stops retrying.
+  attempts    Int       @default(0)
+  lastError   String?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  /// Lease held by the worker currently processing this job. A worker claims a
+  /// job by setting these in a conditional UPDATE, so two workers polling the
+  /// same queue cannot both pick it up. A lease older than the timeout is
+  /// treated as abandoned — that is how a crashed worker's job is recovered.
+  lockedAt      DateTime?
+  lockedBy      String?
+  /// Earliest time this job may be attempted again, used for retry backoff.
+  nextAttemptAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  results GenerationResult[]
+  user    User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([orderItemId])
+  @@index([userId])
+  @@map("generation_jobs")
+}
+
+/// One produced illustration. Stored as a private storage key for the same
+/// reason as the source photo: these images contain a child's face.
+model GenerationResult {
+  id    String @id @default(cuid())
+  jobId String
+
+  /// Which page of the book this illustration belongs to.
+  pageNumber Int
+  storageKey String
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  job GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, pageNumber])
+  @@map("generation_results")
+}
+
+// ─── Outbound email ───────────────────────────────────────────────────────────
+
+/// Record of every message the application tried to send.
+///
+/// Written before the send is attempted and updated after, so a message that
+/// fails leaves evidence instead of vanishing. Bodies are stored because these
+/// are transactional templates the operator wrote — never customer content.
+model EmailMessage {
+  id String @id @default(cuid())
+
+  to       String
+  subject  String
+  /// "email_verify" | "password_reset" | "order_created" | "order_status"
+  template String
+  /// "queued" | "sent" | "failed"
+  status   String @default("queued")
+
+  error     String?
+  attempts  Int       @default(0)
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([to])
+  @@index([status, createdAt])
+  @@map("email_messages")
+}
+
+// ─── Abuse protection ─────────────────────────────────────────────────────────
+
+/// Fixed-window counter backing the rate limiter.
+///
+/// Stored in the database rather than memory so the limit holds across every
+/// server instance. Swap for Redis if request volume ever makes this row
+/// contention a problem.
+model RateLimitCounter {
+  /// "{action}:{identifier}", e.g. "login:ivan@example.com".
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([expiresAt])
+  @@map("rate_limit_counters")
+}
+
+// ─── Audit ────────────────────────────────────────────────────────────────────
+
+/// Append-only record of sensitive administrator actions.
+///
+/// Answers "who changed this, and when" for the operations that move money,
+/// change what customers can buy, or remove content. Deliberately stores only
+/// identifiers and short descriptions — never customer personal data, never
+/// photograph keys.
+model AdminAuditLog {
+  id         String  @id @default(cuid())
+  /// Null when the actor was deleted; the record still stands.
+  actorId    String?
+  /// Email at the time of the action, so the log survives an account rename.
+  actorEmail String
+
+  /// Dotted event name, e.g. "order.status_changed" — see ADMIN_AUDIT_ACTIONS.
+  action     String
+  /// What was acted upon: "order" | "product" | "review" | "payment" | "user".
+  targetType String
+  targetId   String
+
+  /// Short, non-sensitive summary such as "new -> in_delivery".
+  summary String?
+
+  createdAt DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@index([actorId])
+  @@map("admin_audit_log")
+}
