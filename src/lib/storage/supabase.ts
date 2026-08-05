@@ -55,6 +55,59 @@ export const supabaseDriver: StorageDriver = {
     return readConfig() !== null;
   },
 
+  /**
+   * Reads the private bucket's own metadata.
+   *
+   * Chosen because it fails for exactly the two things worth catching:
+   *
+   *   • A key that is not service-role. Row-level security hides the bucket
+   *     from anon and publishable keys, which report "Bucket not found" rather
+   *     than a permission error. Pasting the publishable key here is an easy
+   *     mistake — the names are adjacent in the Supabase dashboard — and
+   *     without this probe it is only discovered when a customer's upload
+   *     fails.
+   *   • A private bucket that is not actually private. `public: true` would
+   *     make every child's photograph readable by URL, with no other symptom.
+   */
+  async verify() {
+    const config = readConfig();
+    if (!config) return { ok: false as const, error: "Supabase не настроен" };
+
+    try {
+      const response = await fetch(
+        `${config.url}/storage/v1/bucket/${config.privateBucket}`,
+        { headers: authHeaders(config), signal: AbortSignal.timeout(10_000) }
+      );
+
+      if (!response.ok) {
+        return {
+          ok: false as const,
+          error:
+            `Бакет «${config.privateBucket}» недоступен (HTTP ${response.status}). ` +
+            "Обычная причина — в SUPABASE_SERVICE_ROLE_KEY записан не тот ключ: " +
+            "нужен service_role, а не publishable.",
+        };
+      }
+
+      const bucket = (await response.json()) as { public?: boolean };
+      if (bucket.public === true) {
+        return {
+          ok: false as const,
+          error:
+            `Бакет «${config.privateBucket}» помечен как публичный. ` +
+            "Фотографии детей были бы доступны по прямой ссылке.",
+        };
+      }
+
+      return { ok: true as const };
+    } catch (error) {
+      return {
+        ok: false as const,
+        error: error instanceof Error ? error.message : "Нет связи с хранилищем",
+      };
+    }
+  },
+
   async put(bucket, key, bytes, contentType) {
     const config = readConfig();
     if (!config) throw new Error("Supabase storage is not configured");

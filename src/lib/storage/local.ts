@@ -56,6 +56,34 @@ export const localDriver: StorageDriver = {
     return true;
   },
 
+  /**
+   * Confirms the storage root is actually writable.
+   *
+   * There is no credential to check, but a read-only or missing mount is a
+   * real way for this driver to be broken, and it is silent until the first
+   * upload. `assertStorageReady` separately refuses this driver in production.
+   */
+  async verify() {
+    try {
+      for (const bucket of ["private", "public"] as const) {
+        const dir = dirFor(bucket);
+        await mkdir(dir, { recursive: true });
+        const probe = path.join(dir, ".write-probe");
+        await writeFile(probe, "");
+        await unlink(probe);
+      }
+      return { ok: true as const };
+    } catch (error) {
+      return {
+        ok: false as const,
+        error:
+          error instanceof Error
+            ? `Каталог хранилища недоступен для записи: ${error.message}`
+            : "Каталог хранилища недоступен для записи",
+      };
+    }
+  },
+
   async put(bucket, key, bytes) {
     const full = safePath(bucket, key);
     if (!full) throw new Error("Invalid storage key");

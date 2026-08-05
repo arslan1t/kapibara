@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { storageStatus } from "@/lib/storage";
+import { storageStatus, verifyStorage } from "@/lib/storage";
 import { activeMailDriver, isMailConfigured } from "@/lib/mail";
 import { isOnlinePaymentEnabled } from "@/lib/payments";
 import { isGenerationEnabled } from "@/lib/generation";
@@ -42,6 +42,10 @@ export async function GET() {
   const database = await checkDatabase();
   const storage = storageStatus();
 
+  // Configuration being *present* is not the same as it being *correct*. This
+  // reaches the provider — see StorageDriver.verify.
+  const storageProof = await verifyStorage();
+
   // Queue depth is diagnostic, not a readiness signal: a backlog means the
   // worker is behind, not that the site cannot take orders.
   const queue = database.ok
@@ -51,7 +55,8 @@ export async function GET() {
   // Readiness is only about what a customer needs right now. Mail, payment and
   // generation being unconfigured are deliberate, supported states — the
   // application degrades honestly rather than breaking.
-  const ready = database.ok && storage.configured && storage.durable;
+  const ready =
+    database.ok && storage.configured && storage.durable && storageProof.ok;
 
   const body = {
     status: ready ? "ok" : "degraded",
@@ -59,10 +64,13 @@ export async function GET() {
     checks: {
       database,
       storage: {
-        ok: storage.configured && storage.durable,
+        ok: storage.configured && storage.durable && storageProof.ok,
         // Driver name only — never the bucket, endpoint or credentials.
         driver: storage.driver,
         durable: storage.durable,
+        // Deliberately included: an operator cannot fix a misconfiguration
+        // they cannot see, and these messages name settings, never secrets.
+        ...(storageProof.ok ? {} : { detail: storageProof.error }),
       },
       mail: { ok: isMailConfigured(), driver: activeMailDriver() },
       onlinePayment: { ok: isOnlinePaymentEnabled() },

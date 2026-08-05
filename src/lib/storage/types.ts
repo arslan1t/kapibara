@@ -24,11 +24,31 @@ export interface StoredObject {
   contentType: string;
 }
 
+export type StorageVerification =
+  | { ok: true }
+  | { ok: false; error: string };
+
 export interface StorageDriver {
   readonly id: "local" | "s3" | "supabase";
 
-  /** True when the driver has everything it needs to work. */
+  /**
+   * True when the driver has everything it needs to work.
+   *
+   * This only checks that configuration is *present*. It cannot tell a valid
+   * credential from a wrong one — see `verify`.
+   */
   isConfigured(): boolean;
+
+  /**
+   * Proves the credential actually works, by talking to the provider.
+   *
+   * `isConfigured` is not enough on its own: pasting a publishable key into
+   * SUPABASE_SERVICE_ROLE_KEY satisfies it completely, and then every upload
+   * fails with a row-level-security error at the moment a customer submits
+   * their child's photograph. That is the worst possible time to find out.
+   * The health check calls this so the failure surfaces at deploy instead.
+   */
+  verify(): Promise<StorageVerification>;
 
   put(
     bucket: Bucket,
