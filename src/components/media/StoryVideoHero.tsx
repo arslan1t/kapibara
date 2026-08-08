@@ -18,12 +18,40 @@ interface StoryVideoHeroProps {
   controls?: boolean;
 }
 
+/** True when the browser says this connection should not be spent on decoration. */
+function connectionIsExpensive(): boolean {
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  if (!connection) return false;
+  if (connection.saveData) return true;
+  return (
+    connection.effectiveType === "slow-2g" ||
+    connection.effectiveType === "2g" ||
+    connection.effectiveType === "3g"
+  );
+}
+
 /**
  * Autoplaying, muted, looping story footage in a fixed 16:9 frame.
  *
  * The aspect ratio is owned by the wrapper, so nothing shifts as the video
- * loads. Users who prefer reduced motion never download the video at all —
- * the element simply isn't mounted for them.
+ * loads.
+ *
+ * The footage is large, so the element is only mounted when downloading it is
+ * actually justified. Three groups never fetch a byte, and all of them get the
+ * `fallback` still instead — which is why that prop has to work as a hero image
+ * on its own:
+ *
+ *   • `prefers-reduced-motion` — motion is unwanted.
+ *   • Data-saver, or a connection the browser reports as 2G/3G. Most customers
+ *     arrive on a phone, and spending tens of megabytes of someone's mobile
+ *     data on decoration is not a reasonable default.
+ *   • Anything still outside the viewport. On /how-it-works this block sits
+ *     well below the fold, so without this it downloaded in full for visitors
+ *     who never scrolled to it.
  */
 export default function StoryVideoHero({
   src,
@@ -33,9 +61,12 @@ export default function StoryVideoHero({
   controls = true,
 }: StoryVideoHeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const [reducedMotion, setReducedMotion] = useState<boolean | null>(null);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(true);
+  const [inView, setInView] = useState(false);
+  const [expensive, setExpensive] = useState<boolean | null>(null);
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -44,6 +75,38 @@ export default function StoryVideoHero({
     query.addEventListener("change", onChange);
     return () => query.removeEventListener("change", onChange);
   }, []);
+
+  useEffect(() => {
+    setExpensive(connectionIsExpensive());
+  }, []);
+
+  // Mount the video only once the frame is near the viewport. `rootMargin`
+  // starts the fetch just before it scrolls into view, so the still is not
+  // visibly replaced mid-scroll.
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+
+  const shouldLoadVideo = reducedMotion === false && expensive === false && inView;
 
   function toggle() {
     const video = videoRef.current;
@@ -72,6 +135,7 @@ export default function StoryVideoHero({
 
   return (
     <div
+      ref={frameRef}
       className={cn(
         "relative aspect-video w-full overflow-hidden rounded-4xl bg-cream-200",
         className
@@ -79,7 +143,7 @@ export default function StoryVideoHero({
     >
       <div className="absolute inset-0">{fallback}</div>
 
-      {reducedMotion === false && (
+      {shouldLoadVideo && (
         <video
           ref={videoRef}
           className={cn(
@@ -97,7 +161,7 @@ export default function StoryVideoHero({
         />
       )}
 
-      {controls && reducedMotion === false && ready && (
+      {controls && shouldLoadVideo && ready && (
         <button
           type="button"
           onClick={toggle}
