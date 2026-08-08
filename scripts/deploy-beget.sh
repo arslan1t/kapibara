@@ -191,9 +191,20 @@ set -euo pipefail
 export PATH="$HOME/.local/node/bin:$PATH"
 cd "$REMOTE_DIR"
 
-# Beget shared hosting has no systemd for user accounts. A pid file plus a cron
-# watchdog is what actually survives here; if this account has a Node.js app
-# configured in the panel, prefer restarting it there instead.
+# Beget's shared hosting reaps user processes when the SSH session that started
+# them ends. `setsid` below is the strongest detachment available from a shell,
+# and it is NOT enough — measured, not assumed: the server answers HTTP 200
+# while the session is open and is gone seconds after it closes.
+#
+# Nothing in the shell fixes this. The supervisor Beget actually uses (circusd,
+# customer-process-runner) is root-only, and crontab is not installed, so both
+# routes to a persistent process go through cp.beget.com. Register the app
+# there as a Node.js application pointing at:
+#
+#     node .next/standalone/server.js     (cwd $REMOTE_DIR, PORT below)
+#
+# and the panel will keep it running and restart it after a reboot. Until then
+# this block still starts the app, which is enough to verify a deploy.
 if [ -f app.pid ] && kill -0 "$(cat app.pid)" 2>/dev/null; then
   kill "$(cat app.pid)"
   sleep 2
@@ -201,7 +212,7 @@ fi
 
 set -a; . ./.env; set +a
 export NODE_ENV=production PORT="$APP_PORT" HOSTNAME=127.0.0.1
-nohup node .next/standalone/server.js > app.log 2>&1 &
+setsid nohup node .next/standalone/server.js > app.log 2>&1 < /dev/null &
 echo $! > app.pid
 sleep 5
 
