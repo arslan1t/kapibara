@@ -16,9 +16,17 @@
 #
 #   1. SSH access as $BEGET_USER. Either an SSH key added in
 #      cp.beget.com → "SSH-доступ", or an agent holding the account password.
-#   2. $REMOTE_DIR/.env on the server, populated from .env.example. It is NEVER
-#      uploaded by this script — secrets do not travel through a deploy script,
-#      and it must survive re-deploys.
+#   2. $REMOTE_DIR/.env on the server, populated from .env.example.
+#
+#      Create it once by hand, or pass a local file explicitly:
+#
+#          ENV_FILE=~/kapibara-production.env ./scripts/deploy-beget.sh
+#
+#      Opt-in rather than automatic, and never a path inside the repository:
+#      the file holds the database password and the Supabase service-role key,
+#      so uploading it should be a decision, not a side effect of deploying.
+#      Without ENV_FILE the script leaves whatever is already on the server
+#      alone, which is what you want on every deploy after the first.
 #   3. Node.js enabled for the account in the Beget panel.
 #
 set -euo pipefail
@@ -81,6 +89,20 @@ else
 fi
 git --no-pager log --oneline -1
 REMOTE
+
+if [ -n "${ENV_FILE:-}" ]; then
+  say "Uploading $ENV_FILE to $REMOTE_DIR/.env"
+  [ -f "$ENV_FILE" ] || { echo "No such file: $ENV_FILE" >&2; exit 1; }
+  # Refuse a path inside the repository: that is how a secret ends up committed.
+  case "$(cd "$(dirname "$ENV_FILE")" && pwd)" in
+    "$(git rev-parse --show-toplevel 2>/dev/null)"*)
+      echo "Refusing to upload an env file from inside the repository." >&2
+      echo "Move it somewhere outside the working tree first." >&2
+      exit 1 ;;
+  esac
+  scp "${ssh_opts[@]}" "$ENV_FILE" "$BEGET_USER@$BEGET_HOST:$REMOTE_DIR/.env"
+  ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "chmod 600 '$REMOTE_DIR/.env'"
+fi
 
 say "Verifying .env exists on the server"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
