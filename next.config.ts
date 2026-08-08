@@ -78,6 +78,19 @@ const nextConfig: NextConfig = {
   // This keeps the Docker image small (no full node_modules in the final stage).
   output: "standalone",
 
+  // Build in a single process.
+  //
+  // "Collecting page data" normally forks a worker per CPU. Beget's shared
+  // hosting refuses those forks — the build dies with a bare `spawn EPERM`
+  // that names nothing — and the production host is the one machine where the
+  // build absolutely has to work.
+  //
+  // Applied everywhere rather than behind a flag, so that the build a
+  // developer runs is the build that ships. The output is byte-for-byte the
+  // same either way; only the parallelism of page-data collection changes, and
+  // for a project this size that is a few seconds.
+  experimental: { workerThreads: false, cpus: 1 },
+
   // Header values are compiled into the build; do not put secrets here.
   poweredByHeader: false,
 

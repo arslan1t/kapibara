@@ -27,17 +27,22 @@
 #      so uploading it should be a decision, not a side effect of deploying.
 #      Without ENV_FILE the script leaves whatever is already on the server
 #      alone, which is what you want on every deploy after the first.
-#   3. Node.js enabled for the account in the Beget panel.
+#
+# Node.js does not need to exist on the server. Beget's shared hosting ships
+# none, so this installs one into ~/.local/node on first run.
 #
 set -euo pipefail
 
 BEGET_USER="${BEGET_USER:-sshipuf9}"
 BEGET_HOST="${BEGET_HOST:-sshipuf9.beget.tech}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/kapibara_beget}"
-REMOTE_DIR="${REMOTE_DIR:-/home/$BEGET_USER/kapibara}"
+# Beget nests home directories by first letter: /home/s/sshipuf9.
+REMOTE_DIR="${REMOTE_DIR:-$(printf '/home/%s/%s/kapibara' "${BEGET_USER:0:1}" "$BEGET_USER")}"
 BRANCH="${BRANCH:-main}"
 REPO="${REPO:-https://github.com/arslan1t/kapibara.git}"
 APP_PORT="${APP_PORT:-3000}"
+NODE_VERSION="${NODE_VERSION:-v22.14.0}"
+NPM_VERSION="${NPM_VERSION:-11.17.0}"
 
 ssh_opts=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 [ -f "$SSH_KEY" ] && ssh_opts+=(-i "$SSH_KEY")
@@ -60,13 +65,27 @@ MSG
 fi
 
 say "Checking the server has a usable Node.js"
-ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" 'bash -s' <<'REMOTE'
+ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" \
+  "NODE_VERSION='$NODE_VERSION' NPM_VERSION='$NPM_VERSION' bash -s" <<'REMOTE'
 set -euo pipefail
+# Beget shared hosting ships no Node at all, so the account carries its own
+# under ~/.local/node. Installed here rather than assumed, because a deploy that
+# depends on someone having clicked something in a panel is not reproducible.
+export PATH="$HOME/.local/node/bin:$PATH"
 if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js is not on PATH for this account." >&2
-  echo "Enable it in cp.beget.com → 'Сайты' → your site → Node.js, then re-run." >&2
-  exit 1
+  echo "Installing Node ${NODE_VERSION} into ~/.local/node"
+  mkdir -p ~/.local && cd ~/.local
+  curl -fsSL -o node.tar.xz "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz"
+  rm -rf node "node-${NODE_VERSION}-linux-x64"
+  tar -xf node.tar.xz && mv "node-${NODE_VERSION}-linux-x64" node && rm -f node.tar.xz
+  for f in ~/.bashrc ~/.bash_profile ~/.profile; do
+    touch "$f"
+    grep -qF ".local/node/bin" "$f" || echo 'export PATH="$HOME/.local/node/bin:$PATH"' >> "$f"
+  done
 fi
+# The lockfile is written by npm 11; npm 10 resolves the next-auth/nodemailer
+# peer differently and rejects it. Same tool, same result.
+[ "$(npm -v | cut -d. -f1)" -ge 11 ] || npm install -g "npm@${NPM_VERSION}"
 node -v
 major=$(node -v | sed 's/^v\([0-9]*\).*/\1/')
 if [ "$major" -lt 20 ]; then
@@ -109,8 +128,8 @@ ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s
 set -euo pipefail
 if [ ! -f "$REMOTE_DIR/.env" ]; then
   echo "Missing $REMOTE_DIR/.env" >&2
-  echo "Create it from .env.example and fill in real values. It is intentionally" >&2
-  echo "not uploaded by the deploy script." >&2
+  echo "Create it from .env.example, or pass one:" >&2
+  echo "  ENV_FILE=/path/outside/the/repo/production.env $0" >&2
   exit 1
 fi
 chmod 600 "$REMOTE_DIR/.env"
@@ -131,18 +150,21 @@ REMOTE
 say "Installing dependencies and building (this generates the Linux Prisma engine)"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
+export PATH="$HOME/.local/node/bin:$PATH"
 cd "$REMOTE_DIR"
-npm ci --omit=dev --ignore-scripts
-# postinstall was skipped by --ignore-scripts; run the parts we actually want.
-npx prisma generate
-# The build needs devDependencies (next, typescript, tailwind).
+# A full install, including devDependencies: next, typescript and tailwind are
+# all needed to build. postinstall runs `prisma generate`, which is what emits
+# the Linux query engine.
 npm ci
+set -a; . ./.env; set +a
+export NODE_ENV=production
 npm run build
 REMOTE
 
 say "Applying database migrations"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
+export PATH="$HOME/.local/node/bin:$PATH"
 cd "$REMOTE_DIR"
 set -a; . ./.env; set +a
 npx prisma migrate deploy
@@ -151,6 +173,7 @@ REMOTE
 say "Assembling the standalone runtime"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
+export PATH="$HOME/.local/node/bin:$PATH"
 cd "$REMOTE_DIR"
 # `output: "standalone"` emits a minimal server, but Next deliberately leaves
 # static assets and /public for the deployer to place.
@@ -165,6 +188,7 @@ say "Restarting the application"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" \
   "REMOTE_DIR='$REMOTE_DIR' APP_PORT='$APP_PORT' bash -s" <<'REMOTE'
 set -euo pipefail
+export PATH="$HOME/.local/node/bin:$PATH"
 cd "$REMOTE_DIR"
 
 # Beget shared hosting has no systemd for user accounts. A pid file plus a cron
