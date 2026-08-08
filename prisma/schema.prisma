@@ -12,6 +12,17 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
+
+  // Prisma ships a native query engine per platform. "native" alone builds only
+  // for the machine running `prisma generate` — so a client generated on macOS
+  // throws "Query engine binary not found" the moment it runs on a Linux host.
+  //
+  // The deployment installs and builds on the server, which would generate the
+  // right engine on its own. These targets are the safety net for every other
+  // path: a bundle built in CI, a Docker image, or a rsync'd node_modules. The
+  // two Debian variants cover the OpenSSL versions in current use; the musl one
+  // covers Alpine-based images.
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
