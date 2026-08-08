@@ -29,15 +29,26 @@
 #      alone, which is what you want on every deploy after the first.
 #
 # Node.js does not need to exist on the server. Beget's shared hosting ships
-# none, so this installs one into ~/.local/node on first run.
+# none, so this installs one into the site tree on first run.
+#
+# The application is served by Apache's mod_passenger, which starts and keeps
+# the process. Nothing here runs a server in the background — a process started
+# over SSH is reaped as soon as the session closes.
 #
 set -euo pipefail
 
 BEGET_USER="${BEGET_USER:-sshipuf9}"
 BEGET_HOST="${BEGET_HOST:-sshipuf9.beget.tech}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/kapibara_beget}"
-# Beget nests home directories by first letter: /home/s/sshipuf9.
-REMOTE_DIR="${REMOTE_DIR:-$(printf '/home/%s/%s/kapibara' "${BEGET_USER:0:1}" "$BEGET_USER")}"
+# The application lives INSIDE the site directory, not beside it.
+#
+# Apache/Passenger runs this site as a separate account (sshipuf9__capibara__ae).
+# Beget provisions the site directory with a default ACL granting that account
+# access, and anything created inside inherits it. Outside, nothing does, and
+# setfacl is not permitted for customers — so an app in ~/kapibara is a 403 that
+# no amount of chmod will fix.
+SITE_DIR="${SITE_DIR:-$(printf '/home/%s/%s/capibara' "${BEGET_USER:0:1}" "$BEGET_USER")}"
+REMOTE_DIR="${REMOTE_DIR:-$SITE_DIR/app}"
 BRANCH="${BRANCH:-main}"
 REPO="${REPO:-https://github.com/arslan1t/kapibara.git}"
 APP_PORT="${APP_PORT:-3000}"
@@ -66,18 +77,21 @@ fi
 
 say "Checking the server has a usable Node.js"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" \
-  "NODE_VERSION='$NODE_VERSION' NPM_VERSION='$NPM_VERSION' bash -s" <<'REMOTE'
+  "NODE_VERSION='$NODE_VERSION' NPM_VERSION='$NPM_VERSION' SITE_DIR='$SITE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
 # Beget shared hosting ships no Node at all, so the account carries its own
 # under ~/.local/node. Installed here rather than assumed, because a deploy that
 # depends on someone having clicked something in a panel is not reproducible.
-export PATH="$HOME/.local/node/bin:$PATH"
+export PATH="$SITE_DIR/node/bin:$HOME/.local/node/bin:$PATH"
 if ! command -v node >/dev/null 2>&1; then
   echo "Installing Node ${NODE_VERSION} into ~/.local/node"
-  mkdir -p ~/.local && cd ~/.local
+  mkdir -p "$SITE_DIR" && cd "$SITE_DIR"
   curl -fsSL -o node.tar.xz "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz"
   rm -rf node "node-${NODE_VERSION}-linux-x64"
   tar -xf node.tar.xz && mv "node-${NODE_VERSION}-linux-x64" node && rm -f node.tar.xz
+  # Node lives in the site tree too: Passenger executes it as the site account,
+  # which cannot read a binary under ~/.local (mode 700, no ACL).
+  mkdir -p ~/.local && ln -sfn "$SITE_DIR/node" ~/.local/node
   for f in ~/.bashrc ~/.bash_profile ~/.profile; do
     touch "$f"
     grep -qF ".local/node/bin" "$f" || echo 'export PATH="$HOME/.local/node/bin:$PATH"' >> "$f"
@@ -150,7 +164,7 @@ REMOTE
 say "Installing dependencies and building (this generates the Linux Prisma engine)"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
-export PATH="$HOME/.local/node/bin:$PATH"
+export PATH="$(dirname "$REMOTE_DIR")/node/bin:$PATH"
 cd "$REMOTE_DIR"
 # A full install, including devDependencies: next, typescript and tailwind are
 # all needed to build. postinstall runs `prisma generate`, which is what emits
@@ -164,7 +178,7 @@ REMOTE
 say "Applying database migrations"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
-export PATH="$HOME/.local/node/bin:$PATH"
+export PATH="$(dirname "$REMOTE_DIR")/node/bin:$PATH"
 cd "$REMOTE_DIR"
 set -a; . ./.env; set +a
 npx prisma migrate deploy
@@ -173,7 +187,7 @@ REMOTE
 say "Assembling the standalone runtime"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
-export PATH="$HOME/.local/node/bin:$PATH"
+export PATH="$(dirname "$REMOTE_DIR")/node/bin:$PATH"
 cd "$REMOTE_DIR"
 # `output: "standalone"` emits a minimal server, but Next deliberately leaves
 # static assets and /public for the deployer to place.
@@ -184,49 +198,54 @@ chmod 600 .next/standalone/.env
 echo "standalone ready: $(du -sh .next/standalone | cut -f1)"
 REMOTE
 
-say "Restarting the application"
+say "Wiring up mod_passenger and restarting"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" \
-  "REMOTE_DIR='$REMOTE_DIR' APP_PORT='$APP_PORT' bash -s" <<'REMOTE'
+  "REMOTE_DIR='$REMOTE_DIR' SITE_DIR='$SITE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
-export PATH="$HOME/.local/node/bin:$PATH"
-cd "$REMOTE_DIR"
+cd "$SITE_DIR"
 
-# Beget's shared hosting reaps user processes when the SSH session that started
-# them ends. `setsid` below is the strongest detachment available from a shell,
-# and it is NOT enough — measured, not assumed: the server answers HTTP 200
-# while the session is open and is gone seconds after it closes.
-#
-# Nothing in the shell fixes this. The supervisor Beget actually uses (circusd,
-# customer-process-runner) is root-only, and crontab is not installed, so both
-# routes to a persistent process go through cp.beget.com. Register the app
-# there as a Node.js application pointing at:
-#
-#     node .next/standalone/server.js     (cwd $REMOTE_DIR, PORT below)
-#
-# and the panel will keep it running and restart it after a reboot. Until then
-# this block still starts the app, which is enough to verify a deploy.
-if [ -f app.pid ] && kill -0 "$(cat app.pid)" 2>/dev/null; then
-  kill "$(cat app.pid)"
-  sleep 2
+# Beget runs Node applications under Apache's mod_passenger, which starts and
+# supervises the process itself. Nothing here launches a server: a process
+# started from this SSH session would be reaped the moment the session ends.
+
+# DocumentRoot serves the app's static assets directly; anything Apache cannot
+# find there falls through to Passenger. Keep the stock Beget site, do not
+# delete it — it is the only copy.
+if [ -d public_html ] && [ ! -L public_html ]; then
+  mv public_html public_html.beget-default
 fi
+ln -sfn "$REMOTE_DIR/public" public_html
 
-set -a; . ./.env; set +a
-export NODE_ENV=production PORT="$APP_PORT" HOSTNAME=127.0.0.1
-setsid nohup node .next/standalone/server.js > app.log 2>&1 < /dev/null &
-echo $! > app.pid
-sleep 5
+cat > .htaccess <<HT
+PassengerNodejs $SITE_DIR/node/bin/node
+PassengerAppRoot $REMOTE_DIR
+PassengerAppType node
+PassengerStartupFile passenger-entry.js
+HT
+chmod 644 .htaccess
 
-if ! kill -0 "$(cat app.pid)" 2>/dev/null; then
-  echo "Application exited immediately. Last lines of app.log:" >&2
-  tail -30 app.log >&2
-  exit 1
-fi
-echo "running as pid $(cat app.pid) on port $APP_PORT"
+# Touching this file is how Passenger is told to restart. It lives in the
+# project root so a rebuild does not remove it.
+mkdir -p "$REMOTE_DIR/tmp"
+touch "$REMOTE_DIR/tmp/restart.txt"
+echo "passenger configured; restart requested"
 REMOTE
 
-say "Checking health through the running process"
-ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" \
-  "curl -s -m 20 http://127.0.0.1:$APP_PORT/api/health" | head -c 600
+say "Checking the public address"
+for attempt in 1 2 3 4 5 6; do
+  code=$(curl -s -o /dev/null -m 45 -b "beget=begetok" \
+    -w '%{http_code}' "https://capibara.su/api/health" || true)
+  [ "$code" = "200" ] && break
+  sleep 5
+done
+echo "  https://capibara.su/api/health -> HTTP $code"
+curl -s -m 45 -b "beget=begetok" "https://capibara.su/api/health" | head -c 400
 echo
 
-say "Done. Verify the public address:  curl -I https://capibara.su"
+if [ "$code" != "200" ]; then
+  echo "Site did not come up. Passenger's log is in cp.beget.com; the usual" >&2
+  echo "causes are an unreadable node binary or .env outside the site tree." >&2
+  exit 1
+fi
+
+say "Done."
