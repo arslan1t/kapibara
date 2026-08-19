@@ -200,7 +200,7 @@ REMOTE
 
 say "Wiring up mod_passenger and restarting"
 ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" \
-  "REMOTE_DIR='$REMOTE_DIR' SITE_DIR='$SITE_DIR' bash -s" <<'REMOTE'
+  "REMOTE_DIR='$REMOTE_DIR' SITE_DIR='$SITE_DIR' MAINTENANCE='${MAINTENANCE:-}' bash -s" <<'REMOTE'
 set -euo pipefail
 cd "$SITE_DIR"
 
@@ -216,13 +216,55 @@ if [ -d public_html ] && [ ! -L public_html ]; then
 fi
 ln -sfn "$REMOTE_DIR/public" public_html
 
-cat > .htaccess <<HT
+# Maintenance mode closes the bare domain and serves the site only on www.
+#
+# It is sticky: once on, a later deploy keeps it on unless MAINTENANCE=0 is
+# passed. Reopening a shop to the public is a decision someone makes, never a
+# side effect of shipping a change.
+if [ -z "${MAINTENANCE:-}" ] && grep -q "MAINTENANCE-MODE" .htaccess 2>/dev/null; then
+  MAINTENANCE=1
+fi
+
+{
+  cat <<HT
 PassengerNodejs $SITE_DIR/node/bin/node
 PassengerAppRoot $REMOTE_DIR
 PassengerAppType node
 PassengerStartupFile passenger-entry.js
 HT
+
+  if [ "${MAINTENANCE:-0}" = "1" ]; then
+    cat <<'HT'
+
+# MAINTENANCE-MODE
+#
+# capibara.su is closed; www.capibara.su serves the application. The rewrite
+# runs before Passenger sees the request, so the app is never invoked on the
+# bare domain. 503 rather than 404 or 200: it is the temporary code, so search
+# engines keep the pages indexed and come back later.
+ErrorDocument 503 /maintenance.html
+
+RewriteEngine On
+RewriteCond %{HTTP_HOST} !^www\. [NC]
+RewriteCond %{REQUEST_URI} !=/maintenance.html
+RewriteRule ^ - [R=503,L]
+
+<IfModule mod_headers.c>
+  # The same path returns different things per hostname. Without Vary the
+  # upstream cache treats them as one resource — measured, not guessed: a
+  # cached holding page from the bare domain was served to www visitors.
+  Header always set Vary "Host"
+  Header always set Retry-After "3600" "expr=%{REQUEST_STATUS} == 503"
+  Header always set Cache-Control "no-store, must-revalidate" "expr=%{REQUEST_STATUS} == 503"
+</IfModule>
+HT
+  fi
+} > .htaccess
 chmod 644 .htaccess
+
+if [ "${MAINTENANCE:-0}" = "1" ]; then
+  echo "maintenance mode ON — public site closed, www serves the app"
+fi
 
 # Touching this file is how Passenger is told to restart. It lives in the
 # project root so a rebuild does not remove it.
@@ -231,15 +273,20 @@ touch "$REMOTE_DIR/tmp/restart.txt"
 echo "passenger configured; restart requested"
 REMOTE
 
+# In maintenance mode the bare domain deliberately answers 503, so health is
+# checked against the host that actually serves the application.
+CHECK_HOST="capibara.su"
+[ "${MAINTENANCE:-0}" = "1" ] && CHECK_HOST="www.capibara.su"
+
 say "Checking the public address"
 for attempt in 1 2 3 4 5 6; do
   code=$(curl -s -o /dev/null -m 45 -b "beget=begetok" \
-    -w '%{http_code}' "https://capibara.su/api/health" || true)
+    -w '%{http_code}' "https://$CHECK_HOST/api/health" || true)
   [ "$code" = "200" ] && break
   sleep 5
 done
-echo "  https://capibara.su/api/health -> HTTP $code"
-curl -s -m 45 -b "beget=begetok" "https://capibara.su/api/health" | head -c 400
+echo "  https://$CHECK_HOST/api/health -> HTTP $code"
+curl -s -m 45 -b "beget=begetok" "https://$CHECK_HOST/api/health" | head -c 400
 echo
 
 if [ "$code" != "200" ]; then
