@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { OPERATOR } from "@/lib/legal";
+import CookieSettingsLink from "@/components/legal/CookieSettingsLink";
 import Image from "next/image";
 import { Instagram, Send } from "lucide-react";
 import { getPublishedProducts } from "@/lib/products";
@@ -110,9 +112,35 @@ export default async function Footer() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
+        {/* Seller identity. ЗОЗПП ст. 9 requires the name, address and state
+            registration number to be available to the buyer, and a compliance
+            check looks for them on every page — hence the footer. */}
+        <div className="mt-14 border-t border-white/10 pt-8 text-sm leading-relaxed text-cream-400/80">
+          <p>{OPERATOR.fullName}</p>
+          <p className="mt-1">
+            ИНН {OPERATOR.inn} · ОГРНИП {OPERATOR.ogrnip}
+          </p>
+          <p className="mt-1">{OPERATOR.address}</p>
+          <p className="mt-1">
+            <a
+              href={`mailto:${OPERATOR.email}`}
+              className="transition-colors hover:text-white"
+            >
+              {OPERATOR.email}
+            </a>
+            {" · "}
+            <a
+              href={`tel:${OPERATOR.phoneHref}`}
+              className="transition-colors hover:text-white"
+            >
+              {OPERATOR.phone}
+            </a>
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
           <p className="text-sm text-cream-400/80">
-            © {new Date().getFullYear()} Капибара
+            © {new Date().getFullYear()} {OPERATOR.brand}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-cream-400/80">
             <Link href="/privacy" className="transition-colors hover:text-white">
@@ -121,9 +149,10 @@ export default async function Footer() {
             <Link href="/terms" className="transition-colors hover:text-white">
               Пользовательское соглашение
             </Link>
-            <Link href="/promotion-rules" className="transition-colors hover:text-white">
-              Правила акции
+            <Link href="/cookies" className="transition-colors hover:text-white">
+              Файлы cookie
             </Link>
+            <CookieSettingsLink className="transition-colors hover:text-white" />
           </div>
         </div>
       </div>

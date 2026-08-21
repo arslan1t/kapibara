@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nunito, Nunito_Sans } from "next/font/google";
 import "@/lib/storage-polyfill";
 import CartHydration from "@/components/layout/CartHydration";
+import CookieConsent from "@/components/legal/CookieConsent";
 import "./globals.css";
 
 // Warm rounded display for headings; rounded, highly readable sans for body.
@@ -65,6 +66,9 @@ export default function RootLayout({
       <body>
         <CartHydration />
         {children}
+        {/* Root layout, not (main): the banner must also appear on the sign-in
+            and registration pages, which live in their own route group. */}
+        <CookieConsent />
       </body>
     </html>
   );

@@ -119,16 +119,20 @@ export type Role = (typeof ROLES)[number];
 // ─── Legal consents ───────────────────────────────────────────────────────────
 
 /**
- * Bump a version when the corresponding document text changes materially, so
- * new consents record which wording the user actually agreed to.
+ * Version stamped onto stored consents. Defined in src/lib/legal.ts alongside
+ * the documents themselves, so the wording and the version cannot drift apart.
  */
-export const CONSENT_DOCUMENT_VERSION = "2026-08-01";
+export { LEGAL_VERSION as CONSENT_DOCUMENT_VERSION } from "@/lib/legal";
 
-export const CONSENT_TYPES = [
-  "personal_data",
-  "promo_rules",
-  "user_agreement",
-] as const;
+/**
+ * Consents collected at registration.
+ *
+ * "promo_rules" was removed: there is no promotion, so the checkbox asked
+ * people to accept rules for something that does not exist. The database CHECK
+ * constraint still permits the value — consents already given must remain
+ * readable exactly as they were recorded.
+ */
+export const CONSENT_TYPES = ["personal_data", "user_agreement"] as const;
 
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 

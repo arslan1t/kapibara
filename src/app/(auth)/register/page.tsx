@@ -42,7 +42,6 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [consents, setConsents] = useState<Record<ConsentType, boolean>>({
     personal_data: false,
-    promo_rules: false,
     user_agreement: false,
   });
 
@@ -195,14 +194,6 @@ export default function RegisterPage() {
             </DocLink>
           </ConsentCheckbox>
 
-          <ConsentCheckbox
-            id="consent-promo-rules"
-            checked={consents.promo_rules}
-            invalid={submitted && !consents.promo_rules}
-            onChange={(v) => setConsents((c) => ({ ...c, promo_rules: v }))}
-          >
-            Я принимаю <DocLink href="/promotion-rules">Правила акции</DocLink>
-          </ConsentCheckbox>
 
           <ConsentCheckbox
             id="consent-user-agreement"
