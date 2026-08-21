@@ -116,7 +116,15 @@ export default async function Footer() {
             registration number to be available to the buyer, and a compliance
             check looks for them on every page — hence the footer. */}
         <div className="mt-14 border-t border-white/10 pt-8 text-sm leading-relaxed text-cream-400/80">
-          <p>{OPERATOR.fullName}</p>
+          <p>
+            {OPERATOR.fullName}
+            {/* 436-ФЗ: public content needs an age category. The books are for
+                preschool and early-school children and contain nothing that
+                restricts a younger audience, so 0+ is the honest mark. */}
+            <span className="ml-2 rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-semibold text-cream-200">
+              0+
+            </span>
+          </p>
           <p className="mt-1">
             ИНН {OPERATOR.inn} · ОГРНИП {OPERATOR.ogrnip}
           </p>
@@ -148,6 +156,9 @@ export default async function Footer() {
             </Link>
             <Link href="/terms" className="transition-colors hover:text-white">
               Пользовательское соглашение
+            </Link>
+            <Link href="/offer" className="transition-colors hover:text-white">
+              Публичная оферта
             </Link>
             <Link href="/cookies" className="transition-colors hover:text-white">
               Файлы cookie
