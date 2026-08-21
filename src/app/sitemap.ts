@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: `${baseUrl}/personal-data-policy`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: `${baseUrl}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
-    { url: `${baseUrl}/promotion-rules`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${baseUrl}/cookies`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
   ];
 
   // Every published book gets a product page; only purchasable ones get a
