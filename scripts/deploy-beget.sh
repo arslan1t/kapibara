@@ -275,8 +275,17 @@ REMOTE
 
 # In maintenance mode the bare domain deliberately answers 503, so health is
 # checked against the host that actually serves the application.
-CHECK_HOST="capibara.su"
-[ "${MAINTENANCE:-0}" = "1" ] && CHECK_HOST="www.capibara.su"
+#
+# Asked of the server rather than inferred from $MAINTENANCE: when the mode is
+# sticky it is turned on remotely, by the block above finding the marker in the
+# existing .htaccess, and the local variable never learns about it. Checking
+# the wrong host reported a perfectly good deploy as a failure.
+if ssh "${ssh_opts[@]}" "$BEGET_USER@$BEGET_HOST" \
+     "grep -q MAINTENANCE-MODE '$SITE_DIR/.htaccess'" 2>/dev/null; then
+  CHECK_HOST="www.capibara.su"
+else
+  CHECK_HOST="capibara.su"
+fi
 
 say "Checking the public address"
 for attempt in 1 2 3 4 5 6; do
