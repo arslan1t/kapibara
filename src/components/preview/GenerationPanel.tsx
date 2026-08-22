@@ -83,6 +83,23 @@ export default function GenerationPanel({
     return () => clearInterval(timer);
   }, [job, poll]);
 
+  /**
+   * Starts generation as soon as the page opens.
+   *
+   * It used to wait for a click, which put the one thing the customer came for
+   * behind a button they had no reason to expect. There is nothing to decide
+   * here: they uploaded a photograph in order to see this.
+   *
+   * Guarded on `job` so a re-render never submits twice — each submission is
+   * billed.
+   */
+  useEffect(() => {
+    if (enabled && photoKey && !job && !starting) void start();
+    // `start` is stable for a given photo; re-running on every render is what
+    // the guard above prevents.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, photoKey]);
+
   async function start() {
     if (!photoKey) return;
     setError(null);

@@ -63,8 +63,8 @@ export default function PreviewBook({ project }: PreviewBookProps) {
 
       <p className="mt-4 flex items-start gap-2.5 rounded-2xl bg-brand-100 px-4 py-3.5 text-sm leading-relaxed text-brown">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-300" strokeWidth={2} />
-        Это предварительный макет. Иллюстрации с лицом ребёнка наши художники
-        подготовят после оформления заказа.
+        Это обложка серии. Иллюстрация с вашим ребёнком создаётся ниже —
+        окончательный макет мы согласуем с вами до печати.
       </p>
     </div>
   );

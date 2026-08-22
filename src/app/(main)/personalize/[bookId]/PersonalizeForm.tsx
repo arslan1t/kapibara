@@ -9,7 +9,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import BookCover from "@/components/books/BookCover";
 import type { Book, PersonalizationData } from "@/types";
-import { createPersonalization } from "@/lib/api";
+import { createPersonalization, uploadChildPhoto } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import {
   sanitizeChildName,
@@ -36,6 +36,8 @@ export default function PersonalizeForm({ book }: Props) {
   const [loading, setLoading] = useState(false);
   const [nameTouched, setNameTouched] = useState(false);
   const [nameRejected, setNameRejected] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [form, setForm] = useState<PersonalizationData>({
     bookId,
@@ -69,6 +71,8 @@ export default function PersonalizeForm({ book }: Props) {
 
   useEffect(() => {
     try {
+      // photoUrl is a blob: handle and dies with the page; photoKey names a
+      // real object in private storage, so it is worth keeping.
       const { photoUrl, ...persistable } = form;
       void photoUrl;
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(persistable));
@@ -76,6 +80,40 @@ export default function PersonalizeForm({ book }: Props) {
       // storage unavailable — the flow still works for this session
     }
   }, [form]);
+
+  /**
+   * Sends the photograph to private storage and keeps the key it comes back
+   * with.
+   *
+   * Previously the file never left the browser: the form held a blob: URL, the
+   * preview showed it, and nothing was ever uploaded — so `photoKey` stayed
+   * undefined and illustration generation, which needs a real stored object,
+   * could not start at all.
+   */
+  async function handlePhotoChange(url: string | undefined, file?: File) {
+    setUploadError(null);
+
+    if (!url || !file) {
+      setForm((f) => ({ ...f, photoUrl: undefined, photoKey: undefined }));
+      return;
+    }
+
+    // Show it immediately; the upload runs behind the preview.
+    setForm((f) => ({ ...f, photoUrl: url, photoKey: undefined }));
+    setUploading(true);
+
+    const result = await uploadChildPhoto(file);
+    setUploading(false);
+
+    if (!result.ok) {
+      // Keep the picture on screen so the choice is not lost, but say plainly
+      // that it has not been saved — otherwise the next screen silently offers
+      // no illustration and nobody knows why.
+      setUploadError(result.error);
+      return;
+    }
+    setForm((f) => ({ ...f, photoKey: result.key }));
+  }
 
   async function handleGenerate() {
     setLoading(true);
@@ -300,8 +338,18 @@ export default function PersonalizeForm({ book }: Props) {
 
                     <UploadBox
                       value={form.photoUrl}
-                      onChange={(url) => setForm((f) => ({ ...f, photoUrl: url }))}
+                      onChange={handlePhotoChange}
+                      busy={uploading}
                     />
+
+                    {uploadError && (
+                      <p
+                        role="alert"
+                        className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium leading-relaxed text-red-600"
+                      >
+                        {uploadError}
+                      </p>
+                    )}
 
                     <ul className="grid gap-2.5 sm:grid-cols-2">
                       {[
