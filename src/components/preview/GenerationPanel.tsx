@@ -24,7 +24,15 @@ interface JobState {
 /** How often to ask the server for progress while a job is in flight. */
 const POLL_MS = 3000;
 /** Give up polling after this long so a wedged job cannot poll forever. */
-const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+/**
+ * How long this page keeps watching.
+ *
+ * Ten minutes, not five: a measured run on a large phone photograph took 329
+ * seconds, so five reported "longer than usual" on a job that was working
+ * perfectly normally. The job itself is a durable row and is unaffected by
+ * this number — only the wording on screen is.
+ */
+const POLL_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * Live illustration generation.
@@ -246,7 +254,7 @@ export default function GenerationPanel({
         {GENERATION_STATUS_LABELS[job.status]}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-brown">
-        Рисуем {childName} в сценах книги. Обычно это занимает около минуты.
+        Рисуем {childName} в сценах книги. Обычно это занимает одну–три минуты, а с крупной фотографией — дольше.
         Страницу можно закрыть — работа продолжится, и результат сохранится.
       </p>
 
