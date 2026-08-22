@@ -1,6 +1,42 @@
 import type { NextConfig } from "next";
 
 /**
+ * Origin that private images are actually served from.
+ *
+ * /api/uploads/[key] authorizes the request and then redirects to a short-lived
+ * signed URL on the storage provider. CSP is evaluated against the FINAL url of
+ * a redirect chain, so without this the browser blocks the image and shows a
+ * broken icon — which is exactly what happened to every generated illustration
+ * while the source photograph, still alive as a blob:, kept displaying and hid
+ * the problem.
+ *
+ * Read from configuration rather than hardcoded: it differs per project, and an
+ * S3 or R2 deployment has a different host again. Only the origin is taken, so
+ * a full URL in the variable cannot widen the policy beyond one host.
+ */
+function storageOrigin(): string {
+  const candidates = [
+    process.env.SUPABASE_URL,
+    process.env.S3_PUBLIC_BASE_URL,
+    process.env.S3_ENDPOINT,
+  ];
+  for (const raw of candidates) {
+    const value = raw?.trim();
+    if (!value) continue;
+    try {
+      return new URL(value).origin;
+    } catch {
+      // Not a URL; fall through to the next candidate.
+    }
+  }
+  return "";
+}
+
+const imgSrc = ["'self'", "data:", "blob:", storageOrigin()]
+  .filter(Boolean)
+  .join(" ");
+
+/**
  * Content Security Policy.
  *
  * `'unsafe-inline'` on style-src is unavoidable today: Next.js injects inline
@@ -29,8 +65,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   // blob: is needed for the local preview of a photo the customer just picked,
-  // before it is uploaded.
-  "img-src 'self' data: blob:",
+  // before it is uploaded; the storage origin for everything served afterwards.
+  `img-src ${imgSrc}`,
   "media-src 'self'",
   // Same-origin only. The payment provider is reached server-side, never from
   // the browser, so no provider host belongs here.
@@ -124,9 +160,12 @@ const nextConfig: NextConfig = {
 
   async redirects() {
     return [
-      // `/promo-rules` was the earlier path for the same document. Keeping a
-      // permanent redirect avoids two indexable URLs with identical content.
-      { source: "/promo-rules", destination: "/promotion-rules", permanent: true },
+      // Both paths held the promotion rules, a document removed along with the
+      // promotion itself. They point at the offer now, which is the document a
+      // visitor following such a link is actually looking for — a permanent
+      // redirect to a deleted page is just a slower 404.
+      { source: "/promo-rules", destination: "/offer", permanent: true },
+      { source: "/promotion-rules", destination: "/offer", permanent: true },
     ];
   },
 
