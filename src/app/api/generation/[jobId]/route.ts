@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { startInProcessWorker } from "@/lib/generation/boot";
 import { auth } from "@/lib/auth";
 import { getJobForUser, pollJob } from "@/lib/generation";
 import { readJobClaim } from "@/lib/claim";
@@ -19,6 +20,10 @@ export const dynamic = "force-dynamic";
 interface Context {
   params: Promise<{ jobId: string }>;
 }
+
+// The first request to this route boots the queue worker. After that it runs
+// on its own timer, so a job finishes even if the customer closes the page.
+startInProcessWorker();
 
 export async function GET(_request: Request, { params }: Context) {
   const { jobId } = await params;

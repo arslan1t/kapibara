@@ -13,9 +13,16 @@ interface Props {
   photoKey: string | null;
   /** False when the provider has no credentials configured. */
   enabled: boolean;
+  /**
+   * Reports job state upward so the page can put the result where the customer
+   * is actually looking — the main image slot — instead of leaving the series
+   * cover, with somebody else's child on it, as the largest thing on screen
+   * while their own illustration is being drawn.
+   */
+  onJob?: (job: JobState | null) => void;
 }
 
-interface JobState {
+export interface JobState {
   id: string;
   status: GenerationStatus;
   pages: { pageNumber: number; storageKey: string }[];
@@ -46,8 +53,16 @@ export default function GenerationPanel({
   childName,
   photoKey,
   enabled,
+  onJob,
 }: Props) {
   const [job, setJob] = useState<JobState | null>(null);
+
+  useEffect(() => {
+    onJob?.(job);
+    // The callback is a render-stable setter in practice; depending on it
+    // would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startedAt = useRef<number>(0);

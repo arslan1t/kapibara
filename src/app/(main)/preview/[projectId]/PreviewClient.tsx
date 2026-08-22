@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShoppingBag, ArrowLeft, Check, ShieldCheck, Truck, Sparkles } from "lucide-react";
 import PreviewBook from "@/components/preview/PreviewBook";
-import GenerationPanel from "@/components/preview/GenerationPanel";
+import GenerationPanel, { type JobState } from "@/components/preview/GenerationPanel";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/shared/EmptyState";
 import { useCartStore } from "@/store/cart";
@@ -23,6 +23,7 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const [project, setProject] = useState<GeneratedProject | null | undefined>(undefined);
+  const [job, setJob] = useState<JobState | null>(null);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -80,12 +81,13 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
 
         <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2 lg:gap-14">
           <div className="flex flex-col gap-5">
-            <PreviewBook project={project} />
+            <PreviewBook project={project} job={job} />
             <GenerationPanel
               productSlug={book.slug}
               childName={personalization.childName}
               photoKey={personalization.photoKey ?? null}
               enabled={generationEnabled}
+              onJob={setJob}
             />
           </div>
 
