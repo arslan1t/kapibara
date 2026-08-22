@@ -95,8 +95,12 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sage-500">
                 <Check className="h-5 w-5" strokeWidth={2.4} />
               </span>
+              {/* Says what is actually true. The book image beside it is the
+                  series cover, not a personalised render, and the claim that a
+                  "макет" was ready appeared even when nothing had been
+                  generated at all. */}
               <p className="text-[15px] font-semibold text-brown-dark">
-                Макет готов — можно оформлять заказ
+                Данные сохранены — можно оформлять заказ
               </p>
             </div>
 

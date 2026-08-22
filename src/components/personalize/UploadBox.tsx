@@ -8,10 +8,12 @@ import { cn } from "@/lib/utils";
 interface UploadBoxProps {
   value?: string;
   onChange: (url: string | undefined, file?: File) => void;
+  /** The file is on its way to storage. */
+  busy?: boolean;
   className?: string;
 }
 
-export default function UploadBox({ value, onChange, className }: UploadBoxProps) {
+export default function UploadBox({ value, onChange, busy, className }: UploadBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -38,8 +40,14 @@ export default function UploadBox({ value, onChange, className }: UploadBoxProps
           height={200}
           className="h-48 w-full object-cover"
         />
+        {busy && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+            <p className="text-sm font-semibold text-brown-dark">Загружаем…</p>
+          </div>
+        )}
         <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/40 to-transparent p-3">
           <button
+            disabled={busy}
             onClick={() => onChange(undefined)}
             className="flex items-center gap-1.5 rounded-xl bg-white/90 px-3 py-1.5 text-xs font-semibold text-brown-dark hover:bg-white transition-colors"
           >
