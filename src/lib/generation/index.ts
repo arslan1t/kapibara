@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { saveGenerated } from "@/lib/storage";
 import { GENERATION_MAX_ATTEMPTS, type GenerationStatus } from "@/lib/constants";
 import { nanoBananaClient } from "./nano-banana";
-import { requeueJob, failJob } from "./queue";
+import { requeueJob, failJob, GENERATION_EXHAUSTED_MESSAGE } from "./queue";
+import { sceneForAge } from "./scenes";
 import { logger } from "@/lib/logger";
 import { claimMatches } from "@/lib/claim";
 import type { GenerationOutcome } from "./types";
@@ -148,7 +149,12 @@ async function applyOutcome(
     if (outcome.retryable && !exhausted) {
       await requeueJob(jobId, job?.attempts ?? 0, outcome.error);
     } else {
-      await failJob(jobId, outcome.error);
+      // The provider's own wording ("content policy", "invalid input") tells a
+      // parent nothing they can act on, and is frequently wrong about which
+      // part of the photo was the problem. The technical reason goes to the
+      // log; the customer gets advice they can actually follow.
+      logger.warn("generation.gave_up", { jobId, reason: outcome.error });
+      await failJob(jobId, GENERATION_EXHAUSTED_MESSAGE);
     }
     return;
   }
@@ -211,14 +217,20 @@ async function applyOutcome(
 export async function runJob(jobId: string): Promise<void> {
   const job = await db.generationJob.findUnique({
     where: { id: jobId },
-    include: { product: { select: { slug: true } } },
+    include: { product: { select: { slug: true, ageMin: true, ageMax: true } } },
   });
 
   if (!job || job.status === "succeeded" || job.status === "cancelled") return;
   if (job.attempts >= GENERATION_MAX_ATTEMPTS) {
+    // Carries the advice, not a blank failure: this branch is reached by a job
+    // that ran out of attempts elsewhere, and the customer sees `lastError`.
     await db.generationJob.update({
       where: { id: jobId },
-      data: { status: "failed", completedAt: new Date() },
+      data: {
+        status: "failed",
+        lastError: GENERATION_EXHAUSTED_MESSAGE,
+        completedAt: new Date(),
+      },
     });
     return;
   }
@@ -228,11 +240,17 @@ export async function runJob(jobId: string): Promise<void> {
     data: { status: "processing", attempts: { increment: 1 }, startedAt: new Date() },
   });
 
+  // The reference scene follows the book's own age band. The child's exact age
+  // is never asked for — it is one more piece of a minor's data to hold, and the
+  // band the parent already chose by picking this book is precise enough.
+  const targetAge = Math.round((job.product.ageMin + job.product.ageMax) / 2);
+
   const outcome = await client.generate({
     photoKey: job.photoKey,
     childName: job.childName,
     productSlug: job.product.slug,
     pageNumbers: GENERATED_PAGES,
+    sceneId: sceneForAge(targetAge).id,
   });
 
   await applyOutcome(jobId, outcome);

@@ -94,12 +94,38 @@ export async function claimNextJob(): Promise<ClaimedJob | null> {
   return { id: candidate.id, attempts: candidate.attempts + 1 };
 }
 
-/** Releases a lease and schedules the next attempt. */
+/**
+ * What the customer is told when every attempt has been used.
+ *
+ * The technical reason is useless to them and often wrong about the cause: the
+ * provider says "content rejected", not "the face is in shadow". After three
+ * tries the practical advice is the same whatever the message said, so we give
+ * that instead — and it is advice they can act on, unlike an error code.
+ */
+export const GENERATION_EXHAUSTED_MESSAGE =
+  "Не удалось создать иллюстрацию по этой фотографии. Попробуйте загрузить " +
+  "другое фото: лучше всего подходит снимок, где лицо хорошо освещено, " +
+  "смотрит в камеру и не перекрыто.";
+
+/**
+ * Releases a lease and schedules the next attempt — or gives up.
+ *
+ * Giving up has to happen here. `claimNextJob` refuses jobs at the attempt cap,
+ * so a job requeued for the last time was picked up by nobody and sat in
+ * "queued" forever: no retry, no failure, and a customer watching a spinner
+ * that would never resolve.
+ */
 export async function requeueJob(
   jobId: string,
   attempts: number,
   reason: string
 ): Promise<void> {
+  if (attempts >= GENERATION_MAX_ATTEMPTS) {
+    logger.warn("queue.attempts_exhausted", { jobId, attempts, reason });
+    await failJob(jobId, GENERATION_EXHAUSTED_MESSAGE);
+    return;
+  }
+
   const delay = RETRY_DELAYS_MS[Math.min(attempts, RETRY_DELAYS_MS.length - 1)]!;
 
   await db.generationJob.update({

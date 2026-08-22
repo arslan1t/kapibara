@@ -223,6 +223,16 @@ export const GENERATION_STATUS_LABELS: Record<GenerationStatus, string> = {
 /** Give up after this many provider attempts so a broken job stops retrying. */
 export const GENERATION_MAX_ATTEMPTS = 3;
 
+/**
+ * Public origin, used where an absolute URL is unavoidable: sitemap entries and
+ * the reference images the illustration provider fetches for itself.
+ *
+ * NEXT_PUBLIC_SITE_URL wins. This fallback exists so a missing variable
+ * produces the right domain rather than a stale one — it previously said
+ * kapibara.ru, which has never been the address of this shop.
+ */
+export const SITE_URL_FALLBACK = "https://capibara.su";
+
 // ─── Email ────────────────────────────────────────────────────────────────────
 
 export const EMAIL_TEMPLATES = [

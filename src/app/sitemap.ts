@@ -1,7 +1,9 @@
 import type { MetadataRoute } from "next";
 import { getPublishedProducts, getAvailableProducts } from "@/lib/products";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kapibara.ru";
+import { SITE_URL_FALLBACK } from "@/lib/constants";
+
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL_FALLBACK;
 
 /** Products come from the database, so the sitemap cannot be prerendered. */
 export const dynamic = "force-dynamic";
