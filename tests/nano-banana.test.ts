@@ -4,34 +4,22 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
 /**
- * Contract test for the illustration provider, against a local mock server.
+ * Contract test for the illustration provider (Nano Banana Pro via kie.ai).
  *
- * This client was written WITHOUT confirmed public API documentation. These
- * tests pin down exactly what it currently sends and expects, so that when real
- * documentation arrives the differences are visible as failures here rather
- * than as a broken order in production.
+ * Unlike its predecessor, this is pinned against shapes observed from the live
+ * API rather than guessed at:
  *
- * ── What must be re-checked against real documentation ──────────────────────
+ *   POST /jobs/createTask   -> {code:200, msg, data:{taskId, recordId}}
+ *   GET  /jobs/recordInfo   -> {code:200, msg, data:{state, resultJson,
+ *                                failCode, failMsg}}
  *
- *   Request     POST {NANO_BANANA_API_URL}/generations
- *               Authorization: Bearer {NANO_BANANA_API_KEY}
- *               multipart/form-data with fields:
- *                 photo       — the image bytes
- *                 child_name  — string
- *                 book        — product slug
- *                 pages       — comma-separated page numbers
- *                 style_id    — optional preset
+ *   state       waiting | queuing | generating   → still working
+ *               success                          → done
+ *               fail (or anything else)          → failed
+ *   resultJson  a JSON *string* holding {resultUrls: [...]}
  *
- *   Poll        GET {NANO_BANANA_API_URL}/generations/{id}
- *
- *   Response    { id, status, error?, images: [{ page, url, width?, height? }] }
- *               status ∈ queued | processing | running   → still working
- *                        completed | succeeded            → done
- *                        cancelled | canceled             → terminal, no retry
- *                        anything else                    → failed
- *
- * If any of these differ, change ONLY src/lib/generation/nano-banana.ts.
- * Nothing else in the application depends on the provider's shape.
+ * The API answers HTTP 200 with a non-200 `code` for its own errors, which is
+ * why every test here checks the envelope rather than the status line.
  */
 
 interface Capture {
@@ -39,17 +27,16 @@ interface Capture {
   path: string;
   authorization: string | undefined;
   contentType: string | undefined;
-  body: Buffer;
+  body: string;
 }
 
 let server: Server;
 let baseUrl: string;
 const captured: Capture[] = [];
-
-/** Queued responses, consumed in order by the mock. */
 let responses: { status: number; body: unknown }[] = [];
+/** Makes the mocked signing endpoint refuse, as it does for a missing object. */
+let signingFails = false;
 
-/** A one-pixel PNG the mock serves when the client downloads a result. */
 const PNG_BYTES = Buffer.from(
   "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6300010000050001" +
     "0d0a2db40000000049454e44ae426082",
@@ -63,10 +50,28 @@ before(async () => {
     req.on("end", () => {
       const path = req.url ?? "";
 
-      // The result download, requested by the client after a success.
+      // Supabase's signing endpoint. Exercised for real because the local
+      // driver cannot mint a URL at all, and a URL is the only way the
+      // provider can reach the photograph.
+      if (path.startsWith("/storage/v1/object/sign/")) {
+        if (signingFails) {
+          res.writeHead(400, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: "Object not found" }));
+          return;
+        }
+        const key = path.split("/").pop();
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({ signedURL: `/object/sign/kapibara-private/${key}?token=stub` })
+        );
+        return;
+      }
+
+      // Result download, requested after a success.
       if (path.startsWith("/file/")) {
+        const svg = path.endsWith(".svg");
         res.writeHead(200, {
-          "content-type": "image/png",
+          "content-type": svg ? "image/svg+xml" : "image/png",
           "content-length": String(PNG_BYTES.length),
         });
         res.end(PNG_BYTES);
@@ -78,22 +83,28 @@ before(async () => {
         path,
         authorization: req.headers.authorization,
         contentType: req.headers["content-type"],
-        body: Buffer.concat(chunks),
+        body: Buffer.concat(chunks).toString("utf8"),
       });
 
-      const next = responses.shift() ?? { status: 200, body: {} };
+      const next = responses.shift() ?? { status: 200, body: { code: 200, data: {} } };
       res.writeHead(next.status, { "content-type": "application/json" });
       res.end(JSON.stringify(next.body));
     });
   });
 
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as AddressInfo;
-  baseUrl = `http://127.0.0.1:${port}`;
+  baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
   process.env.NANO_BANANA_API_KEY = "test-key-not-a-real-credential";
   process.env.NANO_BANANA_API_URL = baseUrl;
-  process.env.STORAGE_DRIVER = "local";
+  process.env.NANO_BANANA_MODEL = "nano-banana-pro";
+  // Supabase rather than local: only a driver that can sign is usable here.
+  process.env.STORAGE_DRIVER = "supabase";
+  process.env.SUPABASE_URL = baseUrl;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-not-a-real-credential";
+  process.env.SUPABASE_PRIVATE_BUCKET = "kapibara-private";
+  process.env.SUPABASE_PUBLIC_BUCKET = "kapibara-public";
+  process.env.NEXT_PUBLIC_SITE_URL = "https://capibara.su";
 });
 
 after(async () => {
@@ -105,152 +116,204 @@ function reset(queued: { status: number; body: unknown }[]) {
   responses = queued;
 }
 
-/** Imported lazily so the environment above is in place first. */
 async function client() {
-  const mod = await import("../src/lib/generation/nano-banana");
-  return mod.nanoBananaClient;
+  return (await import("../src/lib/generation/nano-banana")).nanoBananaClient;
 }
 
-/** Writes a real file so the client has something to read and upload. */
-async function seedPhoto(): Promise<string> {
-  const { saveGenerated } = await import("../src/lib/storage");
-  const result = await saveGenerated(PNG_BYTES, "image/png");
-  assert.ok(result.ok, "could not seed a source photo");
-  return result.ok ? result.key : "";
+/**
+ * A syntactically valid storage key.
+ *
+ * Not a real upload: the signing endpoint is mocked above, and `signedUrlFor`
+ * validates the key shape before it signs — which is the behaviour under test.
+ */
+function seedPhoto(): string {
+  return "11111111-2222-4333-8444-555555555555.png";
 }
+
+const ok = (data: unknown) => ({ status: 200, body: { code: 200, msg: "success", data } });
 
 describe("Nano Banana provider contract", () => {
-  test("configuration is driven entirely by environment variables", async () => {
+  test("configuration comes entirely from the environment", async () => {
     const c = await client();
     assert.equal(c.isConfigured(), true);
     assert.equal(c.id, "nano_banana");
   });
 
-  test("submission sends the documented fields and bearer auth", async () => {
-    reset([{ status: 200, body: { id: "job_1", status: "processing" } }]);
-    const photoKey = await seedPhoto();
+  test("submission sends both images, scene first, with bearer auth", async () => {
+    reset([ok({ taskId: "task_1", recordId: "task_1" })]);
+    const photoKey = seedPhoto();
 
     const outcome = await (await client()).generate({
       photoKey,
       childName: "Пётр",
       productSlug: "priklyucheniya-malchika-i-kolesika",
-      pageNumbers: [1, 7, 15],
+      pageNumbers: [1],
+      sceneId: "preschool",
     });
 
     assert.equal(outcome.status, "processing");
 
     const [request] = captured;
-    assert.ok(request, "the client sent no request");
+    assert.ok(request, "no request was sent");
     assert.equal(request!.method, "POST");
-    assert.equal(request!.path, "/generations");
-    assert.equal(
-      request!.authorization,
-      "Bearer test-key-not-a-real-credential",
-      "authorization header shape changed"
-    );
-    assert.match(request!.contentType ?? "", /^multipart\/form-data/);
+    assert.equal(request!.path, "/jobs/createTask");
+    assert.equal(request!.authorization, "Bearer test-key-not-a-real-credential");
+    assert.match(request!.contentType ?? "", /application\/json/);
 
-    // Field names are what a real API contract would most likely differ on.
-    // Decoded as UTF-8 because the child's name is Cyrillic — a latin1 read
-    // would silently fail to find it.
-    const body = request!.body.toString("utf8");
-    for (const field of ["photo", "child_name", "book", "pages"]) {
-      assert.ok(
-        body.includes(`name="${field}"`),
-        `request no longer sends the "${field}" field`
-      );
-    }
-    assert.ok(body.includes("Пётр"), "the child's name was not transmitted");
-    assert.ok(body.includes("1,7,15"), "page numbers are not comma-separated");
+    const body = JSON.parse(request!.body);
+    assert.equal(body.model, "nano-banana-pro");
+
+    // The whole feature rests on this: two images, and the prompt refers to
+    // them positionally as Img 1 and Img 2.
+    assert.equal(body.input.image_input.length, 2, "expected exactly two images");
+    assert.match(
+      body.input.image_input[0],
+      /\/scenes\/preschool\.jpg$/,
+      "Img 1 must be the reference scene for the requested age band"
+    );
+    assert.ok(
+      body.input.image_input[1].includes(photoKey),
+      "Img 2 must be a link to the child's photograph"
+    );
+
+    assert.match(body.input.prompt, /Img 1 \(Pixar scene\)/);
+    assert.match(body.input.prompt, /Img 2 \(real person\)/);
   });
 
-  test("a processing response yields a job id to poll", async () => {
-    reset([{ status: 200, body: { id: "job_2", status: "queued" } }]);
-    const photoKey = await seedPhoto();
+  test("the child's photograph is passed as a signed link, never a public one", async () => {
+    reset([ok({ taskId: "task_2" })]);
+    const photoKey = seedPhoto();
 
-    const outcome = await (await client()).generate({
+    await (await client()).generate({
       photoKey,
       childName: "Анна",
       productSlug: "book",
       pageNumbers: [1],
+      sceneId: "toddler",
+    });
+
+    const body = JSON.parse(captured[0]!.body);
+    const photoUrl: string = body.input.image_input[1];
+
+    // The local driver signs with a token; the supabase driver signs with a
+    // JWT. Either way the link must not be a bare public object path.
+    assert.ok(
+      !photoUrl.includes("/object/public/"),
+      "the photograph was handed over as a public URL"
+    );
+  });
+
+  test("an unknown age band falls back rather than failing", async () => {
+    reset([ok({ taskId: "task_3" })]);
+    const photoKey = seedPhoto();
+
+    const outcome = await (await client()).generate({
+      photoKey,
+      childName: "Ева",
+      productSlug: "book",
+      pageNumbers: [1],
+      sceneId: "no-such-band",
     });
 
     assert.equal(outcome.status, "processing");
-    assert.equal(
-      outcome.status === "processing" && outcome.providerJobId,
-      "job_2"
-    );
+    const body = JSON.parse(captured[0]!.body);
+    assert.match(body.input.image_input[0], /\/scenes\/[a-z-]+\.jpg$/);
   });
 
-  test("a completed response downloads every image", async () => {
+  test("a task id is returned to poll", async () => {
+    reset([ok({ taskId: "task_4", recordId: "task_4" })]);
+    const photoKey = seedPhoto();
+
+    const outcome = await (await client()).generate({
+      photoKey,
+      childName: "Лев",
+      productSlug: "book",
+      pageNumbers: [1],
+    });
+
+    assert.equal(outcome.status === "processing" && outcome.providerJobId, "task_4");
+  });
+
+  // ─── Polling ────────────────────────────────────────────────────────────────
+
+  test("polling uses GET on recordInfo with the task id", async () => {
+    reset([ok({ taskId: "task_5", state: "waiting" })]);
+    const outcome = await (await client()).checkJob("task_5");
+
+    assert.equal(outcome.status, "processing");
+    assert.equal(captured[0]!.method, "GET");
+    assert.equal(captured[0]!.path, "/jobs/recordInfo?taskId=task_5");
+  });
+
+  test("every in-progress state keeps the job processing", async () => {
+    for (const state of ["waiting", "queuing", "generating"]) {
+      reset([ok({ state })]);
+      const outcome = await (await client()).checkJob("task_6");
+      assert.equal(outcome.status, "processing", `state "${state}" should keep polling`);
+    }
+  });
+
+  test("a success downloads the images named in resultJson", async () => {
     reset([
-      {
-        status: 200,
-        body: {
-          id: "job_3",
-          status: "completed",
-          images: [
-            { page: 1, url: `${baseUrl}/file/a.png`, width: 1, height: 1 },
-            { page: 7, url: `${baseUrl}/file/b.png` },
-          ],
-        },
-      },
+      ok({
+        state: "success",
+        // A JSON string, not an object — this is what the API actually returns.
+        resultJson: JSON.stringify({
+          resultUrls: [`${baseUrl}/file/a.png`, `${baseUrl}/file/b.png`],
+        }),
+      }),
     ]);
 
-    const outcome = await (await client()).checkJob("job_3");
-
+    const outcome = await (await client()).checkJob("task_7");
     assert.equal(outcome.status, "succeeded");
     if (outcome.status !== "succeeded") return;
 
-    assert.equal(outcome.images.length, 2, "not every image was downloaded");
-    assert.deepEqual(
-      outcome.images.map((i) => i.pageNumber),
-      [1, 7],
-      "page numbers were not carried through"
-    );
-    assert.ok(outcome.images[0]!.data.length > 0, "image bytes are empty");
+    assert.equal(outcome.images.length, 2);
+    assert.ok(outcome.images[0]!.data.length > 0);
     assert.equal(outcome.images[0]!.contentType, "image/png");
   });
 
-  test("polling uses GET on the job path", async () => {
-    reset([{ status: 200, body: { id: "job_4", status: "processing" } }]);
-    await (await client()).checkJob("job_4");
-
-    const [request] = captured;
-    assert.equal(request!.method, "GET");
-    assert.equal(request!.path, "/generations/job_4");
-  });
-
-  // ─── Failure handling ───────────────────────────────────────────────────────
-
-  test("a cancelled job is terminal and is never retried", async () => {
-    reset([{ status: 200, body: { id: "job_5", status: "cancelled" } }]);
-    const outcome = await (await client()).checkJob("job_5");
-
-    assert.equal(outcome.status, "cancelled");
-    // Deliberately has no `retryable` field: repeating it would be cancelled
-    // again and would bill for nothing.
-    assert.ok(!("retryable" in outcome));
-  });
-
-  test("a rejected input fails without retrying", async () => {
-    reset([{ status: 422, body: { error: "no face detected" } }]);
-    const outcome = await (await client()).checkJob("job_6");
+  test("a failed state is terminal and is not retried", async () => {
+    reset([ok({ state: "fail", failCode: "400", failMsg: "content rejected" })]);
+    const outcome = await (await client()).checkJob("task_8");
 
     assert.equal(outcome.status, "failed");
     assert.equal(
       outcome.status === "failed" && outcome.retryable,
       false,
-      "a permanent rejection was marked retryable"
+      "a rejected input would be rejected identically on a retry"
     );
+    assert.equal(outcome.status === "failed" && outcome.error, "content rejected");
   });
 
-  test("provider capacity and server errors are retryable", async () => {
-    for (const status of [429, 500, 503]) {
-      reset([{ status, body: { error: "busy" } }]);
-      const outcome = await (await client()).checkJob("job_7");
+  test("an unrecognised state is a failure, not a success", async () => {
+    reset([ok({ state: "banana" })]);
+    const outcome = await (await client()).checkJob("task_9");
+    assert.equal(outcome.status, "failed");
+  });
 
-      assert.equal(outcome.status, "failed");
+  test("an envelope code other than 200 is a failure even on HTTP 200", async () => {
+    reset([{ status: 200, body: { code: 402, msg: "insufficient credits" } }]);
+    const outcome = await (await client()).checkJob("task_10");
+
+    assert.equal(outcome.status, "failed");
+    assert.equal(outcome.status === "failed" && outcome.error, "insufficient credits");
+  });
+
+  test("a rejected submission is not retried, but a busy provider is", async () => {
+    const photoKey = seedPhoto();
+
+    reset([{ status: 200, body: { code: 422, msg: "bad image" } }]);
+    let outcome = await (await client()).generate({
+      photoKey, childName: "Пётр", productSlug: "book", pageNumbers: [1],
+    });
+    assert.equal(outcome.status === "failed" && outcome.retryable, false);
+
+    for (const status of [429, 500, 503]) {
+      reset([{ status, body: { code: status, msg: "busy" } }]);
+      outcome = await (await client()).generate({
+        photoKey, childName: "Пётр", productSlug: "book", pageNumbers: [1],
+      });
       assert.equal(
         outcome.status === "failed" && outcome.retryable,
         true,
@@ -259,24 +322,38 @@ describe("Nano Banana provider contract", () => {
     }
   });
 
-  test("an unrecognised status is treated as a failure, not a success", async () => {
-    reset([{ status: 200, body: { id: "job_8", status: "banana" } }]);
-    const outcome = await (await client()).checkJob("job_8");
-    assert.equal(outcome.status, "failed");
-  });
-
-  test("a success with no images is a failure, and retryable", async () => {
-    reset([{ status: 200, body: { id: "job_9", status: "completed", images: [] } }]);
-    const outcome = await (await client()).checkJob("job_9");
+  test("a success with no urls is a failure, and retryable", async () => {
+    reset([ok({ state: "success", resultJson: JSON.stringify({ resultUrls: [] }) })]);
+    const outcome = await (await client()).checkJob("task_11");
 
     assert.equal(outcome.status, "failed");
     assert.equal(outcome.status === "failed" && outcome.retryable, true);
   });
 
-  test("a missing source photograph fails before any network call", async () => {
+  test("malformed resultJson does not throw", async () => {
+    reset([ok({ state: "success", resultJson: "{not json" })]);
+    const outcome = await (await client()).checkJob("task_12");
+    assert.equal(outcome.status, "failed");
+  });
+
+  test("a result served as SVG is dropped, not stored", async () => {
+    // An SVG reaching private storage would later be served back to a browser,
+    // where it can carry script.
+    reset([
+      ok({
+        state: "success",
+        resultJson: JSON.stringify({ resultUrls: [`${baseUrl}/file/x.svg`] }),
+      }),
+    ]);
+
+    const outcome = await (await client()).checkJob("task_13");
+    assert.equal(outcome.status, "failed", "an SVG result was accepted");
+  });
+
+  test("a malformed storage key never reaches the network", async () => {
     reset([]);
     const outcome = await (await client()).generate({
-      photoKey: "99999999-9999-4999-8999-999999999999.jpg",
+      photoKey: "../../etc/passwd",
       childName: "Пётр",
       productSlug: "book",
       pageNumbers: [1],
@@ -284,26 +361,24 @@ describe("Nano Banana provider contract", () => {
 
     assert.equal(outcome.status, "failed");
     assert.equal(outcome.status === "failed" && outcome.retryable, false);
-    assert.equal(captured.length, 0, "the provider was called without a photo");
+    assert.equal(captured.length, 0, "a crafted key reached the provider");
   });
 
-  test("results in an unsupported format are dropped, not stored", async () => {
-    // The provider claiming "image/svg+xml" must not get an SVG into storage:
-    // it would be served back to a browser and can carry script.
-    reset([
-      {
-        status: 200,
-        body: {
-          id: "job_10",
-          status: "completed",
-          images: [{ page: 1, url: `${baseUrl}/file/x.svg` }],
-        },
-      },
-    ]);
+  test("an unsignable photograph stops the job before the provider is billed", async () => {
+    // What Supabase does for an object that is not there. Submitting anyway
+    // would spend credits on a job that cannot possibly succeed.
+    signingFails = true;
+    reset([]);
 
-    const outcome = await (await client()).checkJob("job_10");
-    // The mock serves image/png for /file/*, so this asserts the happy path
-    // still works; the format filter itself is unit-tested by its constant.
-    assert.equal(outcome.status, "succeeded");
+    const outcome = await (await client()).generate({
+      photoKey: seedPhoto(),
+      childName: "Пётр",
+      productSlug: "book",
+      pageNumbers: [1],
+    });
+    signingFails = false;
+
+    assert.equal(outcome.status, "failed");
+    assert.equal(captured.length, 0, "the provider was called without a usable photo");
   });
 });

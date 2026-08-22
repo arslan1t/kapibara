@@ -13,6 +13,11 @@ export interface GenerateRequest {
   productSlug: string;
   /** Pages to produce artwork for. */
   pageNumbers: number[];
+  /**
+   * Reference scene, chosen by the child's age. See generation/scenes.ts.
+   * Null falls back to the middle band rather than failing.
+   */
+  sceneId?: string | null;
 }
 
 export interface GeneratedImage {

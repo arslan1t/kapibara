@@ -276,9 +276,18 @@ export async function deleteUpload(key: string): Promise<void> {
  * for that one object, so it is only ever handed to a requester already proven
  * to be entitled to it, and expires in five minutes.
  */
-export async function signedUrlFor(key: string): Promise<string | null> {
+export async function signedUrlFor(
+  key: string,
+  /**
+   * Override the default lifetime. The illustration provider needs longer than
+   * a browser does: it fetches the image on its own schedule, and a link that
+   * expires mid-queue fails the job for no good reason. Keep it as short as the
+   * caller can tolerate.
+   */
+  ttlSeconds: number = SIGNED_URL_TTL_SECONDS
+): Promise<string | null> {
   if (!isValidKey(key)) return null;
-  return activeDriver().signedUrl("private", key, SIGNED_URL_TTL_SECONDS);
+  return activeDriver().signedUrl("private", key, ttlSeconds);
 }
 
 /** Where a public object lives. Used when recording a product image. */
