@@ -53,28 +53,36 @@ const ACCEPTED_RESULT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"])
 /**
  * The instruction that does the actual work.
  *
- * Two things it insists on, both learned by looking at what comes back
- * otherwise:
+ * Four things it insists on, each learned by looking at what comes back
+ * without them:
  *
  *   • An exhaustive list of what must not change. Asked loosely, the model
- *     redraws the whole cover — different trees, different title lettering,
- *     a different car — and the result is no longer the book being sold.
- *   • "Do not make the character photorealistic." Without it the model happily
- *     drops a photographic child into cartoon artwork, which is precisely the
+ *     redraws the whole cover — different trees, different title lettering, a
+ *     different car — and the result is no longer the book being sold.
+ *   • "Do not make the character photorealistic." Without it the model drops a
+ *     photographic child into cartoon artwork, which is precisely the
  *     cut-and-paste look this feature exists to avoid.
+ *   • Likeness named as the priority, with the specific features to study
+ *     listed one by one. Told merely to "use the child's identity" it drifts
+ *     toward a generic cartoon child who happens to share a hair colour.
+ *   • Clothing taken approximately from the photograph. Keeping the book's
+ *     outfit was tidier and looked less like the child: a parent recognises
+ *     their own kid partly by what they are wearing.
  *
- * Only identity crosses over: face, colouring, hair. Pose and clothing stay
- * with the book, so every child in the series is dressed as the same character.
+ * Pose stays with the book, so the composition the cover was designed around
+ * survives.
  */
 const COMPOSITION_PROMPT = `Img 1 is a finished children's book cover. Img 2 is a photograph of a real child.
 
-Redraw ONLY the child character in Img 1 so that it depicts the child from Img 2. Change absolutely nothing else in the image.
+Redraw ONLY the child character in Img 1 so that it depicts the child from Img 2. Change nothing else in the image.
 
-Keep identical to Img 1: the title text and its exact lettering, colours and position; the blue cartoon car and its face; the forest, path, bridge, waterfall, mushrooms and flowers; the lighting, shadows and colour grading; the camera angle and composition; the character's pose, gesture and position in the frame; the character's clothing and shoes; and the 3D hardcover book mockup shape with its edge and drop shadow.
+LIKENESS IS THE PRIORITY. Study the face in Img 2 closely and reproduce it as a cartoon character: the exact face shape and jawline, the width and spacing of the eyes, the eye colour, the shape and thickness of the eyebrows, the shape of the nose, the shape of the mouth and the exact smile, the ears, the skin tone, and any distinctive detail such as freckles, dimples, a gap between the front teeth or a particular hair parting. Someone who knows this child must recognise them instantly. Do not drift toward a generic cartoon child.
 
-The character must stay entirely in the book's own 3D-animated illustration style: same rendering, same stylised cartoon proportions, same large expressive cartoon eyes, same soft shading and outline treatment as the original character. Do NOT make the character photorealistic. Do NOT paste or blend the photograph into the artwork.
+CLOTHING: dress the character in an outfit that approximately matches what the child is wearing in Img 2 — same garment type and same main colours — redrawn in the book's illustration style. Keep the character's shoes and the general silhouette consistent with the original character.
 
-From Img 2 take ONLY the child's identity, and translate it into that cartoon style: face shape, skin tone, eye colour, eyebrow shape, nose shape, mouth and smile, and the hair colour, hair texture and hairstyle. The result must be immediately recognisable as the same child as in the photograph, drawn as this book's cartoon character.`;
+Keep identical to Img 1: the title text and its exact lettering, colours and position; the blue cartoon car and its face; the forest, path, bridge, waterfall, mushrooms and flowers; the lighting, shadows and colour grading; the camera angle and composition; the character's pose, gesture and position in the frame; and the 3D hardcover book mockup shape with its edge and drop shadow.
+
+The character must stay entirely in the book's own 3D-animated illustration style: same rendering, same stylised cartoon proportions, same large expressive cartoon eyes, same soft shading and outline treatment as the original character. Do NOT make the character photorealistic. Do NOT paste or blend the photograph into the artwork.`;
 
 interface Config {
   apiKey: string;
