@@ -139,7 +139,7 @@ describe("Nano Banana provider contract", () => {
     assert.equal(c.id, "nano_banana");
   });
 
-  test("submission sends both images, scene first, with bearer auth", async () => {
+  test("submission sends both images, cover first, with bearer auth", async () => {
     reset([ok({ taskId: "task_1", recordId: "task_1" })]);
     const photoKey = seedPhoto();
 
@@ -148,7 +148,7 @@ describe("Nano Banana provider contract", () => {
       childName: "Пётр",
       productSlug: "priklyucheniya-malchika-i-kolesika",
       pageNumbers: [1],
-      sceneId: "preschool",
+      childGender: "boy",
     });
 
     assert.equal(outcome.status, "processing");
@@ -168,16 +168,19 @@ describe("Nano Banana provider contract", () => {
     assert.equal(body.input.image_input.length, 2, "expected exactly two images");
     assert.match(
       body.input.image_input[0],
-      /\/scenes\/preschool\.jpg$/,
-      "Img 1 must be the reference scene for the requested age band"
+      /\/images\/books\/kolesik-cover\.png$/,
+      "Img 1 must be the cover of the book being previewed"
     );
     assert.ok(
       body.input.image_input[1].includes(photoKey),
       "Img 2 must be a link to the child's photograph"
     );
 
-    assert.match(body.input.prompt, /Img 1 \(Pixar scene\)/);
-    assert.match(body.input.prompt, /Img 2 \(real person\)/);
+    // The prompt is the feature. These two clauses are what stop the model
+    // returning a photograph pasted onto cartoon artwork.
+    assert.match(body.input.prompt, /Redraw ONLY the child character/);
+    assert.match(body.input.prompt, /Do NOT make the character photorealistic/);
+    assert.match(body.input.prompt, /Do NOT paste or blend the photograph/);
   });
 
   test("the child's photograph is passed as a signed link, never a public one", async () => {
@@ -189,7 +192,7 @@ describe("Nano Banana provider contract", () => {
       childName: "Анна",
       productSlug: "book",
       pageNumbers: [1],
-      sceneId: "toddler",
+      childGender: "girl",
     });
 
     const body = JSON.parse(captured[0]!.body);
@@ -203,7 +206,7 @@ describe("Nano Banana provider contract", () => {
     );
   });
 
-  test("an unknown age band falls back rather than failing", async () => {
+  test("an unknown gender falls back to the boy cover rather than failing", async () => {
     reset([ok({ taskId: "task_3" })]);
     const photoKey = seedPhoto();
 
@@ -212,12 +215,27 @@ describe("Nano Banana provider contract", () => {
       childName: "Ева",
       productSlug: "book",
       pageNumbers: [1],
-      sceneId: "no-such-band",
+      childGender: "unknown-value",
     });
 
     assert.equal(outcome.status, "processing");
     const body = JSON.parse(captured[0]!.body);
-    assert.match(body.input.image_input[0], /\/scenes\/[a-z-]+\.jpg$/);
+    assert.match(body.input.image_input[0], /kolesik-cover\.png$/);
+  });
+
+  test("the girl edition is given its own cover", async () => {
+    reset([ok({ taskId: "task_g" })]);
+
+    await (await client()).generate({
+      photoKey: seedPhoto(),
+      childName: "Ева",
+      productSlug: "priklyucheniya-devochki-i-kolesika",
+      pageNumbers: [1],
+      childGender: "girl",
+    });
+
+    const body = JSON.parse(captured[0]!.body);
+    assert.match(body.input.image_input[0], /girl-kolesik-cover\.png$/);
   });
 
   test("a task id is returned to poll", async () => {

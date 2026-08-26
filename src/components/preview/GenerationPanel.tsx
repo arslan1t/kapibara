@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { Sparkles, AlertCircle, Loader2, ImageOff } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { requestPreviewGeneration } from "@/app/actions/generation";
@@ -232,31 +231,14 @@ export default function GenerationPanel({
   // ── Done ──
   if (job.status === "succeeded") {
     return (
-      <div className="rounded-3xl bg-white p-5 shadow-soft">
-        <p className="font-semibold text-brown-dark">Иллюстрации готовы</p>
-        <p className="mt-1 text-sm text-brown">
-          Так {childName} будет выглядеть на страницах книги.
+      <div className="rounded-3xl bg-sage-50 p-5">
+        <p className="font-semibold text-brown-dark">
+          Обложка с {childName} готова
         </p>
-
-        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {job.pages.map((page) => (
-            <li key={page.pageNumber}>
-              <Image
-                // Served through the authorization-checked upload route, never
-                // from a public path.
-                src={`/api/uploads/${page.storageKey}`}
-                alt={`Разворот ${page.pageNumber}: ${childName} в иллюстрации`}
-                width={400}
-                height={400}
-                unoptimized
-                className="aspect-square w-full rounded-xl object-cover"
-              />
-              <p className="mt-1 text-center text-xs text-brown">
-                Стр. {page.pageNumber}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <p className="mt-1 text-sm leading-relaxed text-brown">
+          Так {childName} будет выглядеть на страницах книги. Окончательный
+          макет мы согласуем с вами до печати.
+        </p>
       </div>
     );
   }

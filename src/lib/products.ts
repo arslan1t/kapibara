@@ -1,4 +1,5 @@
 import "server-only";
+import { coverPathFor } from "@/lib/generation/cover";
 
 import { db } from "@/lib/db";
 import type { Book } from "@/types";
@@ -28,11 +29,10 @@ export function toBook(product: ProductWithImages): Book {
     childGender: (product.childGender as "boy" | "girl") ?? "boy",
     description: product.description,
     shortDescription: product.shortDescription,
-    // Cover art still lives in /public; the gallery rows are separate.
-    image:
-      product.childGender === "girl"
-        ? "/images/books/girl-kolesik-cover.png"
-        : "/images/books/kolesik-cover.png",
+    // Cover art still lives in /public; the gallery rows are separate. Shared
+    // with the generation layer, which hands this same file to the provider as
+    // the reference image — the two must never drift apart.
+    image: coverPathFor(product.childGender),
     ageRange: product.ageRange,
     ageMin: product.ageMin,
     ageMax: product.ageMax,
