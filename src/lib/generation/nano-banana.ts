@@ -1,7 +1,7 @@
 import "server-only";
 
 import { signedUrlFor } from "@/lib/storage";
-import { sceneById, sceneUrl } from "./scenes";
+import { absoluteCoverUrl, coverPathFor } from "./cover";
 import type {
   GenerateRequest,
   GenerationClient,
@@ -14,10 +14,14 @@ import type {
  *
  * Two images go in and one comes out:
  *
- *   image_input[0]  a reference scene, chosen by the child's age. Fixes the
- *                   world, the palette and the lighting, so books in a series
- *                   look like a series rather than four unrelated products.
+ *   image_input[0]  the book's own cover. Fixes the world, the composition,
+ *                   the lighting, the title lettering and the drawing style.
  *   image_input[1]  the child's photograph. Fixes who the character is.
+ *
+ * The instruction is a redraw, not a composite: the character is re-rendered in
+ * the book's cartoon style carrying the child's face, and everything else in
+ * the frame is left exactly as the cover already has it. Pasting the photograph
+ * in would be visible instantly and is explicitly ruled out in the prompt.
  *
  * The provider fetches both by URL rather than accepting an upload, which
  * decides how the photograph is passed: a signed link to the private object,
@@ -49,29 +53,28 @@ const ACCEPTED_RESULT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"])
 /**
  * The instruction that does the actual work.
  *
- * Written as two strict roles — Img 1 supplies the world, Img 2 supplies the
- * person — because without that separation the model blends both and returns a
- * child who resembles nobody. The realism clauses are what keep the result a
- * recognisable photograph of *this* child rather than a cartoon of a generic
- * one, which is the entire product.
+ * Two things it insists on, both learned by looking at what comes back
+ * otherwise:
+ *
+ *   • An exhaustive list of what must not change. Asked loosely, the model
+ *     redraws the whole cover — different trees, different title lettering,
+ *     a different car — and the result is no longer the book being sold.
+ *   • "Do not make the character photorealistic." Without it the model happily
+ *     drops a photographic child into cartoon artwork, which is precisely the
+ *     cut-and-paste look this feature exists to avoid.
+ *
+ * Only identity crosses over: face, colouring, hair. Pose and clothing stay
+ * with the book, so every child in the series is dressed as the same character.
  */
-const COMPOSITION_PROMPT = `Use Img 1 (Pixar scene) STRICTLY for the stylized environment, background, fantasy props, and the entire lighting scheme — preserve the saturated rim lights, soft stylized fill light, magical glow, and vibrant color temperatures native to Pixar animation. Apply this Pixar lighting directly onto the human character so that they physically react to it.
+const COMPOSITION_PROMPT = `Img 1 is a finished children's book cover. Img 2 is a photograph of a real child.
 
-Use Img 2 (real person) STRICTLY for the central character — identity, facial structure, hair, exact outfit, skin color, and clothing patterns.
+Redraw ONLY the child character in Img 1 so that it depicts the child from Img 2. Change absolutely nothing else in the image.
 
-The human must have fully realistic anatomy — natural skeletal structure, normal shoulder width, proper proportions, naturally shaped face. Absolutely NO oversized cartoon eyes, NO rubbery limbs, NO exaggerated expressions.
+Keep identical to Img 1: the title text and its exact lettering, colours and position; the blue cartoon car and its face; the forest, path, bridge, waterfall, mushrooms and flowers; the lighting, shadows and colour grading; the camera angle and composition; the character's pose, gesture and position in the frame; the character's clothing and shoes; and the 3D hardcover book mockup shape with its edge and drop shadow.
 
-Skin texture must be photorealistic and flawless — visible natural micro-wrinkles, healthy subsurface scattering, and radiant glow, but completely clear: no acne, no pimples, no blackheads, no redness, no blemishes, no scars. Like a high-end beauty editorial — living skin at its absolute best.
+The character must stay entirely in the book's own 3D-animated illustration style: same rendering, same stylised cartoon proportions, same large expressive cartoon eyes, same soft shading and outline treatment as the original character. Do NOT make the character photorealistic. Do NOT paste or blend the photograph into the artwork.
 
-Now integrate this hyper-realistic person into the Pixar fairy-tale world seamlessly and carefully:
-
-Cast accurate soft contact shadows from the person onto the stylized cartoon ground, matching the Pixar light direction.
-
-Apply strong ambient color bleeding (bounce light) from the vibrant Pixar environment onto the human's skin and clothing — e.g., green reflection from grass, warm orange from the sun, blue from the sky.
-
-The human must catch those signature Pixar rim lights (backlighting) on their shoulders and hair.
-
-Final result: a living, breathing real-world person with flawless skin and human proportions, carefully placed inside a colorful Pixar dreamscape, fully lit by its magic — blending gently through light, shadow, and color reflection. Keep shallow depth-of-field (bokeh) on the background to isolate the realistic subject.`;
+From Img 2 take ONLY the child's identity, and translate it into that cartoon style: face shape, skin tone, eye colour, eyebrow shape, nose shape, mouth and smile, and the hair colour, hair texture and hairstyle. The result must be immediately recognisable as the same child as in the photograph, drawn as this book's cartoon character.`;
 
 interface Config {
   apiKey: string;
@@ -154,7 +157,7 @@ export const nanoBananaClient: GenerationClient = {
       };
     }
 
-    const scene = sceneById(request.sceneId);
+    const coverUrl = absoluteCoverUrl(coverPathFor(request.childGender));
 
     let response: Response;
     try {
@@ -169,7 +172,7 @@ export const nanoBananaClient: GenerationClient = {
           input: {
             prompt: COMPOSITION_PROMPT,
             // Order matters: the prompt refers to them as Img 1 and Img 2.
-            image_input: [sceneUrl(scene), photoUrl],
+            image_input: [coverUrl, photoUrl],
             aspect_ratio: "1:1",
             resolution: "2K",
             output_format: "png",

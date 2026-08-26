@@ -14,10 +14,10 @@ export interface GenerateRequest {
   /** Pages to produce artwork for. */
   pageNumbers: number[];
   /**
-   * Reference scene, chosen by the child's age. See generation/scenes.ts.
-   * Null falls back to the middle band rather than failing.
+   * Which cover the book uses. Decides the reference image; anything other than
+   * "girl" falls back to the boy cover, matching the catalogue.
    */
-  sceneId?: string | null;
+  childGender?: string | null;
 }
 
 export interface GeneratedImage {
