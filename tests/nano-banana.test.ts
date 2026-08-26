@@ -181,6 +181,11 @@ describe("Nano Banana provider contract", () => {
     assert.match(body.input.prompt, /Redraw ONLY the child character/);
     assert.match(body.input.prompt, /Do NOT make the character photorealistic/);
     assert.match(body.input.prompt, /Do NOT paste or blend the photograph/);
+    // Both were added after looking at results that were technically correct
+    // and did not look like the child: without them the face drifts generic
+    // and the outfit stays the book's.
+    assert.match(body.input.prompt, /LIKENESS IS THE PRIORITY/);
+    assert.match(body.input.prompt, /CLOTHING: dress the character/);
   });
 
   test("the child's photograph is passed as a signed link, never a public one", async () => {
