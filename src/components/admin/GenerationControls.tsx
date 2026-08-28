@@ -19,6 +19,8 @@ interface Props {
     status: GenerationStatus;
     attempts: number;
     lastError: string | null;
+    /** Storage keys of the finished artwork, in page order. */
+    resultKeys?: string[];
     resultCount: number;
   } | null;
 }
@@ -86,6 +88,34 @@ export default function GenerationControls({
           {/* Provider wording, kept for the operator only. */}
           {job.lastError && (
             <p className="mt-1 text-red-600">{job.lastError}</p>
+          )}
+
+          {/* The artwork the customer approved and the book is printed from.
+              Shown here because an order without it in reach is an order the
+              production team cannot act on. */}
+          {job.resultKeys && job.resultKeys.length > 0 && (
+            <ul className="mt-2.5 flex flex-wrap gap-2">
+              {job.resultKeys.map((key, i) => (
+                <li key={key}>
+                  <a
+                    href={`/api/uploads/${key}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Открыть в полном размере"
+                    className="block overflow-hidden rounded-lg ring-1 ring-cream-300 transition-opacity hover:opacity-80"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/uploads/${key}`}
+                      alt={`Обложка, вариант ${i + 1}`}
+                      width={96}
+                      height={96}
+                      className="h-24 w-24 object-cover"
+                    />
+                  </a>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       ) : (

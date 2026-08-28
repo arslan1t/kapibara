@@ -56,6 +56,7 @@ export default async function AdminOrderDetailPage({
       attempts: true,
       lastError: true,
       _count: { select: { results: true } },
+      results: { select: { storageKey: true }, orderBy: { pageNumber: "asc" } },
     },
   });
 
@@ -172,6 +173,7 @@ export default async function AdminOrderDetailPage({
                               attempts: found.attempts,
                               lastError: found.lastError,
                               resultCount: found._count.results,
+                              resultKeys: found.results.map((r) => r.storageKey),
                             }
                           : null;
                       })()}

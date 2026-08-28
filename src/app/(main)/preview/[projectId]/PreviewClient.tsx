@@ -30,16 +30,33 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
     getPreview(projectId).then(setProject);
   }, [projectId]);
 
+  /**
+   * Personalisation as it should be recorded against the order.
+   *
+   * Carries the id of the generation job whose cover is on screen. The book is
+   * printed from that cover, so an order that does not name it leaves the shop
+   * holding a photograph and no way to find the artwork the customer approved.
+   *
+   * Only attached once the job has actually succeeded: a queued or failed job
+   * has no cover to point at.
+   */
+  function personalizationForOrder() {
+    if (!project) return undefined;
+    return job?.status === "succeeded"
+      ? { ...project.personalization, generationJobId: job.id }
+      : project.personalization;
+  }
+
   function handleAddToCart() {
     if (!project) return;
-    addItem(project.book, project.personalization);
+    addItem(project.book, personalizationForOrder());
     setAdded(true);
     setTimeout(() => setAdded(false), 3000);
   }
 
   function handleBuyNow() {
     if (!project) return;
-    addItem(project.book, project.personalization);
+    addItem(project.book, personalizationForOrder());
     router.push("/cart");
   }
 
