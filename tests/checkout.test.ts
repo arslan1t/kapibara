@@ -1,6 +1,6 @@
 import { test, describe, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { db, resetDatabase, createUser, createProduct, expectRejected } from "./helpers";
+import { db, resetDatabase, createUser, createProduct, createOrder, expectRejected } from "./helpers";
 import { isPurchasable } from "../src/lib/constants";
 import { sanitizeChildName, isChildNameValid } from "../src/lib/validation";
 import { checkUpload, isValidKey, ALLOWED_MIME } from "../src/lib/storage";
@@ -168,6 +168,75 @@ describe("checkout", () => {
   });
 
   // ─── Upload validation ──────────────────────────────────────────────────────
+
+  test("an approved cover cannot be moved from one order to another", async () => {
+    // The book is printed from the cover the customer approved, so the link
+    // between a generation job and an order line has to be one-way. This is
+    // the exact predicate the checkout uses when attaching it.
+    const product = await createProduct();
+    const [mine, theirs] = await Promise.all([
+      createOrder(null, product.id),
+      createOrder(null, product.id),
+    ]);
+
+    const myItem = (await db.orderItem.findFirst({ where: { orderId: mine.id } }))!;
+    const theirItem = (await db.orderItem.findFirst({ where: { orderId: theirs.id } }))!;
+
+    const job = await db.generationJob.create({
+      data: {
+        productId: product.id,
+        childName: "Пётр",
+        photoKey: "11111111-2222-4333-8444-555555555555.png",
+        provider: "nano_banana",
+        status: "succeeded",
+        orderItemId: myItem.id,
+      },
+      select: { id: true },
+    });
+
+    // Someone else's checkout naming the same job id.
+    const moved = await db.generationJob.updateMany({
+      where: { id: job.id, orderItemId: null },
+      data: { orderItemId: theirItem.id },
+    });
+
+    assert.equal(moved.count, 0, "an attached cover was reassigned");
+
+    const after = await db.generationJob.findUnique({
+      where: { id: job.id },
+      select: { orderItemId: true },
+    });
+    assert.equal(after?.orderItemId, myItem.id, "the cover left its original order");
+  });
+
+  test("an unattached cover binds to exactly one line", async () => {
+    const product = await createProduct();
+    const order = await createOrder(null, product.id);
+    const item = (await db.orderItem.findFirst({ where: { orderId: order.id } }))!;
+
+    const job = await db.generationJob.create({
+      data: {
+        productId: product.id,
+        childName: "Анна",
+        photoKey: "22222222-3333-4444-8555-666666666666.png",
+        provider: "nano_banana",
+        status: "succeeded",
+      },
+      select: { id: true },
+    });
+
+    const first = await db.generationJob.updateMany({
+      where: { id: job.id, orderItemId: null },
+      data: { orderItemId: item.id },
+    });
+    const second = await db.generationJob.updateMany({
+      where: { id: job.id, orderItemId: null },
+      data: { orderItemId: item.id },
+    });
+
+    assert.equal(first.count, 1, "the cover did not attach");
+    assert.equal(second.count, 0, "the same cover attached twice");
+  });
 
   test("storage keys are UUID-shaped and reject traversal", () => {
     assert.equal(isValidKey("11111111-1111-4111-8111-111111111111.jpg"), true);

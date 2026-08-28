@@ -47,6 +47,15 @@ export interface PersonalizationData {
    * what gets persisted with the order.
    */
   photoKey?: string;
+  /**
+   * The generation job whose cover the customer approved.
+   *
+   * Carried through the cart so the order can be attached to it. Without this
+   * the shop receives an order and a photograph but no way to find the cover
+   * the customer actually saw and agreed to — and the book is made from that
+   * cover, not from the photograph.
+   */
+  generationJobId?: string;
   dedication?: string;
 }
 

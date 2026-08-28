@@ -7,7 +7,8 @@ import { isPurchasable, isDeliveryMethod } from "@/lib/constants";
 import { startPayment } from "@/lib/payments";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
 import { sendOrderCreatedEmail } from "@/lib/mail/order-mail";
-import { issueOrderClaim } from "@/lib/claim";
+import { issueOrderClaim, readJobClaim } from "@/lib/claim";
+import { getJobForUser } from "@/lib/generation";
 import { logger } from "@/lib/logger";
 
 export type CheckoutItem = {
@@ -19,6 +20,8 @@ export type CheckoutItem = {
     childAge?: number | null;
     dedication?: string | null;
     photoKey?: string | null;
+    /** Preview job whose result becomes this line's approved cover. */
+    generationJobId?: string | null;
   };
 };
 
@@ -61,6 +64,54 @@ export type CreateOrderResult =
 async function nextOrderNumber(): Promise<string> {
   const rows = await db.$queryRaw<{ n: string }[]>`SELECT next_order_number() AS n`;
   return rows[0]!.n;
+}
+
+/**
+ * Links each preview the customer approved to the order line it was approved
+ * for, by filling in the job's `orderItemId`.
+ *
+ * Ownership is re-checked here rather than trusted from the browser: a job id
+ * is not a secret, and without the check anyone could attach another child's
+ * artwork to their own order and then read it through the order's own routes.
+ *
+ * A job that cannot be verified is skipped. The order is already placed and
+ * valid, and the cover remains recoverable by regenerating from the stored
+ * photograph — which is what an administrator did for every order before this
+ * link existed.
+ */
+async function attachApprovedCovers(
+  orderId: string,
+  items: { id: string; productSlug: string }[],
+  lines: { productSlug: string; personalization: CheckoutItem["personalization"] }[],
+  userId: string | undefined
+): Promise<void> {
+  const presentedClaim = await readJobClaim();
+
+  for (const [index, line] of lines.entries()) {
+    const jobId = line.personalization?.generationJobId;
+    if (!jobId) continue;
+
+    const item = items[index];
+    if (!item || item.productSlug !== line.productSlug) continue;
+
+    try {
+      const job = await getJobForUser(jobId, userId ?? null, presentedClaim);
+      // Only a finished job carries a cover.
+      if (!job || job.status !== "succeeded") continue;
+
+      // `orderItemId: null` in the predicate: a job already bound to another
+      // line must never be moved onto this one.
+      await db.generationJob.updateMany({
+        where: { id: jobId, orderItemId: null },
+        data: { orderItemId: item.id },
+      });
+    } catch (error) {
+      logger.warn("order.cover_link_failed", {
+        orderId,
+        reason: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
 }
 
 /**
@@ -119,6 +170,7 @@ export async function createOrder(
       where: { idempotencyKey },
       select: { id: true, orderNumber: true },
     });
+
     if (existing) {
       logger.info("order.idempotent_replay", { orderId: existing.id });
       return {
@@ -236,8 +288,20 @@ export async function createOrder(
           create: { toStatus: "new", note: "Заказ создан на сайте" },
         },
       },
-      select: { id: true, orderNumber: true },
+      select: {
+        id: true,
+        orderNumber: true,
+        items: { select: { id: true, productSlug: true } },
+      },
     });
+
+    // Attach the approved cover to the line it belongs to.
+    //
+    // Done after the order exists, and never inside its transaction: failing to
+    // link artwork must not lose a paid order. If it does fail the order stands
+    // and an administrator can regenerate from the photograph, which is exactly
+    // what happened for every order before this existed.
+    await attachApprovedCovers(order.id, order.items, priced, user?.id);
 
     // Opens a payment attempt. With an online provider configured this returns
     // a redirect URL; otherwise it records payment-on-confirmation.

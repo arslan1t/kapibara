@@ -89,6 +89,7 @@ export default function CheckoutForm({
           childAge: item.personalization?.childAge ?? null,
           dedication: item.personalization?.dedication ?? null,
           photoKey: item.personalization?.photoKey ?? null,
+          generationJobId: item.personalization?.generationJobId ?? null,
         },
       })),
     });
