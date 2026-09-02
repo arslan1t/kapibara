@@ -54,13 +54,13 @@ export default function Header({ user }: HeaderProps) {
             className="shrink-0 transition-transform duration-300 hover:scale-[1.04]"
             aria-label="Капибара — на главную"
           >
-            {/* Intrinsic size matches the SVG viewBox (494×611) so the browser
-                reserves the correct aspect ratio and never squeezes the mark. */}
+            {/* Intrinsic size matches the file (483×600) so the browser reserves
+                the correct aspect ratio and never squeezes the mark. */}
             <Image
-              src="/capybara-logo.svg"
+              src="/capybara-logo.png"
               alt="Капибара"
-              width={494}
-              height={611}
+              width={483}
+              height={600}
               priority
               className="h-12 w-auto object-contain sm:h-14"
             />
