@@ -212,6 +212,12 @@ export type ProductInput = {
   ageMax: number;
   pageCount: number;
   childGender?: string | null;
+  /**
+   * Path under /public to the cover artwork. Required: the catalogue shows it
+   * and the illustration provider redraws it, so a product without one cannot
+   * be sold or previewed.
+   */
+  coverImage: string;
 };
 
 function validateProduct(input: ProductInput): string | null {
@@ -224,6 +230,12 @@ function validateProduct(input: ProductInput): string | null {
   }
   if (!(PRODUCT_STATUSES as readonly string[]).includes(input.status)) {
     return "Неизвестный статус товара";
+  }
+  // A site-relative path only. An absolute URL here would be handed to the
+  // illustration provider as the reference image, letting an operator point
+  // generation at any host on the internet.
+  if (!/^\/[A-Za-z0-9._\-/]+\.(png|jpg|jpeg|webp)$/.test(input.coverImage ?? "")) {
+    return "Обложка: укажите путь вида /images/books/название.png";
   }
   return null;
 }
@@ -256,6 +268,7 @@ export async function createProduct(input: ProductInput): Promise<Result & { id?
       pageCount: input.pageCount,
       format: "hardcover-square",
       childGender: input.childGender ?? null,
+      coverImage: input.coverImage,
     },
     select: { id: true },
   });
@@ -303,6 +316,7 @@ export async function updateProduct(
       ageMax: input.ageMax,
       pageCount: input.pageCount,
       childGender: input.childGender ?? null,
+      coverImage: input.coverImage,
     },
   });
 

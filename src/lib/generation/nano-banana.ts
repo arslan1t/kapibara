@@ -165,7 +165,7 @@ export const nanoBananaClient: GenerationClient = {
       };
     }
 
-    const coverUrl = absoluteCoverUrl(coverPathFor(request.childGender));
+    const coverUrl = absoluteCoverUrl(coverPathFor(request.coverImage));
 
     let response: Response;
     try {

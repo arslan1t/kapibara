@@ -42,6 +42,7 @@ export default function ProductForm({ productId, initial }: Props) {
     ageMax: initial?.ageMax ?? 8,
     pageCount: initial?.pageCount ?? 40,
     childGender: initial?.childGender ?? null,
+    coverImage: initial?.coverImage ?? "",
   });
 
   function set<K extends keyof ProductInput>(key: K, value: ProductInput[K]) {
@@ -249,6 +250,22 @@ export default function ProductForm({ productId, initial }: Props) {
             <option value="girl">для девочки</option>
           </select>
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="p-cover" className={label}>Обложка</label>
+        <input
+          id="p-cover"
+          className={`${field} mt-1.5`}
+          value={form.coverImage}
+          onChange={(e) => set("coverImage", e.target.value)}
+          placeholder="/images/books/nazvanie.png"
+        />
+        <p className="mt-1.5 text-xs leading-relaxed text-brown">
+          Путь к файлу в папке <code>/public</code>. Эта же картинка уходит
+          нейросети как образец, по которому она перерисовывает героя, — поэтому
+          у каждой книги она должна быть своя.
+        </p>
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl bg-cream-100 p-4">

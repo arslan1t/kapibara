@@ -58,6 +58,7 @@ async function main() {
       format: "hardcover-square",
       coverType: "hardcover",
       childGender: "boy",
+      coverImage: "/images/books/kolesik-cover.png",
       personalizationEnabled: true,
     },
   });
@@ -99,6 +100,74 @@ async function main() {
       format: "hardcover-square",
       coverType: "hardcover",
       childGender: "girl",
+      coverImage: "/images/books/girl-kolesik-cover.png",
+      personalizationEnabled: true,
+    },
+  });
+
+  // ── Вторая серия: «Огонёк» ──
+  await db.product.upsert({
+    where: { slug: "priklyucheniya-devochki-i-ogonka" },
+    update: {
+      price: BOOK_PRICE,
+      status: "coming_soon",
+      published: true,
+      coverImage: "/images/books/girl-ogonek-cover.png",
+    },
+    create: {
+      slug: "priklyucheniya-devochki-i-ogonka",
+      title: "Приключения Девочки и Огонька",
+      shortTitle: "Девочка и Огонёк",
+      shortDescription:
+        "Тёплая история о дружбе с маленьким дракончиком Огоньком, где главной героиней становится ваша девочка.",
+      description:
+        "Высоко в горах, где туман ложится на луга, а колокольчики звенят от ветра, живёт маленький дракончик Огонёк — со светящимися крыльями и тёплым огоньком на хвосте. Однажды он встречает девочку, и этой девочкой становится ваша дочь. Вместе они учатся не бояться высоты, беречь чужие секреты и находить дорогу домой по светящимся камням. Нежная акварельная сказка о дружбе и доверии, где имя и лицо вашего ребёнка вплетены в каждую страницу.",
+      price: BOOK_PRICE,
+      status: "coming_soon",
+      published: true,
+      featured: false,
+      stockStatus: "in_stock",
+      ageRange: "3–8 лет",
+      ageMin: 3,
+      ageMax: 8,
+      pageCount: PAGE_COUNT,
+      format: "hardcover-square",
+      coverType: "hardcover",
+      childGender: "girl",
+      coverImage: "/images/books/girl-ogonek-cover.png",
+      personalizationEnabled: true,
+    },
+  });
+
+  await db.product.upsert({
+    where: { slug: "priklyucheniya-malchika-i-ogonka" },
+    update: {
+      price: BOOK_PRICE,
+      status: "coming_soon",
+      published: true,
+      coverImage: "/images/books/boy-ogonek-cover.png",
+    },
+    create: {
+      slug: "priklyucheniya-malchika-i-ogonka",
+      title: "Приключения Мальчика и Огонька",
+      shortTitle: "Мальчик и Огонёк",
+      shortDescription:
+        "Тёплая история о дружбе с маленьким дракончиком Огоньком, где главным героем становится ваш мальчик.",
+      description:
+        "Высоко в горах, где туман ложится на луга, а колокольчики звенят от ветра, живёт маленький дракончик Огонёк — со светящимися крыльями и тёплым огоньком на хвосте. Однажды он встречает мальчика, и этим мальчиком становится ваш сын. Вместе они учатся не бояться высоты, беречь чужие секреты и находить дорогу домой по светящимся камням. Нежная акварельная сказка о дружбе и доверии, где имя и лицо вашего ребёнка вплетены в каждую страницу.",
+      price: BOOK_PRICE,
+      status: "coming_soon",
+      published: true,
+      featured: false,
+      stockStatus: "in_stock",
+      ageRange: "3–8 лет",
+      ageMin: 3,
+      ageMax: 8,
+      pageCount: PAGE_COUNT,
+      format: "hardcover-square",
+      coverType: "hardcover",
+      childGender: "boy",
+      coverImage: "/images/books/boy-ogonek-cover.png",
       personalizationEnabled: true,
     },
   });

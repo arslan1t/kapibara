@@ -14,10 +14,10 @@ export interface GenerateRequest {
   /** Pages to produce artwork for. */
   pageNumbers: number[];
   /**
-   * Which cover the book uses. Decides the reference image; anything other than
-   * "girl" falls back to the boy cover, matching the catalogue.
+   * Path under /public to the book's cover — the reference image the provider
+   * redraws. Empty falls back rather than failing.
    */
-  childGender?: string | null;
+  coverImage?: string | null;
 }
 
 export interface GeneratedImage {

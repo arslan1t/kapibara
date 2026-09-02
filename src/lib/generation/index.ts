@@ -216,7 +216,7 @@ async function applyOutcome(
 export async function runJob(jobId: string): Promise<void> {
   const job = await db.generationJob.findUnique({
     where: { id: jobId },
-    include: { product: { select: { slug: true, childGender: true } } },
+    include: { product: { select: { slug: true, coverImage: true } } },
   });
 
   if (!job || job.status === "succeeded" || job.status === "cancelled") return;
@@ -244,7 +244,7 @@ export async function runJob(jobId: string): Promise<void> {
     childName: job.childName,
     productSlug: job.product.slug,
     pageNumbers: GENERATED_PAGES,
-    childGender: job.product.childGender,
+    coverImage: job.product.coverImage,
   });
 
   await applyOutcome(jobId, outcome);
