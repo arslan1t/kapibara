@@ -54,13 +54,19 @@ export default function Header({ user }: HeaderProps) {
             className="shrink-0 transition-transform duration-300 hover:scale-[1.04]"
             aria-label="Капибара — на главную"
           >
-            {/* Intrinsic size matches the file (483×600) so the browser reserves
-                the correct aspect ratio and never squeezes the mark. */}
+            {/* Intrinsic size matches the viewBox (493×462) so the browser
+                reserves the correct aspect ratio and never squeezes the mark.
+
+                The supplied SVG carried a wordmark set in Caveat Brush, a font
+                it did not embed — browsers substituted a default face, which
+                overflowed the viewBox and clipped mid-word. The lettering was
+                removed rather than shipped broken; the mark alone carries the
+                brand, as it did before. */}
             <Image
-              src="/capybara-logo.png"
+              src="/capybara-logo.svg"
               alt="Капибара"
-              width={483}
-              height={600}
+              width={493}
+              height={462}
               priority
               className="h-12 w-auto object-contain sm:h-14"
             />

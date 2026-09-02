@@ -16,11 +16,11 @@ export default function AuthLayout({
           {/* The mark already contains the wordmark, so it stands alone here. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/capybara-logo.png"
+            src="/capybara-logo.svg"
             alt="Капибара"
             draggable={false}
-            width={483}
-            height={600}
+            width={493}
+            height={462}
             className="h-20 w-auto select-none object-contain transition-transform duration-300 group-hover:scale-[1.04]"
           />
         </Link>
