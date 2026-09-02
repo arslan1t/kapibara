@@ -38,10 +38,10 @@ export default function AdminNav({ userName }: { userName: string }) {
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/admin" className="flex shrink-0 items-center gap-2.5">
           <Image
-            src="/capybara-logo.svg"
+            src="/capybara-logo.png"
             alt="Капибара"
-            width={494}
-            height={611}
+            width={483}
+            height={600}
             className="h-9 w-auto object-contain"
           />
           <span className="hidden text-sm font-bold uppercase tracking-wider2 text-brown-400 sm:inline">
