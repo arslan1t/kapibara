@@ -136,6 +136,13 @@ model Product {
   coverType              String  @default("hardcover")
   /// "boy" | "girl" | null — which child the story is written for.
   childGender            String?
+  /// Path under /public to the cover artwork.
+  ///
+  /// Stored per product rather than derived from childGender. With one series
+  /// that shortcut worked; with two it silently hands the wrong book's cover to
+  /// the catalogue AND to the illustration provider, which uses this exact file
+  /// as its reference image.
+  coverImage             String
   personalizationEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())

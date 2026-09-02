@@ -148,7 +148,7 @@ describe("Nano Banana provider contract", () => {
       childName: "Пётр",
       productSlug: "priklyucheniya-malchika-i-kolesika",
       pageNumbers: [1],
-      childGender: "boy",
+      coverImage: "/images/books/kolesik-cover.png",
     });
 
     assert.equal(outcome.status, "processing");
@@ -169,7 +169,7 @@ describe("Nano Banana provider contract", () => {
     assert.match(
       body.input.image_input[0],
       /\/images\/books\/kolesik-cover\.png$/,
-      "Img 1 must be the cover of the book being previewed"
+      "Img 1 must be the cover of the book being previewed, not another book's"
     );
     assert.ok(
       body.input.image_input[1].includes(photoKey),
@@ -197,7 +197,7 @@ describe("Nano Banana provider contract", () => {
       childName: "Анна",
       productSlug: "book",
       pageNumbers: [1],
-      childGender: "girl",
+      coverImage: "/images/books/girl-kolesik-cover.png",
     });
 
     const body = JSON.parse(captured[0]!.body);
@@ -211,7 +211,7 @@ describe("Nano Banana provider contract", () => {
     );
   });
 
-  test("an unknown gender falls back to the boy cover rather than failing", async () => {
+  test("a product with no cover falls back rather than failing", async () => {
     reset([ok({ taskId: "task_3" })]);
     const photoKey = seedPhoto();
 
@@ -220,7 +220,7 @@ describe("Nano Banana provider contract", () => {
       childName: "Ева",
       productSlug: "book",
       pageNumbers: [1],
-      childGender: "unknown-value",
+      coverImage: "",
     });
 
     assert.equal(outcome.status, "processing");
@@ -228,7 +228,7 @@ describe("Nano Banana provider contract", () => {
     assert.match(body.input.image_input[0], /kolesik-cover\.png$/);
   });
 
-  test("the girl edition is given its own cover", async () => {
+  test("each edition is given its own cover", async () => {
     reset([ok({ taskId: "task_g" })]);
 
     await (await client()).generate({
@@ -236,7 +236,7 @@ describe("Nano Banana provider contract", () => {
       childName: "Ева",
       productSlug: "priklyucheniya-devochki-i-kolesika",
       pageNumbers: [1],
-      childGender: "girl",
+      coverImage: "/images/books/girl-kolesik-cover.png",
     });
 
     const body = JSON.parse(captured[0]!.body);

@@ -32,7 +32,7 @@ export function toBook(product: ProductWithImages): Book {
     // Cover art still lives in /public; the gallery rows are separate. Shared
     // with the generation layer, which hands this same file to the provider as
     // the reference image — the two must never drift apart.
-    image: coverPathFor(product.childGender),
+    image: coverPathFor(product.coverImage),
     ageRange: product.ageRange,
     ageMin: product.ageMin,
     ageMax: product.ageMax,

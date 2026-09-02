@@ -81,6 +81,7 @@ export async function createProduct(overrides: Record<string, unknown> = {}) {
       pageCount: 40,
       format: "hardcover-square",
       childGender: "boy",
+      coverImage: "/images/books/kolesik-cover.png",
       ...overrides,
     },
   });
