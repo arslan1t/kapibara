@@ -377,6 +377,11 @@ async function main() {
         description: content.description,
         price: content.price,
         coverImage: content.coverImage,
+        // Age band too: it is content, not an operator decision, and leaving it
+        // out meant a corrected range never reached a book that already existed.
+        ageRange: content.ageRange,
+        ageMin: content.ageMin,
+        ageMax: content.ageMax,
       },
       create: { slug: book.slug, ...content },
     });
