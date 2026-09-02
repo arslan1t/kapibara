@@ -24,6 +24,75 @@ const galleryImages = [
   { file: "girl-3.jpg", alt: "Напечатанная книга для девочки — качество печати и переплёта" },
 ];
 
+
+/**
+ * The rest of the catalogue.
+ *
+ * Written as data rather than six more upsert blocks: they differ only in
+ * content, and a table makes a missing field obvious at a glance.
+ *
+ * `description` is deliberately a short premise, not the finished blurb. The
+ * stories themselves are still to be written, and inventing plot details here
+ * would put claims about the book in front of customers that nobody has agreed
+ * to honour.
+ */
+const CATALOGUE = [
+  {
+    slug: "priklyucheniya-devochki-i-kitenka",
+    title: "Приключения Девочки и Китёнка",
+    shortTitle: "Девочка и Китёнок",
+    companion: "китёнком",
+    gender: "girl",
+    cover: "/images/books/girl-kitenok.png",
+    idea: "История о море, тишине и дружбе с китёнком, который светится в звёздной воде.",
+  },
+  {
+    slug: "priklyucheniya-malchika-i-sovenka",
+    title: "Приключения Мальчика и Совёнка",
+    shortTitle: "Мальчик и Совёнок",
+    companion: "совёнком",
+    gender: "boy",
+    cover: "/images/books/boy-sovenok.png",
+    idea: "Ночная история о смелости: как не бояться темноты, когда рядом маленький совёнок.",
+  },
+  {
+    slug: "priklyucheniya-devochki-i-oblachka",
+    title: "Приключения Девочки и Облачка",
+    shortTitle: "Девочка и Облачко",
+    companion: "облачком",
+    gender: "girl",
+    cover: "/images/books/girl-oblachko.png",
+    idea: "Лёгкая история о мечтах и о том, как маленькое облачко учит смотреть на мир сверху.",
+  },
+  {
+    slug: "priklyucheniya-malchika-i-ezhika",
+    title: "Приключения Мальчика и Ёжика",
+    shortTitle: "Мальчик и Ёжик",
+    companion: "ёжиком",
+    gender: "boy",
+    cover: "/images/books/boy-ezhik.png",
+    idea: "Осенняя история о заботе: как подружиться с колючим ёжиком и подготовить лес к зиме.",
+  },
+  {
+    slug: "priklyucheniya-devochki-i-snezhka",
+    title: "Приключения Девочки и Снежка",
+    shortTitle: "Девочка и Снежок",
+    companion: "песцом Снежком",
+    gender: "girl",
+    cover: "/images/books/girl-snezhok.png",
+    idea: "Зимняя история о тепле: белый песец Снежок ведёт через снежный лес к самому важному.",
+  },
+  {
+    slug: "priklyucheniya-malchika-i-korablika",
+    title: "Приключения Мальчика и Кораблика",
+    shortTitle: "Мальчик и Кораблик",
+    companion: "корабликом",
+    gender: "boy",
+    cover: "/images/books/boy-korablik.png",
+    idea: "Морская история о пути домой: деревянный кораблик и маяк, который всегда ждёт.",
+  },
+] as const;
+
 async function main() {
   // ── The flagship product: the only fully purchasable book ──
   const boy = await db.product.upsert({
@@ -172,8 +241,49 @@ async function main() {
     },
   });
 
+  for (const book of CATALOGUE) {
+    const hero = book.gender === "girl" ? "ваша девочка" : "ваш мальчик";
+    const shortDescription = `${book.idea} Главным героем становится ${hero}.`;
+
+    const content = {
+      title: book.title,
+      shortTitle: book.shortTitle,
+      shortDescription,
+      description: `${book.idea} Имя и лицо вашего ребёнка вплетены в каждую страницу: он и есть главный герой этой истории, а рядом с ним — дружба с ${book.companion}.`,
+      price: BOOK_PRICE,
+      status: "available",
+      published: true,
+      featured: false,
+      stockStatus: "in_stock",
+      ageRange: "3–8 лет",
+      ageMin: 3,
+      ageMax: 8,
+      pageCount: PAGE_COUNT,
+      format: "hardcover-square",
+      coverType: "hardcover",
+      childGender: book.gender,
+      coverImage: book.cover,
+      personalizationEnabled: true,
+    };
+
+    await db.product.upsert({
+      where: { slug: book.slug },
+      // Re-seeding refreshes wording, price and artwork but never resurrects a
+      // book an administrator has deliberately taken off sale.
+      update: {
+        title: content.title,
+        shortTitle: content.shortTitle,
+        shortDescription: content.shortDescription,
+        description: content.description,
+        price: content.price,
+        coverImage: content.coverImage,
+      },
+      create: { slug: book.slug, ...content },
+    });
+  }
+
   const products = await db.product.count();
-  console.log(`✔ Каталог: ${products} товара, галерея: ${galleryImages.length} изображений`);
+  console.log(`✔ Каталог: ${products} книг, галерея: ${galleryImages.length} изображений`);
 }
 
 main()
