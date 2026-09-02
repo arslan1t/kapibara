@@ -58,10 +58,10 @@ export default async function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="inline-block" aria-label="Капибара — на главную">
               <Image
-                src="/capybara-logo.png"
+                src="/capybara-logo.svg"
                 alt="Капибара"
-                width={483}
-                height={600}
+                width={493}
+                height={462}
                 className="h-20 w-auto object-contain brightness-110"
               />
             </Link>
