@@ -53,36 +53,42 @@ const ACCEPTED_RESULT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"])
 /**
  * The instruction that does the actual work.
  *
- * Four things it insists on, each learned by looking at what comes back
+ * Deliberately says nothing about any particular book. An earlier version was
+ * written against the first cover and named its contents — the blue car, the
+ * forest, the bridge, the yellow t-shirt, the 3D book mockup. On that cover it
+ * worked; on the dragon, the whale and the steam engine it was instructing the
+ * model to preserve things that were not there, and to keep a mockup frame the
+ * covers no longer have. What must be preserved is now described by role
+ * ("every other character", "the whole background") rather than by name, so
+ * one prompt serves every book in the catalogue.
+ *
+ * Four clauses earn their place, each established by looking at what comes back
  * without them:
  *
  *   • An exhaustive list of what must not change. Asked loosely, the model
- *     redraws the whole cover — different trees, different title lettering, a
- *     different car — and the result is no longer the book being sold.
+ *     redraws the entire cover and the result is no longer the book being sold.
  *   • "Do not make the character photorealistic." Without it the model drops a
- *     photographic child into cartoon artwork, which is precisely the
- *     cut-and-paste look this feature exists to avoid.
- *   • Likeness named as the priority, with the specific features to study
- *     listed one by one. Told merely to "use the child's identity" it drifts
- *     toward a generic cartoon child who happens to share a hair colour.
- *   • Clothing taken approximately from the photograph. Keeping the book's
- *     outfit was tidier and looked less like the child: a parent recognises
- *     their own kid partly by what they are wearing.
- *
- * Pose stays with the book, so the composition the cover was designed around
- * survives.
+ *     photographic child into illustrated artwork — the cut-and-paste look this
+ *     feature exists to avoid.
+ *   • Likeness named as the priority, with the features to study listed. Told
+ *     merely to "use the child's identity" it drifts to a generic child who
+ *     happens to share a hair colour.
+ *   • Clothing taken approximately from the photograph. A parent recognises
+ *     their own child partly by what they are wearing.
  */
 const COMPOSITION_PROMPT = `Img 1 is a finished children's book cover. Img 2 is a photograph of a real child.
 
-Redraw ONLY the child character in Img 1 so that it depicts the child from Img 2. Change nothing else in the image.
+Redraw ONLY the human child character in Img 1 so that it depicts the child from Img 2. Change nothing else in the image.
 
-LIKENESS IS THE PRIORITY. Study the face in Img 2 closely and reproduce it as a cartoon character: the exact face shape and jawline, the width and spacing of the eyes, the eye colour, the shape and thickness of the eyebrows, the shape of the nose, the shape of the mouth and the exact smile, the ears, the skin tone, and any distinctive detail such as freckles, dimples, a gap between the front teeth or a particular hair parting. Someone who knows this child must recognise them instantly. Do not drift toward a generic cartoon child.
+LIKENESS IS THE PRIORITY. Study the face in Img 2 closely and reproduce it in the illustration style of Img 1: the face shape and jawline, the width and spacing of the eyes, the eye colour, the shape and thickness of the eyebrows, the shape of the nose, the shape of the mouth and the exact smile, the ears, the skin tone, and any distinctive detail such as freckles, dimples, a gap between the front teeth or a particular hair parting. Someone who knows this child must recognise them. Do not drift toward a generic child.
 
-CLOTHING: dress the character in an outfit that approximately matches what the child is wearing in Img 2 — same garment type and same main colours — redrawn in the book's illustration style. Keep the character's shoes and the general silhouette consistent with the original character.
+CLOTHING: dress the character in an outfit that approximately matches what the child is wearing in Img 2 — same garment type and same main colours — redrawn in the book's illustration style, and appropriate to the setting and weather shown in Img 1.
 
-Keep identical to Img 1: the title text and its exact lettering, colours and position; the blue cartoon car and its face; the forest, path, bridge, waterfall, mushrooms and flowers; the lighting, shadows and colour grading; the camera angle and composition; the character's pose, gesture and position in the frame; and the 3D hardcover book mockup shape with its edge and drop shadow.
+Keep completely unchanged, exactly as they appear in Img 1: all title text and lettering, including its typefaces, colours, sizes and positions; every other character, animal, creature, vehicle or object in the scene; the entire background and every element in it; the lighting, shadows, reflections and colour grading; the camera angle, framing and composition; and the child's pose, gesture, scale and position within the frame.
 
-The character must stay entirely in the book's own 3D-animated illustration style: same rendering, same stylised cartoon proportions, same large expressive cartoon eyes, same soft shading and outline treatment as the original character. Do NOT make the character photorealistic. Do NOT paste or blend the photograph into the artwork.`;
+The character must stay entirely in the book's own illustration style — whatever that style is in Img 1, whether 3D animation or watercolour — matching its rendering, line quality, level of stylisation, eye treatment and shading exactly as the original character was drawn. Do NOT make the character photorealistic. Do NOT paste or blend the photograph into the artwork.
+
+Output the full cover at the same crop and aspect ratio as Img 1, with no added border, frame, mockup, spine or drop shadow.`;
 
 interface Config {
   apiKey: string;
