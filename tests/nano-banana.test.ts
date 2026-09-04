@@ -178,7 +178,7 @@ describe("Nano Banana provider contract", () => {
 
     // The prompt is the feature. These two clauses are what stop the model
     // returning a photograph pasted onto cartoon artwork.
-    assert.match(body.input.prompt, /Redraw ONLY the child character/);
+    assert.match(body.input.prompt, /Redraw ONLY the human child character/);
     assert.match(body.input.prompt, /Do NOT make the character photorealistic/);
     assert.match(body.input.prompt, /Do NOT paste or blend the photograph/);
     // Both were added after looking at results that were technically correct
@@ -186,6 +186,16 @@ describe("Nano Banana provider contract", () => {
     // and the outfit stays the book's.
     assert.match(body.input.prompt, /LIKENESS IS THE PRIORITY/);
     assert.match(body.input.prompt, /CLOTHING: dress the character/);
+
+    // The prompt must not name anything from one particular book: it is sent
+    // for all eighteen, and an earlier version told the model to preserve a
+    // blue car and a forest on covers that had neither.
+    for (const bookSpecific of [
+      /blue cartoon car/i, /waterfall/i, /mushrooms/i, /yellow t-shirt/i,
+      /hardcover book mockup/i, /3D-animated illustration style/,
+    ]) {
+      assert.doesNotMatch(body.input.prompt, bookSpecific);
+    }
   });
 
   test("the child's photograph is passed as a signed link, never a public one", async () => {
