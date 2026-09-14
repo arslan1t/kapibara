@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { Check, X, Pin, AlertCircle } from "lucide-react";
 import { moderateReview, toggleReviewFeatured } from "@/app/actions/reviews";
 import type { ReviewStatus } from "@/lib/constants";

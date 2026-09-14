@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { Star, CheckCircle2, AlertCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { submitReview } from "@/app/actions/reviews";

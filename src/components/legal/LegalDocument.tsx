@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/i18n/navigation";
 import { LEGAL_UPDATED, OPERATOR, type LegalSection } from "@/lib/legal";
 
 interface LegalDocumentProps {
@@ -68,10 +68,10 @@ export default function LegalDocument({
             <dt className="font-semibold text-brown-dark">Оператор</dt>
             <dd>{OPERATOR.fullName}</dd>
             <dt className="font-semibold text-brown-dark">ИНН</dt>
-            <dd>{OPERATOR.inn}</dd>
+            <dd>{OPERATOR.taxId}</dd>
             <dt className="font-semibold text-brown-dark">ОГРНИП</dt>
             <dd>
-              {OPERATOR.ogrnip} (присвоен {OPERATOR.registeredOn})
+              {OPERATOR.registrationId} (присвоен {OPERATOR.registeredOn})
             </dd>
             <dt className="font-semibold text-brown-dark">Адрес</dt>
             <dd>{OPERATOR.address}</dd>

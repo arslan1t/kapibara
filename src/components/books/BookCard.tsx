@@ -1,7 +1,8 @@
-import Link from "next/link";
+import Link from "@/i18n/navigation";
 import { ArrowRight } from "lucide-react";
 import type { Book } from "@/types";
-import { formatPrice, cn } from "@/lib/utils";
+import Price from "@/components/shared/Price";
+import { cn } from "@/lib/utils";
 import BookCover from "./BookCover";
 
 interface BookCardProps {
@@ -55,7 +56,7 @@ export default function BookCard({ book, priority = false, className }: BookCard
 
         <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="font-display text-2xl font-extrabold text-brown-dark">
-            {formatPrice(book.price)}
+            <Price amount={book.price} />
           </span>
           <span className="text-sm text-brown-300">
             {book.pageCount} страниц · твёрдая обложка

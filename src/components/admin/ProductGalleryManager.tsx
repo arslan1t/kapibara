@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import Image from "next/image";
 import { Upload, Trash2, ArrowUp, ArrowDown, AlertCircle, Star } from "lucide-react";
 import {

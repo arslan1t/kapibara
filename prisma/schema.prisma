@@ -120,6 +120,11 @@ model Product {
   /// removes any chance of floating-point drift in order totals.
   price                  Int
   oldPrice               Int?
+  /// Whole sum, for the Uzbek storefront. Null means the book is not on sale
+  /// there yet, and the catalogue says so rather than converting a rouble
+  /// price at a rate nobody agreed to.
+  priceUzs               Int?
+  oldPriceUzs            Int?
   /// "available" | "coming_soon" | "archived"
   status                 String  @default("coming_soon")
   /// Only published AND available products can be bought.
@@ -149,6 +154,7 @@ model Product {
   updatedAt DateTime @updatedAt
 
   images         ProductImage[]
+  translations   ProductTranslation[]
   variants       ProductVariant[]
   items          OrderItem[]
   reviews        Review[]
@@ -159,12 +165,43 @@ model Product {
   @@map("products")
 }
 
+/// A book's own words in a language other than Russian.
+///
+/// Russian lives on Product itself: it is the language the catalogue was
+/// written in and the one the back office edits. Anything else is a row here,
+/// so adding a language is data rather than a migration.
+model ProductTranslation {
+  id        String @id @default(cuid())
+  productId String
+  /// Language code, not locale: "uz". The Uzbek text is the same whether it is
+  /// read in Tashkent or anywhere else.
+  language  String
+
+  title            String
+  shortTitle       String
+  shortDescription String
+  description      String
+  /// Free-text age band as it should read in this language, e.g. "3-7 yosh".
+  ageRange         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, language])
+  @@map("product_translations")
+}
+
 model ProductImage {
   id        String  @id @default(cuid())
   productId String
   url       String
   /// Russian alt text, required for accessibility.
   alt       String
+  /// Uzbek alt text. Null falls back to the Russian one, which is worse than a
+  /// translation and far better than nothing.
+  altUz     String?
   sortOrder Int     @default(0)
   isPrimary Boolean @default(false)
 
@@ -206,7 +243,18 @@ model Order {
   customerName  String
   customerPhone String
 
-  /// All amounts in whole roubles, computed server-side from database prices.
+  /// Which storefront took the order. Decides the seller, the applicable law
+  /// and the currency below. "RU" | "UZ".
+  region   String @default("RU")
+  /// ISO 4217, stamped at the time of the order. Amounts are meaningless
+  /// without it, and it must never be re-derived from the region later: a
+  /// region's currency can change, an order that has been placed cannot.
+  currency String @default("RUB")
+  /// The locale the customer was reading when they ordered, so confirmations
+  /// and status emails go out in the language they actually use.
+  locale   String @default("ru")
+
+  /// Whole units of `currency`, computed server-side from database prices.
   subtotal      Int
   deliveryPrice Int @default(0)
   total         Int

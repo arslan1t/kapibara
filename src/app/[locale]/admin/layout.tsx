@@ -1,0 +1,35 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getCurrentUser, isAdmin } from "@/lib/auth";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import AdminNav from "@/components/admin/AdminNav";
+
+export const metadata: Metadata = {
+  title: { default: "Панель управления", template: "%s | Панель Капибары" },
+  robots: { index: false, follow: false },
+};
+
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // The back office is only ever served under the default locale — middleware
+  // redirects any other prefix here — so these paths can be written out.
+  const at = (path: string) => `/${DEFAULT_LOCALE}${path}`;
+
+  // Authoritative check. Middleware redirects first, but the role is verified
+  // against the database here so a stale token can never grant access.
+  const user = await getCurrentUser();
+  if (!user) redirect(at(`/login?callbackUrl=/${DEFAULT_LOCALE}/admin`));
+  if (!(await isAdmin())) redirect(at("/no-access"));
+
+  return (
+    <div className="min-h-screen bg-cream-100">
+      <AdminNav userName={user.name} />
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {children}
+      </main>
+    </div>
+  );
+}

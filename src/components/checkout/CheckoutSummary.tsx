@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/i18n/navigation";
 import { ShieldCheck } from "lucide-react";
 import type { CartItem } from "@/types";
 import { formatPrice } from "@/lib/utils";

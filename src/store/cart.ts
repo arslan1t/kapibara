@@ -56,6 +56,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
 
   addItem: (book, personalization) => {
+    // A book with no price in this market cannot be bought here. The buy
+    // button is already hidden for those, so reaching this is a bug; refusing
+    // quietly beats putting a zero-rouble line in somebody's cart.
+    if (book.price === null) return;
+
     const items = get().items;
     const existing = items.find(
       (i) =>

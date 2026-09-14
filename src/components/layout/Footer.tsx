@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/i18n/navigation";
 import { OPERATOR } from "@/lib/legal";
 import CookieSettingsLink from "@/components/legal/CookieSettingsLink";
 import Image from "next/image";
@@ -126,7 +126,7 @@ export default async function Footer() {
             </span>
           </p>
           <p className="mt-1">
-            ИНН {OPERATOR.inn} · ОГРНИП {OPERATOR.ogrnip}
+            ИНН {OPERATOR.taxId} · ОГРНИП {OPERATOR.registrationId}
           </p>
           <p className="mt-1">{OPERATOR.address}</p>
           <p className="mt-1">

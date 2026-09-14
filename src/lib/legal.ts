@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Region } from "@/i18n/config";
 
 /**
  * Legal identity of the operator, in one place.
@@ -13,26 +14,106 @@ import type { ReactNode } from "react";
  * Banking details are deliberately absent: they belong on an invoice, not on a
  * public web page.
  */
-export const OPERATOR = {
-  /** Full legal form, as it appears in the ЕГРИП record. */
-  fullName: "Индивидуальный предприниматель Шипулин Шухрат Юрьевич",
-  shortName: "ИП Шипулин Ш. Ю.",
+export interface Seller {
+  /** Full legal form, as it appears in the state register. */
+  fullName: string;
+  shortName: string;
   /** The trading name customers actually see. */
-  brand: "Капибара",
-
-  inn: "504211606360",
-  ogrnip: "325774600675334",
-  /** Date the ОГРНИП was assigned. */
-  registeredOn: "07.10.2025",
-
-  address: "115093, г. Москва, 1-й Щипковский переулок, д. 25, оф. 2",
-  email: "Sshipulin-IP@bk.ru",
-  phone: "+7 (910) 469-68-63",
+  brand: string;
+  /** Taxpayer number — ИНН in Russia, СТИР/ИНН in Uzbekistan. */
+  taxId: string;
+  taxIdLabel: string;
+  /** State registration number, with the label that country uses for it. */
+  registrationId: string;
+  registrationIdLabel: string;
+  /** Date the registration number was assigned. */
+  registeredOn: string;
+  address: string;
+  email: string;
+  phone: string;
   /** Digits only, for tel: links. */
-  phoneHref: "+79104696863",
+  phoneHref: string;
+  site: string;
+  /**
+   * False while the details above are still placeholders.
+   *
+   * Nothing is invented for a seller we do not yet have papers for: the
+   * documents say so in as many words rather than printing a number somebody
+   * might act on. Set this true in the same commit that fills the fields in.
+   */
+  configured: boolean;
+}
 
-  site: "capibara.su",
-} as const;
+/**
+ * Who is selling, in each market.
+ *
+ * Every document, the footer and the order confirmation quote these. Russian
+ * consumer law (ЗОЗПП ст. 9) requires the seller's name, address and state
+ * registration number to be available to the buyer, and 152-ФЗ ст. 18.1
+ * requires the personal-data operator to be identified in a published policy;
+ * Uzbek law asks for the equivalent. A shop whose tax number differs between
+ * two pages has a real problem, not a typo, so there is exactly one of these
+ * per market and everything reads from it.
+ *
+ * Banking details are deliberately absent: they belong on an invoice, not on a
+ * public web page.
+ */
+export const SELLERS: Record<Region, Seller> = {
+  RU: {
+    fullName: "Индивидуальный предприниматель Шипулин Шухрат Юрьевич",
+    shortName: "ИП Шипулин Ш. Ю.",
+    brand: "Капибара",
+
+    taxId: "504211606360",
+    taxIdLabel: "ИНН",
+    registrationId: "325774600675334",
+    registrationIdLabel: "ОГРНИП",
+    registeredOn: "07.10.2025",
+
+    address: "115093, г. Москва, 1-й Щипковский переулок, д. 25, оф. 2",
+    email: "Sshipulin-IP@bk.ru",
+    phone: "+7 (910) 469-68-63",
+    phoneHref: "+79104696863",
+
+    site: "capibara.su",
+    configured: true,
+  },
+
+  /**
+   * Uzbekistan is served by a separate local entity, which is not registered
+   * yet. Placeholders, and a flag that makes every page say so out loud.
+   */
+  UZ: {
+    fullName: "",
+    shortName: "",
+    brand: "Капибара",
+
+    taxId: "",
+    taxIdLabel: "СТИР (ИНН)",
+    registrationId: "",
+    registrationIdLabel: "Регистрационный номер",
+    registeredOn: "",
+
+    address: "",
+    email: "",
+    phone: "",
+    phoneHref: "",
+
+    site: "capibara.su",
+    configured: false,
+  },
+};
+
+/** The seller for a market. */
+export function sellerFor(region: Region): Seller {
+  return SELLERS[region];
+}
+
+/**
+ * The Russian seller, for the places that are Russia by definition — the back
+ * office, and anything that predates the second market.
+ */
+export const OPERATOR = SELLERS.RU;
 
 /**
  * Version stamped onto every consent a user gives.

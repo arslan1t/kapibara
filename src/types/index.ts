@@ -1,8 +1,13 @@
+import type { CurrencyCode } from "@/i18n/config";
+
 // ─── Books ────────────────────────────────────────────────────────────────────
 
 /**
- * Every book Капибара sells. One format only (square hardcover), one price.
- * `src/data/books.ts` is the single source of truth for this data.
+ * Every book Капибара sells. One format only (square hardcover).
+ *
+ * A row is resolved for one locale at a time: the wording is the reader's
+ * language and the price is the reader's market, both applied in
+ * `toBook` so no component has to know either rule.
  */
 export interface Book {
   id: string;
@@ -20,8 +25,17 @@ export interface Book {
   ageMin: number;
   ageMax: number;
   pageCount: number;
-  price: number;
-  currency: "RUB";
+  /**
+   * Whole units of `currency`, for the market the reader is in.
+   *
+   * Null when the book is not on sale in that market yet. The storefront says
+   * so rather than converting a price from another currency at a rate nobody
+   * agreed to — see the migration that introduced the second price column.
+   */
+  price: number | null;
+  /** Struck-through reference price, when there is one. */
+  oldPrice: number | null;
+  currency: CurrencyCode;
   status: "available" | "in-development";
   available: boolean;
   personalizationEnabled: boolean;

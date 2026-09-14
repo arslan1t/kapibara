@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/i18n/navigation";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { CartItem } from "@/types";
 import { formatPrice } from "@/lib/utils";

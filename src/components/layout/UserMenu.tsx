@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
 import { User, ChevronDown, Package, LogOut, LayoutDashboard } from "lucide-react";
 import { logout } from "@/app/actions/auth";
