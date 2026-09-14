@@ -1,6 +1,9 @@
 import "server-only";
 
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/constants";
+import { type OrderStatus } from "@/lib/constants";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill, formatAmount } from "@/i18n/format";
 
 /**
  * Transactional email templates.
@@ -22,12 +25,20 @@ export interface RenderedEmail {
   text: string;
 }
 
-function money(amount: number): string {
-  return `${amount.toLocaleString("ru-RU")} ₽`;
+/**
+ * The currency the order was actually placed in, not the reader's current one.
+ *
+ * An email is a record of what was charged. Re-deriving the currency from the
+ * locale would quote a sum in roubles for an order paid in sum.
+ */
+function money(amount: number, currency: string, locale: Locale): string {
+  return formatAmount(amount, currency, locale);
 }
 
 /** Shared shell so every message looks like it came from the same company. */
 function layout(opts: {
+  brand: string;
+  autoNote: string;
   heading: string;
   body: string;
   cta?: { label: string; url: string };
@@ -60,7 +71,7 @@ function layout(opts: {
                   padding:36px 32px;font-family:-apple-system,BlinkMacSystemFont,
                   'Segoe UI',Roboto,Arial,sans-serif;color:${INK}">
       <tr><td style="padding-bottom:20px;font-size:20px;font-weight:800;color:${BRAND}">
-        Капибара
+        ${opts.brand}
       </td></tr>
       <tr><td style="font-size:22px;font-weight:800;line-height:1.3;padding-bottom:14px">
         ${opts.heading}
@@ -72,7 +83,7 @@ function layout(opts: {
       ${footnote}
       <tr><td style="padding-top:26px;border-top:1px solid #EFE3D9;
                      color:${MUTED};font-size:12px;line-height:1.6">
-        Это письмо отправлено автоматически, отвечать на него не нужно.
+        ${opts.autoNote}
       </td></tr>
     </table>
   </td></tr>
@@ -86,25 +97,30 @@ export function emailVerifyTemplate(opts: {
   name: string;
   url: string;
   hours: number;
+  locale?: Locale;
 }): RenderedEmail {
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+  const v = { name: opts.name, hours: opts.hours, brand: t.common.brand };
+
   return {
-    subject: "Подтвердите адрес электронной почты — Капибара",
+    subject: fill(t.mail.verifySubject, v),
     html: layout({
-      heading: `${opts.name}, подтвердите адрес почты`,
-      body: `Мы создали для вас аккаунт в Капибаре. Чтобы получать письма о заказах,
-             подтвердите адрес — это займёт одну секунду.`,
-      cta: { label: "Подтвердить адрес", url: opts.url },
-      footnote: `Ссылка действует ${opts.hours} ч. Если вы не регистрировались,
-                 просто удалите это письмо — аккаунт останется неподтверждённым.`,
+      brand: t.common.brand,
+      autoNote: t.mail.autoNote,
+      heading: fill(t.mail.verifyHeading, v),
+      body: fill(t.mail.verifyBody, v),
+      cta: { label: t.mail.verifyCta, url: opts.url },
+      footnote: fill(t.mail.verifyFootnote, v),
     }),
     text: [
-      `${opts.name}, подтвердите адрес почты`,
+      fill(t.mail.verifyHeading, v),
       "",
-      "Мы создали для вас аккаунт в Капибаре. Подтвердите адрес по ссылке:",
+      fill(t.mail.verifyPlainLead, v),
       opts.url,
       "",
-      `Ссылка действует ${opts.hours} ч.`,
-      "Если вы не регистрировались, просто удалите это письмо.",
+      fill(t.mail.verifyPlainExpiry, v),
+      t.mail.verifyPlainIgnore,
     ].join("\n"),
   };
 }
@@ -115,26 +131,30 @@ export function passwordResetTemplate(opts: {
   name: string;
   url: string;
   minutes: number;
+  locale?: Locale;
 }): RenderedEmail {
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+  const v = { name: opts.name, minutes: opts.minutes, brand: t.common.brand };
+
   return {
-    subject: "Восстановление пароля — Капибара",
+    subject: fill(t.mail.resetSubject, v),
     html: layout({
-      heading: "Восстановление пароля",
-      body: `${opts.name}, мы получили запрос на смену пароля для вашего аккаунта.
-             Нажмите кнопку ниже, чтобы задать новый пароль.`,
-      cta: { label: "Задать новый пароль", url: opts.url },
-      footnote: `Ссылка действует ${opts.minutes} мин. и сработает один раз.
-                 Если вы не запрашивали смену пароля, ничего делать не нужно —
-                 пароль останется прежним.`,
+      brand: t.common.brand,
+      autoNote: t.mail.autoNote,
+      heading: t.mail.resetHeading,
+      body: fill(t.mail.resetBody, v),
+      cta: { label: t.mail.resetCta, url: opts.url },
+      footnote: fill(t.mail.resetFootnote, v),
     }),
     text: [
-      "Восстановление пароля",
+      t.mail.resetHeading,
       "",
-      `${opts.name}, мы получили запрос на смену пароля. Задайте новый пароль по ссылке:`,
+      fill(t.mail.resetPlainLead, v),
       opts.url,
       "",
-      `Ссылка действует ${opts.minutes} мин. и сработает один раз.`,
-      "Если вы не запрашивали смену пароля, ничего делать не нужно.",
+      fill(t.mail.resetPlainExpiry, v),
+      t.mail.resetPlainIgnore,
     ].join("\n"),
   };
 }
@@ -153,76 +173,76 @@ export function orderCreatedTemplate(opts: {
   orderNumber: string;
   items: OrderEmailItem[];
   total: number;
+  currency: string;
   orderUrl: string;
   paymentNote: string;
+  locale?: Locale;
 }): RenderedEmail {
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+  const v = { orderNumber: opts.orderNumber, name: opts.name, brand: t.common.brand };
+  const price = (amount: number) => money(amount, opts.currency, locale);
+
   const rows = opts.items
     .map(
       (i) => `<tr>
         <td style="padding:8px 0;font-size:14px;line-height:1.5">
           <strong>${i.title}</strong><br>
-          <span style="color:${MUTED}">Имя ребёнка: ${i.childName} · ${i.quantity} шт.</span>
+          <span style="color:${MUTED}">${fill(t.mail.orderChildName, {
+            name: i.childName,
+            quantity: i.quantity,
+          })}</span>
         </td>
         <td style="padding:8px 0;font-size:14px;text-align:right;white-space:nowrap">
-          ${money(i.lineTotal)}
+          ${price(i.lineTotal)}
         </td>
       </tr>`
     )
     .join("");
 
   return {
-    subject: `Заказ ${opts.orderNumber} принят — Капибара`,
+    subject: fill(t.mail.orderSubject, v),
     html: layout({
-      heading: `Заказ ${opts.orderNumber} принят`,
-      body: `${opts.name}, спасибо за заказ. Мы уже начали над ним работать и
-             сообщим, когда книга отправится в печать.
+      brand: t.common.brand,
+      autoNote: t.mail.autoNote,
+      heading: fill(t.mail.orderHeading, v),
+      body: `${fill(t.mail.orderBody, v)}
              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
                     style="margin-top:18px;border-top:1px solid #EFE3D9">
                ${rows}
                <tr><td style="padding-top:12px;border-top:1px solid #EFE3D9;
-                              font-size:15px;font-weight:700">Итого</td>
+                              font-size:15px;font-weight:700">${t.mail.orderTotal}</td>
                    <td style="padding-top:12px;border-top:1px solid #EFE3D9;
                               font-size:15px;font-weight:700;text-align:right">
-                     ${money(opts.total)}</td></tr>
+                     ${price(opts.total)}</td></tr>
              </table>`,
-      cta: { label: "Открыть заказ", url: opts.orderUrl },
+      cta: { label: t.mail.orderCta, url: opts.orderUrl },
       footnote: opts.paymentNote,
     }),
     text: [
-      `Заказ ${opts.orderNumber} принят`,
+      fill(t.mail.orderHeading, v),
       "",
-      `${opts.name}, спасибо за заказ.`,
+      fill(t.mail.orderPlainThanks, v),
       "",
-      ...opts.items.map(
-        (i) => `— ${i.title} (имя: ${i.childName}, ${i.quantity} шт.) — ${money(i.lineTotal)}`
+      ...opts.items.map((i) =>
+        fill(t.mail.orderPlainItem, {
+          title: i.title,
+          childName: i.childName,
+          quantity: i.quantity,
+          price: price(i.lineTotal),
+        })
       ),
       "",
-      `Итого: ${money(opts.total)}`,
+      fill(t.mail.orderPlainTotal, { total: price(opts.total) }),
       "",
       opts.paymentNote,
       "",
-      `Заказ: ${opts.orderUrl}`,
+      fill(t.mail.orderPlainLink, { url: opts.orderUrl }),
     ].join("\n"),
   };
 }
 
 // ─── Order status changed ─────────────────────────────────────────────────────
-
-/**
- * A sentence per status. Written so the customer learns what actually happened,
- * rather than reading a database value.
- */
-const STATUS_EXPLANATION: Record<OrderStatus, string> = {
-  new: "Мы получили заказ и скоро возьмём его в работу.",
-  awaiting_confirmation: "Мы свяжемся с вами, чтобы подтвердить детали заказа.",
-  in_progress: "Заказ в работе.",
-  personalization: "Добавляем имя и лицо вашего ребёнка в иллюстрации.",
-  sent_to_print: "Книга отправлена в печать.",
-  ready_to_ship: "Книга напечатана и готова к отправке.",
-  in_delivery: "Заказ передан в доставку.",
-  completed: "Заказ доставлен. Спасибо, что выбрали Капибару!",
-  cancelled: "Заказ отменён. Если это ошибка, напишите нам.",
-};
 
 export function orderStatusTemplate(opts: {
   name: string;
@@ -231,28 +251,45 @@ export function orderStatusTemplate(opts: {
   orderUrl: string;
   /** Set for a completed order, inviting a review. */
   reviewUrl?: string;
+  locale?: Locale;
 }): RenderedEmail {
-  const label = ORDER_STATUS_LABELS[opts.status];
-  const explanation = STATUS_EXPLANATION[opts.status];
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+
+  const status = t.orderStatus[opts.status].toLocaleLowerCase(locale);
+  // Written so the customer learns what actually happened, rather than reading
+  // a database value back.
+  const explanation = fill(t.statusExplanation[opts.status], {
+    brand: t.common.brand,
+  });
+  const v = {
+    orderNumber: opts.orderNumber,
+    status,
+    name: opts.name,
+    explanation,
+    brand: t.common.brand,
+  };
 
   return {
-    subject: `Заказ ${opts.orderNumber}: ${label.toLowerCase()} — Капибара`,
+    subject: fill(t.mail.statusSubject, v),
     html: layout({
-      heading: `Заказ ${opts.orderNumber} — ${label.toLowerCase()}`,
-      body: `${opts.name}, статус вашего заказа изменился. ${explanation}`,
+      brand: t.common.brand,
+      autoNote: t.mail.autoNote,
+      heading: fill(t.mail.statusHeading, v),
+      body: fill(t.mail.statusBody, v),
       cta: opts.reviewUrl
-        ? { label: "Оставить отзыв", url: opts.reviewUrl }
-        : { label: "Открыть заказ", url: opts.orderUrl },
-      footnote: opts.reviewUrl
-        ? "Ваш отзыв появится на сайте после проверки модератором."
-        : undefined,
+        ? { label: t.mail.statusReviewCta, url: opts.reviewUrl }
+        : { label: t.mail.orderCta, url: opts.orderUrl },
+      footnote: opts.reviewUrl ? t.mail.statusReviewNote : undefined,
     }),
     text: [
-      `Заказ ${opts.orderNumber} — ${label.toLowerCase()}`,
+      fill(t.mail.statusHeading, v),
       "",
-      `${opts.name}, статус вашего заказа изменился. ${explanation}`,
+      fill(t.mail.statusBody, v),
       "",
-      opts.reviewUrl ? `Оставить отзыв: ${opts.reviewUrl}` : `Заказ: ${opts.orderUrl}`,
+      opts.reviewUrl
+        ? fill(t.mail.statusReviewPlain, { url: opts.reviewUrl })
+        : fill(t.mail.orderPlainLink, { url: opts.orderUrl }),
     ].join("\n"),
   };
 }

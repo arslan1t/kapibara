@@ -12,6 +12,7 @@ import { logger } from "@/lib/logger";
 import type { PaymentGateway, ProviderEvent } from "./types";
 import { manualGateway } from "./manual";
 import { yookassaGateway } from "./yookassa";
+import { asLocale } from "@/i18n/config";
 
 export type { PaymentGateway, ProviderEvent } from "./types";
 
@@ -67,6 +68,7 @@ export async function startPayment(orderId: string): Promise<StartPaymentResult>
       total: true,
       customerEmail: true,
       paymentStatus: true,
+      locale: true,
     },
   });
 
@@ -95,7 +97,7 @@ export async function startPayment(orderId: string): Promise<StartPaymentResult>
     amount: order.total,
     description: `Заказ ${order.orderNumber} — Капибара`,
     customerEmail: order.customerEmail,
-    returnUrl: absoluteUrl(`/order-success?order=${order.id}`),
+    returnUrl: absoluteUrl(`/order-success?order=${order.id}`, asLocale(order.locale)),
     idempotencyKey,
   });
 

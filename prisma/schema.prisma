@@ -41,6 +41,12 @@ datasource db {
 /// `role` is the single source of truth for authorization and is only ever read
 /// on the server — never trusted from the client.
 model User {
+  /// The storefront this customer signed up on: "ru" | "ru-uz" | "uz".
+  ///
+  /// Order mail reads its locale off the order; account mail — verification,
+  /// password reset — has no order to read, which is what this is for.
+  locale String @default("ru")
+
   id                String    @id @default(cuid())
   /// Always stored lower-cased and trimmed so duplicates cannot slip in.
   email             String    @unique

@@ -6,6 +6,7 @@ import type { MailDriverId } from "./transport";
 import { deliver, isMailConfigured } from "./transport";
 import { logger } from "@/lib/logger";
 import type { RenderedEmail } from "./templates";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 
 export {
   isMailConfigured,
@@ -72,12 +73,17 @@ export async function sendEmail(
  * Falls back to localhost only in development; a production deployment that
  * has not set the site URL would otherwise mail out unusable links.
  */
-export function absoluteUrl(path: string): string {
+export function absoluteUrl(path: string, locale: Locale = DEFAULT_LOCALE): string {
   const base =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     process.env.AUTH_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
-  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  // The locale goes in the link, not left to middleware to guess. Middleware
+  // would fall back to Accept-Language, and a reader who chose Uzbek on a
+  // Russian-configured browser would land on the Russian site from their own
+  // confirmation email.
+  return `${base}/${locale}${clean}`;
 }
 
 /**

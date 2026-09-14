@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { TOKEN_TTL_MINUTES } from "@/lib/constants";
 import { issueToken, pruneExpiredTokens } from "@/lib/tokens";
 import { sendEmail, absoluteUrl, emailVerifyTemplate } from "@/lib/mail";
+import { asLocale } from "@/i18n/config";
 
 /**
  * Issues a verification token and mails the link.
@@ -19,13 +20,18 @@ export async function sendVerificationEmail(userId: string): Promise<boolean> {
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user || user.emailVerified) return false;
 
+  const locale = asLocale(user.locale);
   const { token } = await issueToken(user.id, "email_verify");
   const result = await sendEmail(
     user.email,
     "email_verify",
     emailVerifyTemplate({
+      locale,
       name: user.fullName.split(" ")[0] || user.fullName,
-      url: absoluteUrl(`/verify-email?token=${encodeURIComponent(token)}`),
+      url: absoluteUrl(
+        `/verify-email?token=${encodeURIComponent(token)}`,
+        locale
+      ),
       hours: Math.round(TOKEN_TTL_MINUTES.email_verify / 60),
     })
   );

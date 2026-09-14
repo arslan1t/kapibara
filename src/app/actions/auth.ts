@@ -90,6 +90,9 @@ export async function registerAccount(input: {
         passwordHash,
         fullName,
         role: "customer",
+        // Remembered so account mail — verification, password reset — goes out
+        // in the language this person signed up in.
+        locale,
         consents: {
           create: CONSENT_TYPES.map((type) => ({
             type,

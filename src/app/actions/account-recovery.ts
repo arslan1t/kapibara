@@ -143,13 +143,21 @@ export async function requestPasswordReset(input: {
   const user = await db.user.findUnique({ where: { email } });
   if (!user) return neutralSuccess;
 
+  // The account's own language, not the one the request came in on: the link
+  // is a credential for that account, and its owner may not be the person at
+  // the keyboard.
+  const userLocale = asLocale(user.locale);
   const { token } = await issueToken(user.id, "password_reset");
   await sendEmail(
     user.email,
     "password_reset",
     passwordResetTemplate({
+      locale: userLocale,
       name: user.fullName.split(" ")[0] || user.fullName,
-      url: absoluteUrl(`/reset-password?token=${encodeURIComponent(token)}`),
+      url: absoluteUrl(
+        `/reset-password?token=${encodeURIComponent(token)}`,
+        userLocale
+      ),
       minutes: TOKEN_TTL_MINUTES.password_reset,
     })
   );

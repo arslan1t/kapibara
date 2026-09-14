@@ -204,6 +204,13 @@ export type ProductInput = {
   description: string;
   price: number;
   oldPrice?: number | null;
+  /**
+   * Whole sum, for the Uzbek storefront. Null means the book is not on sale
+   * there: the catalogue says so rather than converting the rouble price at a
+   * rate nobody agreed to.
+   */
+  priceUzs?: number | null;
+  oldPriceUzs?: number | null;
   status: string;
   published: boolean;
   featured: boolean;
@@ -225,8 +232,20 @@ function validateProduct(input: ProductInput): string | null {
     return "Slug может содержать только латиницу в нижнем регистре, цифры и дефис";
   }
   if (input.title.trim().length < 2) return "Укажите название";
+  if (
+    input.priceUzs != null &&
+    (!Number.isInteger(input.priceUzs) || input.priceUzs <= 0)
+  ) {
+    return "Цена в сумах должна быть целым числом больше нуля";
+  }
   if (!Number.isInteger(input.price) || input.price < 0) {
     return "Цена должна быть целым неотрицательным числом";
+  }
+  if (
+    input.oldPriceUzs != null &&
+    (input.priceUzs == null || input.oldPriceUzs <= input.priceUzs)
+  ) {
+    return "Старая цена в сумах должна быть больше текущей";
   }
   if (!(PRODUCT_STATUSES as readonly string[]).includes(input.status)) {
     return "Неизвестный статус товара";
@@ -259,6 +278,8 @@ export async function createProduct(input: ProductInput): Promise<Result & { id?
       description: input.description.trim(),
       price: input.price,
       oldPrice: input.oldPrice ?? null,
+      priceUzs: input.priceUzs ?? null,
+      oldPriceUzs: input.oldPriceUzs ?? null,
       status: input.status as ProductStatus,
       published: input.published,
       featured: input.featured,
@@ -308,6 +329,8 @@ export async function updateProduct(
       description: input.description.trim(),
       price: input.price,
       oldPrice: input.oldPrice ?? null,
+      priceUzs: input.priceUzs ?? null,
+      oldPriceUzs: input.oldPriceUzs ?? null,
       status: input.status as ProductStatus,
       published: input.published,
       featured: input.featured,

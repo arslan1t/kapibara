@@ -34,6 +34,8 @@ export default function ProductForm({ productId, initial }: Props) {
     description: initial?.description ?? "",
     price: initial?.price ?? 0,
     oldPrice: initial?.oldPrice ?? null,
+    priceUzs: initial?.priceUzs ?? null,
+    oldPriceUzs: initial?.oldPriceUzs ?? null,
     status: initial?.status ?? "coming_soon",
     published: initial?.published ?? false,
     featured: initial?.featured ?? false,
@@ -145,6 +147,8 @@ export default function ProductForm({ productId, initial }: Props) {
         />
       </div>
 
+      {/* Prices are per market. A book left without a sum price simply is not
+          on sale in Uzbekistan, which the storefront states plainly. */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor="p-price" className={label}>Цена, ₽</label>
@@ -168,6 +172,39 @@ export default function ProductForm({ productId, initial }: Props) {
             value={form.oldPrice ?? ""}
             onChange={(e) =>
               set("oldPrice", e.target.value ? Number(e.target.value) : null)
+            }
+          />
+        </div>
+        <div>
+          <label htmlFor="p-price-uzs" className={label}>
+            Цена, сум <span className="font-normal text-brown-300">(Узбекистан)</span>
+          </label>
+          <input
+            id="p-price-uzs"
+            type="number"
+            min={0}
+            step={1000}
+            className={`${field} mt-1.5`}
+            value={form.priceUzs ?? ""}
+            placeholder="не продаётся"
+            onChange={(e) =>
+              set("priceUzs", e.target.value ? Number(e.target.value) : null)
+            }
+          />
+        </div>
+        <div>
+          <label htmlFor="p-old-price-uzs" className={label}>
+            Старая цена, сум
+          </label>
+          <input
+            id="p-old-price-uzs"
+            type="number"
+            min={0}
+            step={1000}
+            className={`${field} mt-1.5`}
+            value={form.oldPriceUzs ?? ""}
+            onChange={(e) =>
+              set("oldPriceUzs", e.target.value ? Number(e.target.value) : null)
             }
           />
         </div>

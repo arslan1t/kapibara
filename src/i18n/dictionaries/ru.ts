@@ -861,6 +861,71 @@ export const ru = {
     showPassword: "Показать пароль",
   },
 
+  // ─── Transactional email ────────────────────────────────────────────────────
+  mail: {
+    autoNote: "Это письмо отправлено автоматически, отвечать на него не нужно.",
+
+    verifySubject: "Подтвердите адрес электронной почты — {brand}",
+    verifyHeading: "{name}, подтвердите адрес почты",
+    verifyBody:
+      "Мы создали для вас аккаунт в {brand}. Чтобы получать письма о заказах, подтвердите адрес — это займёт одну секунду.",
+    verifyCta: "Подтвердить адрес",
+    verifyFootnote:
+      "Ссылка действует {hours} ч. Если вы не регистрировались, просто удалите это письмо — аккаунт останется неподтверждённым.",
+    verifyPlainLead: "Мы создали для вас аккаунт в {brand}. Подтвердите адрес по ссылке:",
+    verifyPlainExpiry: "Ссылка действует {hours} ч.",
+    verifyPlainIgnore: "Если вы не регистрировались, просто удалите это письмо.",
+
+    resetSubject: "Восстановление пароля — {brand}",
+    resetHeading: "Восстановление пароля",
+    resetBody:
+      "{name}, мы получили запрос на смену пароля для вашего аккаунта. Нажмите кнопку ниже, чтобы задать новый пароль.",
+    resetCta: "Задать новый пароль",
+    resetFootnote:
+      "Ссылка действует {minutes} мин. и сработает один раз. Если вы не запрашивали смену пароля, ничего делать не нужно — пароль останется прежним.",
+    resetPlainLead:
+      "{name}, мы получили запрос на смену пароля. Задайте новый пароль по ссылке:",
+    resetPlainExpiry: "Ссылка действует {minutes} мин. и сработает один раз.",
+    resetPlainIgnore: "Если вы не запрашивали смену пароля, ничего делать не нужно.",
+
+    orderSubject: "Заказ {orderNumber} принят — {brand}",
+    orderHeading: "Заказ {orderNumber} принят",
+    orderBody:
+      "{name}, спасибо за заказ. Мы уже начали над ним работать и сообщим, когда книга отправится в печать.",
+    orderChildName: "Имя ребёнка: {name} · {quantity} шт.",
+    orderTotal: "Итого",
+    orderCta: "Открыть заказ",
+    orderPlainThanks: "{name}, спасибо за заказ.",
+    orderPlainItem: "— {title} (имя: {childName}, {quantity} шт.) — {price}",
+    orderPlainTotal: "Итого: {total}",
+    orderPlainLink: "Заказ: {url}",
+
+    statusSubject: "Заказ {orderNumber}: {status} — {brand}",
+    statusHeading: "Заказ {orderNumber} — {status}",
+    statusBody: "{name}, статус вашего заказа изменился. {explanation}",
+    statusReviewCta: "Оставить отзыв",
+    statusReviewNote: "Ваш отзыв появится на сайте после проверки модератором.",
+    statusReviewPlain: "Оставить отзыв: {url}",
+
+    paymentPaid: "Оплата получена.",
+    paymentOnlinePending: "Как только оплата поступит, мы пришлём отдельное письмо.",
+    paymentManual:
+      "Оплата — после подтверждения заказа. Мы свяжемся с вами по телефону.",
+  },
+
+  /** One line per order status, for the status-change email. */
+  statusExplanation: {
+    new: "Мы получили заказ и скоро возьмём его в работу.",
+    awaiting_confirmation: "Мы свяжемся с вами, чтобы подтвердить детали заказа.",
+    in_progress: "Заказ в работе.",
+    personalization: "Добавляем имя и лицо вашего ребёнка в иллюстрации.",
+    sent_to_print: "Книга отправлена в печать.",
+    ready_to_ship: "Книга напечатана и готова к отправке.",
+    in_delivery: "Заказ передан в доставку.",
+    completed: "Заказ доставлен. Спасибо, что выбрали {brand}!",
+    cancelled: "Заказ отменён. Если это ошибка, напишите нам.",
+  },
+
   // ─── Catalogue ──────────────────────────────────────────────────────────────
   catalog: {
     metaTitle: "Каталог персональных книг",

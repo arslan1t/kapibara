@@ -9,6 +9,8 @@ import {
 } from "@/lib/mail";
 import { isOnlinePaymentEnabled } from "@/lib/payments";
 import { type OrderStatus } from "@/lib/constants";
+import { asLocale, type Locale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
 
 /**
  * Transactional order mail.
@@ -19,12 +21,11 @@ import { type OrderStatus } from "@/lib/constants";
  */
 
 /** Wording that matches what actually happened to the money. */
-function paymentNote(paymentStatus: string): string {
-  if (paymentStatus === "paid") return "Оплата получена.";
-  if (isOnlinePaymentEnabled()) {
-    return "Как только оплата поступит, мы пришлём отдельное письмо.";
-  }
-  return "Оплата — после подтверждения заказа. Мы свяжемся с вами по телефону.";
+function paymentNote(paymentStatus: string, locale: Locale): string {
+  const t = getDictionary(locale).mail;
+  if (paymentStatus === "paid") return t.paymentPaid;
+  if (isOnlinePaymentEnabled()) return t.paymentOnlinePending;
+  return t.paymentManual;
 }
 
 export async function sendOrderCreatedEmail(orderId: string): Promise<boolean> {
@@ -35,6 +36,10 @@ export async function sendOrderCreatedEmail(orderId: string): Promise<boolean> {
       customerName: true,
       customerEmail: true,
       total: true,
+      currency: true,
+      // The language the customer was reading when they ordered. A
+      // confirmation in a language they cannot read is not a confirmation.
+      locale: true,
       paymentStatus: true,
       items: {
         select: {
@@ -49,10 +54,14 @@ export async function sendOrderCreatedEmail(orderId: string): Promise<boolean> {
 
   if (!order) return false;
 
+  const locale = asLocale(order.locale);
+
   const result = await sendEmail(
     order.customerEmail,
     "order_created",
     orderCreatedTemplate({
+      locale,
+      currency: order.currency,
       name: order.customerName.split(" ")[0] || order.customerName,
       orderNumber: order.orderNumber,
       items: order.items.map((i) => ({
@@ -62,8 +71,8 @@ export async function sendOrderCreatedEmail(orderId: string): Promise<boolean> {
         lineTotal: i.lineTotal,
       })),
       total: order.total,
-      orderUrl: absoluteUrl("/account/orders"),
-      paymentNote: paymentNote(order.paymentStatus),
+      orderUrl: absoluteUrl("/account/orders", locale),
+      paymentNote: paymentNote(order.paymentStatus, locale),
     })
   );
 
@@ -87,22 +96,26 @@ export async function sendOrderStatusEmail(
       orderNumber: true,
       customerName: true,
       customerEmail: true,
+      locale: true,
     },
   });
 
   if (!order) return false;
 
+  const locale = asLocale(order.locale);
+
   const result = await sendEmail(
     order.customerEmail,
     "order_status",
     orderStatusTemplate({
+      locale,
       name: order.customerName.split(" ")[0] || order.customerName,
       orderNumber: order.orderNumber,
       status,
-      orderUrl: absoluteUrl(`/account/orders/${order.id}`),
+      orderUrl: absoluteUrl(`/account/orders/${order.id}`, locale),
       reviewUrl:
         status === "completed"
-          ? absoluteUrl(`/account/orders/${order.id}#review`)
+          ? absoluteUrl(`/account/orders/${order.id}#review`, locale)
           : undefined,
     })
   );

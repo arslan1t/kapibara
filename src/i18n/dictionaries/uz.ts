@@ -831,6 +831,73 @@ export const uz: Dictionary = {
     showPassword: "Parolni koʻrsatish",
   },
 
+  mail: {
+    autoNote: "Bu xat avtomatik yuborilgan, unga javob berish shart emas.",
+
+    verifySubject: "Elektron pochta manzilini tasdiqlang — {brand}",
+    verifyHeading: "{name}, pochta manzilini tasdiqlang",
+    verifyBody:
+      "Biz siz uchun {brand} da hisob yaratdik. Buyurtmalar haqida xat olish uchun manzilni tasdiqlang — bu bir soniya vaqt oladi.",
+    verifyCta: "Manzilni tasdiqlash",
+    verifyFootnote:
+      "Havola {hours} soat amal qiladi. Agar roʻyxatdan oʻtmagan boʻlsangiz, bu xatni oʻchirib tashlang — hisob tasdiqlanmagan holda qoladi.",
+    verifyPlainLead:
+      "Biz siz uchun {brand} da hisob yaratdik. Manzilni havola orqali tasdiqlang:",
+    verifyPlainExpiry: "Havola {hours} soat amal qiladi.",
+    verifyPlainIgnore:
+      "Agar roʻyxatdan oʻtmagan boʻlsangiz, bu xatni oʻchirib tashlang.",
+
+    resetSubject: "Parolni tiklash — {brand}",
+    resetHeading: "Parolni tiklash",
+    resetBody:
+      "{name}, hisobingiz uchun parolni almashtirish soʻrovini oldik. Yangi parol belgilash uchun quyidagi tugmani bosing.",
+    resetCta: "Yangi parol belgilash",
+    resetFootnote:
+      "Havola {minutes} daqiqa amal qiladi va bir marta ishlaydi. Agar parolni almashtirishni soʻramagan boʻlsangiz, hech narsa qilish shart emas — parol oʻzgarmaydi.",
+    resetPlainLead:
+      "{name}, parolni almashtirish soʻrovini oldik. Yangi parolni havola orqali belgilang:",
+    resetPlainExpiry: "Havola {minutes} daqiqa amal qiladi va bir marta ishlaydi.",
+    resetPlainIgnore:
+      "Agar parolni almashtirishni soʻramagan boʻlsangiz, hech narsa qilish shart emas.",
+
+    orderSubject: "{orderNumber} buyurtma qabul qilindi — {brand}",
+    orderHeading: "{orderNumber} buyurtma qabul qilindi",
+    orderBody:
+      "{name}, buyurtmangiz uchun rahmat. Ustida ishlay boshladik va kitob chop etishga yuborilganda xabar beramiz.",
+    orderChildName: "Bolaning ismi: {name} · {quantity} dona",
+    orderTotal: "Jami",
+    orderCta: "Buyurtmani ochish",
+    orderPlainThanks: "{name}, buyurtmangiz uchun rahmat.",
+    orderPlainItem: "— {title} (ism: {childName}, {quantity} dona) — {price}",
+    orderPlainTotal: "Jami: {total}",
+    orderPlainLink: "Buyurtma: {url}",
+
+    statusSubject: "{orderNumber} buyurtma: {status} — {brand}",
+    statusHeading: "{orderNumber} buyurtma — {status}",
+    statusBody: "{name}, buyurtmangiz holati oʻzgardi. {explanation}",
+    statusReviewCta: "Sharh qoldirish",
+    statusReviewNote: "Sharhingiz moderator tekshiruvidan soʻng saytda paydo boʻladi.",
+    statusReviewPlain: "Sharh qoldirish: {url}",
+
+    paymentPaid: "Toʻlov qabul qilindi.",
+    paymentOnlinePending: "Toʻlov kelib tushishi bilan alohida xat yuboramiz.",
+    paymentManual:
+      "Toʻlov — buyurtma tasdiqlangandan soʻng. Telefon orqali siz bilan bogʻlanamiz.",
+  },
+
+  statusExplanation: {
+    new: "Buyurtmani oldik va tez orada ish boshlaymiz.",
+    awaiting_confirmation:
+      "Buyurtma tafsilotlarini tasdiqlash uchun siz bilan bogʻlanamiz.",
+    in_progress: "Buyurtma ustida ishlanmoqda.",
+    personalization: "Farzandingizning ismi va yuzini rasmlarga qoʻshmoqdamiz.",
+    sent_to_print: "Kitob chop etishga yuborildi.",
+    ready_to_ship: "Kitob chop etildi va joʻnatishga tayyor.",
+    in_delivery: "Buyurtma yetkazib berishga topshirildi.",
+    completed: "Buyurtma yetkazildi. {brand} ni tanlaganingiz uchun rahmat!",
+    cancelled: "Buyurtma bekor qilindi. Agar bu xato boʻlsa, bizga yozing.",
+  },
+
   catalog: {
     metaTitle: "Shaxsiy kitoblar katalogi",
     metaDescription:
