@@ -5,6 +5,9 @@ import { Sparkles, AlertCircle, Loader2, ImageOff } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { requestPreviewGeneration } from "@/app/actions/generation";
 import { GENERATION_STATUS_LABELS, type GenerationStatus } from "@/lib/constants";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { useLocale } from "@/i18n/navigation";
+import { fill } from "@/i18n/format";
 
 interface Props {
   productSlug: string;
@@ -54,6 +57,8 @@ export default function GenerationPanel({
   enabled,
   onJob,
 }: Props) {
+  const t = useDictionary();
+  const locale = useLocale();
   const [job, setJob] = useState<JobState | null>(null);
 
   useEffect(() => {
@@ -92,9 +97,7 @@ export default function GenerationPanel({
         // a background worker keeps processing, so closing the tab loses
         // nothing.
         clearInterval(timer);
-        setError(
-          "Создание иллюстраций занимает дольше обычного. Работа продолжается в фоне — можно закрыть страницу, мы пришлём готовый макет."
-        );
+        setError(t.generation.slow);
         return;
       }
 
@@ -103,7 +106,7 @@ export default function GenerationPanel({
     }, POLL_MS);
 
     return () => clearInterval(timer);
-  }, [job, poll]);
+  }, [job, poll, t.generation.slow]);
 
   /**
    * Starts generation as soon as the page opens.
@@ -131,6 +134,7 @@ export default function GenerationPanel({
       productSlug,
       childName,
       photoKey,
+      locale,
     });
     setStarting(false);
 
@@ -149,12 +153,10 @@ export default function GenerationPanel({
       <div className="rounded-3xl bg-cream-100 p-5">
         <p className="flex items-center gap-2 font-semibold text-brown-dark">
           <ImageOff className="h-5 w-5 text-brown" aria-hidden="true" />
-          Иллюстрации создаются вручную
+          {t.generation.manualHeading}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-brown">
-          Автоматическая генерация ещё не подключена. Наш художник вставит лицо
-          вашего ребёнка в иллюстрации после подтверждения заказа, и мы пришлём
-          готовый макет на согласование.
+{t.generation.manualBody}
         </p>
       </div>
     );
@@ -164,8 +166,7 @@ export default function GenerationPanel({
     return (
       <div className="rounded-3xl bg-cream-100 p-5">
         <p className="text-sm leading-relaxed text-brown">
-          Загрузите фотографию ребёнка, чтобы увидеть, как он будет выглядеть в
-          иллюстрациях.
+{t.generation.needPhoto}
         </p>
       </div>
     );
@@ -177,11 +178,10 @@ export default function GenerationPanel({
       <div className="rounded-3xl bg-brand-50 p-5">
         <p className="flex items-center gap-2 font-semibold text-brown-dark">
           <Sparkles className="h-5 w-5 text-brand-500" aria-hidden="true" />
-          Посмотрите иллюстрации с вашим ребёнком
+          {t.generation.inviteHeading}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-brown">
-          Мы создадим несколько разворотов, чтобы вы увидели книгу до заказа.
-          Это займёт около минуты.
+{t.generation.inviteBody}
         </p>
 
         {error && (
@@ -195,7 +195,7 @@ export default function GenerationPanel({
         )}
 
         <Button onClick={start} isLoading={starting} className="mt-4">
-          {starting ? "Запускаем…" : "Создать иллюстрации"}
+          {starting ? t.generation.starting : t.generation.start}
         </Button>
       </div>
     );
@@ -207,12 +207,10 @@ export default function GenerationPanel({
       <div className="rounded-3xl bg-red-50 p-5">
         <p className="flex items-center gap-2 font-semibold text-red-700">
           <AlertCircle className="h-5 w-5" aria-hidden="true" />
-          Не удалось создать иллюстрации
+          {t.generation.failedHeading}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-brown">
-          Попробуйте другую фотографию: лицо должно быть крупным, в фокусе и при
-          хорошем освещении. Заказ можно оформить и без предпросмотра — мы
-          согласуем макет с вами до печати.
+{t.generation.failedBody}
         </p>
         <Button
           variant="secondary"
@@ -222,7 +220,7 @@ export default function GenerationPanel({
           }}
           className="mt-4"
         >
-          Попробовать ещё раз
+          {t.generation.retry}
         </Button>
       </div>
     );
@@ -233,11 +231,10 @@ export default function GenerationPanel({
     return (
       <div className="rounded-3xl bg-sage-50 p-5">
         <p className="font-semibold text-brown-dark">
-          Обложка с {childName} готова
+          {fill(t.generation.doneHeading, { name: childName })}
         </p>
         <p className="mt-1 text-sm leading-relaxed text-brown">
-          Так {childName} будет выглядеть на страницах книги. Окончательный
-          макет мы согласуем с вами до печати.
+{fill(t.generation.doneBody, { name: childName })}
         </p>
       </div>
     );
@@ -251,8 +248,7 @@ export default function GenerationPanel({
         {GENERATION_STATUS_LABELS[job.status]}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-brown">
-        Рисуем {childName} в сценах книги. Обычно это занимает одну–три минуты, а с крупной фотографией — дольше.
-        Страницу можно закрыть — работа продолжится, и результат сохранится.
+{fill(t.generation.working, { name: childName })}
       </p>
 
       {error && (

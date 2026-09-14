@@ -2,7 +2,14 @@
 
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isChildNameValid, sanitizeChildName } from "@/lib/validation";
+import {
+  isChildNameValid,
+  nameScriptFor,
+  sanitizeChildName,
+} from "@/lib/validation";
+import { asLocale, LOCALE_CONFIG, REGION_CONFIG } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill } from "@/i18n/format";
 import { isPurchasable, isDeliveryMethod } from "@/lib/constants";
 import { startPayment } from "@/lib/payments";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
@@ -34,6 +41,16 @@ export type CreateOrderInput = {
    * order instead of creating a second one.
    */
   idempotencyKey?: string;
+  /**
+   * The storefront the customer was reading.
+   *
+   * Decides which market's price applies, which delivery methods are real,
+   * which alphabet a child's name may be written in, and what language the
+   * refusals come back in. Not trusted for anything the customer could gain
+   * by lying about: the price is still read from the database column this
+   * names, never from the request.
+   */
+  locale: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -127,33 +144,53 @@ export async function createOrder(
 ): Promise<CreateOrderResult> {
   const user = await getCurrentUser();
 
+  const locale = asLocale(input.locale ?? "");
+  const t = getDictionary(locale);
+  const { region } = LOCALE_CONFIG[locale];
+  const {
+    currency,
+    priceField,
+    deliveryMethods,
+    phone: phoneRules,
+  } = REGION_CONFIG[region];
+  const nameScript = nameScriptFor(region);
+
   const customerName = input.customerName?.trim() ?? "";
   const customerEmail = input.customerEmail?.trim().toLowerCase() ?? "";
   const customerPhone = input.customerPhone?.trim() ?? "";
   const deliveryAddress = input.deliveryAddress?.trim() ?? "";
 
-  if (customerName.length < 2) return { ok: false, error: "Укажите имя получателя" };
+  if (customerName.length < 2) return { ok: false, error: t.errors.recipientName };
   if (!/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(customerEmail)) {
-    return { ok: false, error: "Введите корректный адрес электронной почты" };
+    return { ok: false, error: t.errors.email };
   }
-  if (customerPhone.replace(/\D/g, "").length < 10) {
-    return { ok: false, error: "Введите корректный номер телефона" };
+  // Long enough to be a real number in this country. Deliberately not a
+  // strict national format: people write their own number in a dozen ways and
+  // the operator rings it either way.
+  if (customerPhone.replace(/\D/g, "").length < phoneRules.digits) {
+    return { ok: false, error: t.errors.phone };
   }
-  if (!isDeliveryMethod(input.deliveryMethod)) {
-    return { ok: false, error: "Выберите способ доставки" };
+  // A method the market does not offer is refused as firmly as one that does
+  // not exist: there are no pickup points in Uzbekistan, and accepting an
+  // order for one would mean an order nobody can fulfil.
+  if (
+    !isDeliveryMethod(input.deliveryMethod) ||
+    !deliveryMethods.includes(input.deliveryMethod)
+  ) {
+    return { ok: false, error: t.errors.deliveryMethod };
   }
   if (deliveryAddress.length < 5) {
-    return { ok: false, error: "Укажите адрес доставки" };
+    return { ok: false, error: t.errors.deliveryAddress };
   }
   if (!input.items?.length) {
-    return { ok: false, error: "Корзина пуста" };
+    return { ok: false, error: t.errors.cartEmpty };
   }
 
   // Generous enough that a real customer never notices, tight enough that a
   // script cannot fill the order table.
   const limited = await rateLimit("checkout", `ip:${await clientIp()}`);
   if (!limited.ok) {
-    return { ok: false, error: rateLimitMessage(limited.retryAfter) };
+    return { ok: false, error: rateLimitMessage(limited.retryAfter, locale) };
   }
 
   // Idempotency, part one: a replayed key that already produced an order
@@ -198,12 +235,22 @@ export async function createOrder(
     });
 
     if (!product) {
-      return { ok: false, error: "Один из товаров больше недоступен" };
+      return { ok: false, error: t.errors.productGone };
     }
     if (!isPurchasable(product)) {
       return {
         ok: false,
-        error: `«${product.shortTitle}» пока нельзя заказать`,
+        error: fill(t.errors.productUnavailable, { title: product.shortTitle }),
+      };
+    }
+
+    // Priced from this market's column, never from the request. A book with no
+    // price here is not on sale here, whatever its status says.
+    const unitPrice = product[priceField];
+    if (unitPrice === null) {
+      return {
+        ok: false,
+        error: fill(t.errors.productNotSoldHere, { title: product.shortTitle }),
       };
     }
 
@@ -211,11 +258,17 @@ export async function createOrder(
 
     // The child's name is re-validated here; the browser check is only a
     // convenience and cannot be relied upon.
-    const cleaned = sanitizeChildName(item.personalization?.childName ?? "");
-    if (!isChildNameValid(cleaned.value)) {
+    const cleaned = sanitizeChildName(
+      item.personalization?.childName ?? "",
+      nameScript
+    );
+    if (!isChildNameValid(cleaned.value, nameScript)) {
       return {
         ok: false,
-        error: "Имя ребёнка должно быть написано кириллицей",
+        error:
+          nameScript === "cyrillic"
+            ? t.errors.childNameCyrillic
+            : t.errors.childNameCyrillicLatin,
       };
     }
 
@@ -223,9 +276,9 @@ export async function createOrder(
       productId: product.id,
       productTitle: product.title,
       productSlug: product.slug,
-      unitPrice: product.price,
+      unitPrice,
       quantity,
-      lineTotal: product.price * quantity,
+      lineTotal: unitPrice * quantity,
       personalization: {
         ...item.personalization,
         childName: cleaned.value.trim(),
@@ -254,6 +307,9 @@ export async function createOrder(
         customerEmail,
         customerName,
         customerPhone,
+        region,
+        currency,
+        locale,
         subtotal,
         deliveryPrice,
         total,
@@ -343,7 +399,7 @@ export async function createOrder(
     });
     return {
       ok: false,
-      error: "Не удалось оформить заказ. Попробуйте ещё раз",
+      error: t.errors.orderFailed,
     };
   }
 }

@@ -12,19 +12,26 @@ import {
 import { db } from "@/lib/db";
 import { reconcilePayment } from "@/lib/payments";
 import { isMailConfigured } from "@/lib/mail";
-import { formatPrice } from "@/lib/utils";
+import { asLocale, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill, formatAmount } from "@/i18n/format";
 import { getCurrentUser } from "@/lib/auth";
 import { readOrderClaim, claimMatches } from "@/lib/claim";
 import { logger } from "@/lib/logger";
 
-export const metadata: Metadata = {
-  title: "Заказ оформлен",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}): Promise<Metadata> {
+  const t = getDictionary(asLocale((await params).locale));
+  return { title: t.orderSuccess.metaTitle, robots: { index: false, follow: false } };
+}
 
 export const dynamic = "force-dynamic";
 
 interface Props {
+  params: Promise<LocaleParams>;
   searchParams: Promise<{ order?: string }>;
 }
 
@@ -42,7 +49,9 @@ interface Props {
  * neutral page with no order details — this page carries an email address and
  * an amount, and neither belongs to a stranger who guessed an id.
  */
-export default async function OrderSuccessPage({ searchParams }: Props) {
+export default async function OrderSuccessPage({ params, searchParams }: Props) {
+  const locale = asLocale((await params).locale);
+  const t = getDictionary(locale);
   const { order: orderId } = await searchParams;
 
   const [user, presentedClaim] = await Promise.all([
@@ -56,6 +65,7 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
         select: {
           orderNumber: true,
           total: true,
+          currency: true,
           paymentStatus: true,
           customerEmail: true,
           userId: true,
@@ -119,19 +129,23 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
         </div>
 
         <h1 className="font-display text-3xl font-extrabold text-brown-dark md:text-4xl">
-          {awaitingOnline ? "Заказ создан, ждём оплату" : "Заказ оформлен"}
+          {awaitingOnline
+            ? t.orderSuccess.headingAwaiting
+            : t.orderSuccess.headingPaid}
         </h1>
 
         {order ? (
           <p className="mt-4 leading-relaxed text-brown">
-            Номер заказа{" "}
+            {t.orderSuccess.orderNumber}{" "}
             <span className="font-semibold text-brown-dark">{order.orderNumber}</span>
             {" · "}
-            {formatPrice(order.total)}
+            {/* The currency the order was actually placed in, not the
+                currency of whatever storefront is being read now. */}
+            {formatAmount(order.total, order.currency, locale)}
           </p>
         ) : (
           <p className="mt-4 leading-relaxed text-brown">
-            Спасибо за заказ. Детали доступны в личном кабинете.
+            {t.orderSuccess.thanks}
           </p>
         )}
 
@@ -152,13 +166,13 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-brown-dark">Оплата</p>
+              <p className="text-sm font-semibold text-brown-dark">{t.orderSuccess.paymentHeading}</p>
               <p className="text-[13px] leading-relaxed text-brown">
                 {paid
-                  ? "Оплата получена."
+                  ? t.orderSuccess.paymentPaid
                   : awaitingOnline
-                    ? "Оплата ещё не поступила. Если вы её отменили, свяжитесь с нами — мы поможем оплатить заказ."
-                    : "Оплата после подтверждения заказа — мы свяжемся с вами по телефону."}
+                    ? t.orderSuccess.paymentPending
+                    : t.orderSuccess.paymentManual}
               </p>
             </div>
           </div>
@@ -169,10 +183,9 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
               <Package className="h-5 w-5 text-brand-500" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-brown-dark">Что дальше</p>
+              <p className="text-sm font-semibold text-brown-dark">{t.orderSuccess.nextHeading}</p>
               <p className="text-[13px] leading-relaxed text-brown">
-                Мы подтвердим заказ, добавим имя и фотографию в иллюстрации и
-                отправим книгу в печать. Статус виден в личном кабинете.
+{t.orderSuccess.nextBody}
               </p>
             </div>
           </div>
@@ -183,11 +196,13 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
               <Mail className="h-5 w-5 text-brown-dark" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-brown-dark">Письмо</p>
+              <p className="text-sm font-semibold text-brown-dark">{t.orderSuccess.mailHeading}</p>
               <p className="text-[13px] leading-relaxed text-brown">
                 {isMailConfigured()
-                  ? `Мы отправили подтверждение${order ? ` на ${order.customerEmail}` : ""}.`
-                  : "Отправка писем ещё не настроена — следите за статусом в личном кабинете."}
+                  ? fill(t.orderSuccess.mailSent, {
+                      recipient: order ? ` — ${order.customerEmail}` : "",
+                    })
+                  : t.orderSuccess.mailNotConfigured}
               </p>
             </div>
           </div>
@@ -200,19 +215,18 @@ export default async function OrderSuccessPage({ searchParams }: Props) {
           >
             <XCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>
-              Заказ сохранён и не потеряется. Мы придержим его и свяжемся с вами,
-              если оплата не поступит.
+{t.orderSuccess.keptNote}
             </span>
           </div>
         )}
 
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Link href="/account/orders" className="btn-primary flex items-center gap-2">
-            Мои заказы
+            {t.orderSuccess.myOrders}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
           <Link href="/catalog" className="btn-secondary">
-            Продолжить покупки
+            {t.orderSuccess.keepShopping}
           </Link>
         </div>
       </div>

@@ -307,3 +307,35 @@ describe("checkout", () => {
     assert.equal(ALLOWED_MIME.has("application/pdf"), false);
   });
 });
+
+describe("child names in the Uzbek market", () => {
+  test("Latin names are accepted where Latin is the official script", () => {
+    for (const name of ["Aziz", "Gulnora", "Oʻgʻiljon", "Dilnoza Karimova"]) {
+      assert.equal(
+        isChildNameValid(name, "cyrillic-latin"),
+        true,
+        `rejected valid Uzbek name: ${name}`
+      );
+    }
+  });
+
+  test("Cyrillic still works there too — both scripts are in daily use", () => {
+    assert.equal(isChildNameValid("Азиз", "cyrillic-latin"), true);
+  });
+
+  test("Russia stays Cyrillic-only, as it was", () => {
+    assert.equal(isChildNameValid("Aziz", "cyrillic"), false);
+    assert.equal(isChildNameValid("Азиз", "cyrillic"), true);
+  });
+
+  test("digits and punctuation are stripped in either script", () => {
+    assert.equal(sanitizeChildName("Aziz123", "cyrillic-latin").value, "Aziz");
+    assert.equal(sanitizeChildName("Aziz123", "cyrillic-latin").rejected, true);
+  });
+
+  test("the modifier letter in oʻ survives sanitising", () => {
+    const cleaned = sanitizeChildName("Oʻgʻiljon", "cyrillic-latin");
+    assert.equal(cleaned.value, "Oʻgʻiljon");
+    assert.equal(cleaned.rejected, false);
+  });
+});

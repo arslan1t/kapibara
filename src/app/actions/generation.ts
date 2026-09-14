@@ -3,7 +3,13 @@
 import { db } from "@/lib/db";
 import { getCurrentUser, isAdmin } from "@/lib/auth";
 import { enqueueGeneration, isGenerationEnabled } from "@/lib/generation";
-import { isChildNameValid, sanitizeChildName } from "@/lib/validation";
+import {
+  isChildNameValid,
+  nameScriptFor,
+  sanitizeChildName,
+} from "@/lib/validation";
+import { asLocale, LOCALE_CONFIG } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
 import { issueJobClaim } from "@/lib/claim";
 import { recordAudit } from "@/lib/audit";
@@ -29,9 +35,15 @@ export async function requestPreviewGeneration(input: {
   productSlug: string;
   childName: string;
   photoKey: string;
+  /** The storefront the customer is on — decides language and name script. */
+  locale: string;
 }): Promise<GenerationActionResult> {
+  const locale = asLocale(input.locale ?? "");
+  const t = getDictionary(locale);
+  const nameScript = nameScriptFor(LOCALE_CONFIG[locale].region);
+
   if (!isGenerationEnabled()) {
-    return { ok: false, error: "Генерация иллюстраций пока недоступна" };
+    return { ok: false, error: t.errors.generationUnavailable };
   }
 
   const user = await getCurrentUser();
@@ -41,12 +53,18 @@ export async function requestPreviewGeneration(input: {
     user ? user.id : `ip:${await clientIp()}`
   );
   if (!limited.ok) {
-    return { ok: false, error: rateLimitMessage(limited.retryAfter) };
+    return { ok: false, error: rateLimitMessage(limited.retryAfter, locale) };
   }
 
-  const cleaned = sanitizeChildName(input.childName ?? "");
-  if (!isChildNameValid(cleaned.value)) {
-    return { ok: false, error: "Имя ребёнка должно быть написано кириллицей" };
+  const cleaned = sanitizeChildName(input.childName ?? "", nameScript);
+  if (!isChildNameValid(cleaned.value, nameScript)) {
+    return {
+      ok: false,
+      error:
+        nameScript === "cyrillic"
+          ? t.errors.childNameCyrillic
+          : t.errors.childNameCyrillicLatin,
+    };
   }
 
   const product = await db.product.findUnique({
@@ -55,14 +73,14 @@ export async function requestPreviewGeneration(input: {
   });
 
   if (!product || !product.published || product.status !== "available") {
-    return { ok: false, error: "Эта книга сейчас недоступна" };
+    return { ok: false, error: t.errors.bookUnavailable };
   }
   if (!product.personalizationEnabled) {
-    return { ok: false, error: "Эта книга не персонализируется" };
+    return { ok: false, error: t.errors.bookNotPersonalizable };
   }
 
   if (!/^[a-f0-9-]{36}\.(jpg|png|webp|heic)$/i.test(input.photoKey ?? "")) {
-    return { ok: false, error: "Загрузите фотографию ещё раз" };
+    return { ok: false, error: t.errors.photoAgain };
   }
 
   // An anonymous preview still needs an owner of some kind, or its id alone

@@ -321,6 +321,255 @@ export const uz: Dictionary = {
     notFoundTitle: "Sahifa topilmadi",
   },
 
+  errors: {
+    recipientName: "Qabul qiluvchining ismini koʻrsating",
+    email: "Toʻgʻri elektron pochta manzilini kiriting",
+    phone: "Toʻgʻri telefon raqamini kiriting",
+    deliveryMethod: "Yetkazib berish usulini tanlang",
+    deliveryAddress: "Yetkazib berish manzilini koʻrsating",
+    cartEmpty: "Savat boʻsh",
+    productGone: "Mahsulotlardan biri endi mavjud emas",
+    productUnavailable: "«{title}» hozircha buyurtma qilib boʻlmaydi",
+    productNotSoldHere: "«{title}» hozircha sizning mamlakatingizda sotilmaydi",
+    childNameCyrillic: "Bolaning ismi kirill alifbosida yozilishi kerak",
+    childNameCyrillicLatin:
+      "Bolaning ismi lotin yoki kirill alifbosida yozilishi kerak",
+    orderFailed: "Buyurtmani rasmiylashtirib boʻlmadi. Qayta urinib koʻring",
+
+    generationUnavailable: "Rasm yaratish hozircha mavjud emas",
+    bookUnavailable: "Bu kitob hozir mavjud emas",
+    bookNotPersonalizable: "Bu kitob shaxsiylashtirilmaydi",
+    photoAgain: "Fotosuratni qayta yuklang",
+
+    rateLimitMinute: "Juda koʻp urinish. Bir daqiqadan soʻng urinib koʻring",
+    rateLimitMinutes: "Juda koʻp urinish. {count} daqiqadan soʻng urinib koʻring",
+    rateLimitHours: "Juda koʻp urinish. {count} soatdan soʻng urinib koʻring",
+  },
+
+  personalize: {
+    metaTitle: "Kitob yaratish",
+    stepBook: "Kitob",
+    stepChild: "Bola",
+    stepPhoto: "Foto",
+    stepPreview: "Maket",
+    heading: "Kitob yaratish",
+
+    summaryHero: "Bosh qahramon",
+    summaryPages: "Sahifalar",
+    summaryCover: "Muqova",
+    summaryCoverValue: "Qattiq",
+    summaryPhoto: "Foto",
+    summaryPhotoDone: "Yuklandi",
+    summaryPhotoNone: "Qoʻshilmagan",
+    summaryPrice: "Narx",
+
+    chosenHeading: "Siz hikoyani tanladingiz",
+    chosenLead:
+      "Kitobni tekshiring va davom eting — keyingi qadamda ism va fotosuratni qoʻshamiz.",
+    chosenContinue: "Davom etish",
+
+    childHeading: "Bola haqida ayting",
+    childLead: "Ism hikoya matnida paydo boʻladi.",
+    nameLabel: "Bolaning ismi",
+    namePlaceholder: "Masalan: Aziz",
+    nameHintCyrillic: "Ismni kirill alifbosida kiriting",
+    nameHintCyrillicLatin: "Ismni lotin yoki kirill alifbosida kiritish mumkin",
+    nameErrorScriptCyrillic: "Faqat kirill alifbosidan foydalaning",
+    nameErrorScriptCyrillicLatin: "Faqat harflardan foydalaning",
+    nameErrorShort: "Ismni kiriting — kamida 2 ta harf",
+    ageLabel: "Yosh",
+    dedicationLabel: "Bagʻishlov",
+    dedicationOptional: "(ixtiyoriy)",
+    dedicationPlaceholder: "Aziz, bu kitob sen uchun…",
+    dedicationHint: "Birinchi sahifada chop etamiz",
+    back: "Orqaga",
+    next: "Keyingisi",
+
+    photoHeading: "Fotosurat qoʻshing",
+    photoLead:
+      "Shu surat asosida rassom kitob qahramonini chizadi. Ismni saqlab qoʻydik: {name}.",
+    photoPrivacy:
+      "Fotosurat faqat sizning kitobingizni yaratish uchun ishlatiladi. Biz uni eʼlon qilmaymiz va reklama uchun bermaymiz.",
+    skip: "Oʻtkazib yuborish",
+
+    reviewHeading: "Hammasi tayyor",
+    reviewLead: "Maʼlumotlarni tekshiring — keyin dastlabki maketni koʻrsatamiz.",
+    reviewBook: "Kitob",
+    reviewName: "Ism",
+    reviewAge: "Yosh",
+    reviewPhoto: "Foto",
+    reviewPhotoNone: "Fotosuratsiz",
+    reviewDedication: "Bagʻishlov",
+    reviewDedicationAdded: "Qoʻshildi",
+    reviewDedicationNone: "—",
+    reviewCover: "Muqova",
+    reviewTotal: "Toʻlovga",
+    showPreview: "Maketni koʻrsatish",
+  },
+
+  photoTipsShort: [
+    "Yuz yaqindan",
+    "Yaxshi yoritilgan",
+    "Och rangli bir tusli fon",
+    "Bola kameraga qarab turgan",
+  ],
+
+  upload: {
+    alt: "Bolaning fotosurati",
+    uploading: "Yuklanmoqda…",
+    remove: "Fotosuratni oʻchirish",
+    drop: "Fotosuratni qoʻyib yuboring",
+    choose: "Fotosurat yuklang",
+    hint: "Torting yoki tanlash uchun bosing.",
+    limits: "JPG, PNG · 8 MB gacha",
+  },
+
+  generation: {
+    manualHeading: "Rasmlar qoʻlda yaratiladi",
+    manualBody:
+      "Avtomatik yaratish hali ulanmagan. Rassomimiz buyurtma tasdiqlangandan soʻng farzandingizning yuzini rasmlarga joylaydi va tayyor maketni kelishish uchun yuboradi.",
+    needPhoto:
+      "U rasmlarda qanday koʻrinishini koʻrish uchun bolaning fotosuratini yuklang.",
+    inviteHeading: "Farzandingiz bilan rasmlarni koʻring",
+    inviteBody:
+      "Buyurtmadan oldin kitobni koʻrishingiz uchun bir nechta sahifa yaratamiz. Bu taxminan bir daqiqa vaqt oladi.",
+    starting: "Boshlanmoqda…",
+    start: "Rasmlarni yaratish",
+    failedHeading: "Rasmlarni yaratib boʻlmadi",
+    failedBody:
+      "Boshqa fotosuratni sinab koʻring: yuz yirik, fokusda va yaxshi yoritilgan boʻlishi kerak. Buyurtmani dastlabki koʻrikdan oʻtkazmasdan ham berish mumkin — maketni chop etishdan oldin siz bilan kelishamiz.",
+    retry: "Qayta urinib koʻrish",
+    doneHeading: "{name} bilan muqova tayyor",
+    doneBody:
+      "{name} kitob sahifalarida shunday koʻrinadi. Yakuniy maketni chop etishdan oldin siz bilan kelishamiz.",
+    working:
+      "{name}ni kitob sahnalarida chizmoqdamiz. Odatda bir-uch daqiqa, katta fotosurat bilan esa koʻproq vaqt ketadi. Sahifani yopsangiz ham boʻladi — ish davom etadi va natija saqlanadi.",
+    slow:
+      "Rasmlarni yaratish odatdagidan koʻproq vaqt olmoqda. Ish fonda davom etmoqda — sahifani yopishingiz mumkin, tayyor maketni yuboramiz.",
+  },
+
+  preview: {
+    notFoundTitle: "Maket topilmadi",
+    notFoundBody:
+      "Havola eskirganga oʻxshaydi. Kitobni qaytadan yarating — bu bir necha daqiqa vaqt oladi.",
+    notFoundCta: "Kitob tanlash",
+    back: "Orqaga",
+    savedHeading: "Maʼlumotlar saqlandi — buyurtma berish mumkin",
+    heroLead: "Bosh qahramon —",
+    specPages: "Sahifalar",
+    specCover: "Muqova",
+    specCoverValue: "Qattiq",
+    specAge: "Yosh",
+    specFormat: "Format",
+    specFormatValue: "Kvadrat",
+    deliveryNote:
+      "Yetkazib berish narxi va muddati buyurtma rasmiylashtirilayotganda hisoblanadi.",
+    checkout: "Buyurtma berish",
+    added: "Savatga qoʻshildi",
+    addToCart: "Savatga qoʻshish",
+    assuranceName: "Bolaning ismi va fotosurati kitob ichida",
+    assuranceDeliveryRU: "Rossiya boʻylab chop etamiz va joʻnatamiz",
+    assuranceDeliveryUZ: "Oʻzbekiston boʻylab chop etamiz va joʻnatamiz",
+    assurancePrivacy: "Fotosurat faqat sizning kitobingiz uchun ishlatiladi",
+    moreAbout: "Kitob haqida batafsil",
+    personalizationHeading: "Shaxsiylashtirish",
+    inSceneCaption: "{name} kitobdagi sahnada",
+    drawing: "{name}ni chizmoqdamiz",
+    drawingNote: "Odatda bir-uch daqiqa. Tayyor rasm aynan shu yerda paydo boʻladi.",
+    photoAlt: "Fotosurat: {name}",
+    noPhoto: "fotosurat yoʻq",
+    heroAge: "{age} yosh · bosh qahramon",
+    heroRole: "Hikoyaning bosh qahramoni",
+    seriesCoverNote:
+      "Bu turkum muqovasi. Farzandingiz bilan rasm quyida yaratilmoqda — yakuniy maketni chop etishdan oldin siz bilan kelishamiz.",
+  },
+
+  cart: {
+    metaTitle: "Savat",
+    emptyTitle: "Savat boʻsh",
+    emptyBody: "Hikoyani tanlang va farzandingiz ismi bilan kitob yarating.",
+    emptyCta: "Kitob tanlash",
+    toCatalog: "Katalogga",
+    heading: "Savat",
+    goToCheckout: "Rasmiylashtirishga oʻtish",
+    hero: "Bosh qahramon:",
+    decrease: "Sonini kamaytirish",
+    quantity: "Soni: {count}",
+    increase: "Sonini koʻpaytirish",
+    removeItem: "«{title}» ni savatdan oʻchirish",
+  },
+
+  checkout: {
+    metaTitle: "Buyurtmani rasmiylashtirish",
+    heading: "Buyurtmani rasmiylashtirish",
+    lead: "Qabul qiluvchi maʼlumotlarini toʻldiring — bu bir daqiqa vaqt oladi.",
+    addressHeading: "Yetkazib berish manzili",
+    fullName: "Ism va familiya",
+    fullNamePlaceholder: "Aziz Karimov",
+    phone: "Telefon",
+    email: "Elektron pochta",
+    emailHint: "Buyurtma tasdigʻini shu manzilga yuboramiz",
+    city: "Shahar",
+    cityPlaceholder: "Toshkent",
+    postalCode: "Pochta indeksi",
+    street: "Koʻcha va uy",
+    streetPlaceholder: "Amir Temur koʻchasi, 10-uy",
+    apartment: "Xonadon",
+    required: "Majburiy maydon",
+    emailInvalid: "Toʻgʻri manzilni kiriting",
+    deliveryNote:
+      "Yetkazib berish narxi va muddati rasmiylashtirilgandan soʻng hisoblanadi — tasdiqlash uchun siz bilan bogʻlanamiz.",
+
+    paymentHeading: "Toʻlov usuli",
+    paymentOnlineTitle: "Karta orqali onlayn toʻlov",
+    paymentManualTitle: "Tasdiqlangandan soʻng toʻlov",
+    paymentOnlineBody:
+      "Rasmiylashtirgandan soʻng himoyalangan toʻlov sahifasiga oʻtasiz. Toʻlov oʻtishi bilan buyurtma avtomatik tasdiqlanadi.",
+    paymentManualBody:
+      "Siz bilan bogʻlanamiz, tafsilotlar va yetkazib berish summasini aniqlaymiz, soʻng toʻlov haqida kelishamiz. Hozir pul yechilmaydi.",
+    paymentOnlineNote:
+      "Karta maʼlumotlari toʻlov provayderi tomonida kiritiladi — biz ularni olmaymiz va saqlamaymiz.",
+    paymentManualNote:
+      "Biz saytda karta maʼlumotlarini soʻramaymiz va ularni saqlamaymiz.",
+
+    summaryHeading: "Sizning buyurtmangiz",
+    summaryHero: "qahramon: {name}",
+    summaryBooks: "Kitoblar",
+    summaryDelivery: "Yetkazib berish",
+    summaryDeliveryValue: "rasmiylashtirishda hisoblanadi",
+    summaryTotal: "Jami",
+    submit: "Buyurtma berish",
+    submitting: "Rasmiylashtirilmoqda…",
+    secure: "Buyurtmani xavfsiz rasmiylashtirish",
+    termsLead: "«{action}» tugmasini bosish orqali siz",
+    termsLink: "shartlarga",
+  },
+
+  orderSuccess: {
+    metaTitle: "Buyurtma rasmiylashtirildi",
+    headingPaid: "Buyurtma rasmiylashtirildi",
+    headingAwaiting: "Buyurtma yaratildi, toʻlovni kutmoqdamiz",
+    orderNumber: "Buyurtma raqami",
+    thanks: "Buyurtmangiz uchun rahmat. Tafsilotlar shaxsiy kabinetda.",
+    paymentHeading: "Toʻlov",
+    paymentPaid: "Toʻlov qabul qilindi.",
+    paymentPending:
+      "Toʻlov hali kelib tushmadi. Agar uni bekor qilgan boʻlsangiz, biz bilan bogʻlaning — buyurtmani toʻlashga yordam beramiz.",
+    paymentManual:
+      "Toʻlov buyurtma tasdiqlangandan soʻng — telefon orqali siz bilan bogʻlanamiz.",
+    nextHeading: "Keyin nima boʻladi",
+    nextBody:
+      "Buyurtmani tasdiqlaymiz, ism va fotosuratni rasmlarga qoʻshamiz va kitobni chop etishga yuboramiz. Holatni shaxsiy kabinetda koʻrish mumkin.",
+    mailHeading: "Xat",
+    mailSent: "Tasdiqni yubordik{recipient}.",
+    mailNotConfigured:
+      "Xat yuborish hali sozlanmagan — holatni shaxsiy kabinetda kuzating.",
+    keptNote:
+      "Buyurtma saqlandi va yoʻqolmaydi. Uni ushlab turamiz va toʻlov kelmasa, siz bilan bogʻlanamiz.",
+    myOrders: "Mening buyurtmalarim",
+    keepShopping: "Xaridni davom ettirish",
+  },
+
   catalog: {
     metaTitle: "Shaxsiy kitoblar katalogi",
     metaDescription:

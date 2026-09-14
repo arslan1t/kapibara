@@ -12,6 +12,9 @@ import EmptyState from "@/components/shared/EmptyState";
 import { useCartStore } from "@/store/cart";
 import { getPreview } from "@/lib/api";
 import type { GeneratedProject } from "@/types";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { useLocale } from "@/i18n/navigation";
+import { LOCALE_CONFIG } from "@/i18n/config";
 
 interface Props {
   projectId: string;
@@ -20,6 +23,8 @@ interface Props {
 }
 
 export default function PreviewClient({ projectId, generationEnabled }: Props) {
+  const t = useDictionary();
+  const locale = useLocale();
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const [project, setProject] = useState<GeneratedProject | null | undefined>(undefined);
@@ -74,9 +79,9 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
         <div className="page-container mx-auto max-w-lg">
           <EmptyState
             icon={<ShoppingBag className="h-11 w-11 text-brown-300" strokeWidth={1.6} />}
-            title="Превью не найдено"
-            description="Похоже, ссылка устарела. Создайте книгу заново — это займёт пару минут."
-            action={{ label: "Выбрать книгу", href: "/catalog" }}
+            title={t.preview.notFoundTitle}
+            description={t.preview.notFoundBody}
+            action={{ label: t.preview.notFoundCta, href: "/catalog" }}
           />
         </div>
       </div>
@@ -93,7 +98,7 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
           className="mb-8 flex items-center gap-2 text-sm font-semibold text-brown transition-colors hover:text-brown-dark"
         >
           <ArrowLeft className="h-4 w-4" />
-          Назад
+          {t.preview.back}
         </button>
 
         <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2 lg:gap-14">
@@ -119,7 +124,7 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
                   "макет" was ready appeared even when nothing had been
                   generated at all. */}
               <p className="text-[15px] font-semibold text-brown-dark">
-                Данные сохранены — можно оформлять заказ
+                {t.preview.savedHeading}
               </p>
             </div>
 
@@ -127,7 +132,7 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
               {book.title}
             </h1>
             <p className="mt-2 text-[15px] text-brown">
-              Главный герой —{" "}
+              {t.preview.heroLead}{" "}
               <strong className="font-bold text-brand-500">
                 {personalization.childName}
               </strong>
@@ -135,10 +140,10 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
 
             <dl className="mt-7 grid grid-cols-2 gap-4 rounded-3xl bg-white p-5 shadow-soft text-sm">
               {[
-                { label: "Страниц", value: `${book.pageCount}` },
-                { label: "Обложка", value: "Твёрдая" },
-                { label: "Возраст", value: book.ageRange },
-                { label: "Формат", value: "Квадратный" },
+                { label: t.preview.specPages, value: `${book.pageCount}` },
+                { label: t.preview.specCover, value: t.preview.specCoverValue },
+                { label: t.preview.specAge, value: book.ageRange },
+                { label: t.preview.specFormat, value: t.preview.specFormatValue },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <dt className="text-xs text-brown-300">{label}</dt>
@@ -151,31 +156,39 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
               <Price amount={book.price} />
             </p>
             <p className="mt-2 text-sm text-brown-300">
-              Стоимость и срок доставки рассчитываются при оформлении заказа.
+              {t.preview.deliveryNote}
             </p>
 
             <div className="mt-7 flex flex-col gap-3">
               <Button onClick={handleBuyNow} size="lg" fullWidth>
                 <ShoppingBag className="h-5 w-5" />
-                Оформить заказ
+                {t.preview.checkout}
               </Button>
               <Button variant="secondary" onClick={handleAddToCart} fullWidth>
                 {added ? (
                   <>
                     <Check className="h-4 w-4 text-sage-500" strokeWidth={2.4} />
-                    Добавлено в корзину
+                    {t.preview.added}
                   </>
                 ) : (
-                  "Добавить в корзину"
+                  t.preview.addToCart
                 )}
               </Button>
             </div>
 
             <ul className="mt-7 space-y-3">
               {[
-                { icon: Sparkles, text: "Имя и фото ребёнка внутри книги" },
-                { icon: Truck, text: "Печатаем и отправляем по России" },
-                { icon: ShieldCheck, text: "Фотография используется только для вашей книги" },
+                { icon: Sparkles, text: t.preview.assuranceName },
+                {
+                  icon: Truck,
+                  // The market decides where we print to; saying "across
+                  // Russia" to a reader in Tashkent is simply wrong.
+                  text:
+                    LOCALE_CONFIG[locale].region === "UZ"
+                      ? t.preview.assuranceDeliveryUZ
+                      : t.preview.assuranceDeliveryRU,
+                },
+                { icon: ShieldCheck, text: t.preview.assurancePrivacy },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-brown">
                   <Icon className="h-4 w-4 shrink-0 text-sage-500" strokeWidth={2} />
@@ -188,7 +201,7 @@ export default function PreviewClient({ projectId, generationEnabled }: Props) {
               href={`/books/${book.slug}`}
               className="mt-7 inline-block text-[15px] font-bold text-brand-500 underline-offset-4 hover:underline"
             >
-              Подробнее о книге
+              {t.preview.moreAbout}
             </Link>
           </div>
         </div>

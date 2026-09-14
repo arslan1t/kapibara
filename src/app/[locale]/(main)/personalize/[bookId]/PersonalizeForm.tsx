@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { ArrowLeft, ArrowRight, Check, Sparkles, ShieldCheck } from "lucide-react";
 import Price from "@/components/shared/Price";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { useLocale } from "@/i18n/navigation";
+import { LOCALE_CONFIG } from "@/i18n/config";
+import { fill } from "@/i18n/format";
 import Stepper from "@/components/personalize/Stepper";
 import UploadBox from "@/components/personalize/UploadBox";
 import Input from "@/components/ui/Input";
@@ -14,12 +18,8 @@ import { createPersonalization, uploadChildPhoto } from "@/lib/api";
 import {
   sanitizeChildName,
   isChildNameValid,
-  NAME_HINT,
-  NAME_ERROR_LATIN,
-  NAME_ERROR_SHORT,
+  nameScriptFor,
 } from "@/lib/validation";
-
-const steps = [{ label: "Книга" }, { label: "Ребёнок" }, { label: "Фото" }, { label: "Превью" }];
 
 const DRAFT_KEY = "kapibara-personalize-draft";
 
@@ -31,6 +31,16 @@ interface Props {
 export default function PersonalizeForm({ book }: Props) {
   const bookId = book.slug;
   const router = useRouter();
+  const t = useDictionary();
+  const locale = useLocale();
+  const nameScript = nameScriptFor(LOCALE_CONFIG[locale].region);
+
+  const steps = [
+    { label: t.personalize.stepBook },
+    { label: t.personalize.stepChild },
+    { label: t.personalize.stepPhoto },
+    { label: t.personalize.stepPreview },
+  ];
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -127,7 +137,7 @@ export default function PersonalizeForm({ book }: Props) {
     }
   }
 
-  const nameValid = isChildNameValid(form.childName);
+  const nameValid = isChildNameValid(form.childName, nameScript);
 
   return (
     <div className="bg-gradient-to-b from-cream-100 to-parchment py-10 md:py-14">
@@ -136,7 +146,7 @@ export default function PersonalizeForm({ book }: Props) {
           <div className="text-center">
             <span className="eyebrow">
               <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
-              Создание книги
+              {t.personalize.heading}
             </span>
             <h1 className="mt-5 font-display text-2xl font-extrabold text-brown-dark sm:text-3xl">
               {book.title}
@@ -157,7 +167,7 @@ export default function PersonalizeForm({ book }: Props) {
 
                 {form.childName.trim() && (
                   <div className="mt-5 rounded-2xl bg-brand-50 p-4 text-center">
-                    <p className="text-xs text-brown-300">Главный герой</p>
+                    <p className="text-xs text-brown-300">{t.personalize.summaryHero}</p>
                     <p className="mt-0.5 font-display text-lg font-extrabold text-brand-500">
                       {form.childName.trim()}
                     </p>
@@ -166,15 +176,17 @@ export default function PersonalizeForm({ book }: Props) {
 
                 <dl className="mt-5 space-y-2.5 text-sm">
                   <div className="flex justify-between gap-3">
-                    <dt className="text-brown-300">Страниц</dt>
+                    <dt className="text-brown-300">{t.personalize.summaryPages}</dt>
                     <dd className="font-semibold text-brown-dark">{book.pageCount}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-brown-300">Обложка</dt>
-                    <dd className="font-semibold text-brown-dark">Твёрдая</dd>
+                    <dt className="text-brown-300">{t.personalize.summaryCover}</dt>
+                    <dd className="font-semibold text-brown-dark">
+                      {t.personalize.summaryCoverValue}
+                    </dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-brown-300">Фото</dt>
+                    <dt className="text-brown-300">{t.personalize.summaryPhoto}</dt>
                     <dd
                       className={
                         form.photoUrl
@@ -182,11 +194,13 @@ export default function PersonalizeForm({ book }: Props) {
                           : "font-semibold text-brown-300"
                       }
                     >
-                      {form.photoUrl ? "Загружено" : "Не добавлено"}
+                      {form.photoUrl
+                        ? t.personalize.summaryPhotoDone
+                        : t.personalize.summaryPhotoNone}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3 border-t border-cream-200 pt-3">
-                    <dt className="text-brown-300">Цена</dt>
+                    <dt className="text-brown-300">{t.personalize.summaryPrice}</dt>
                     <dd className="font-display text-lg font-extrabold text-brown-dark">
                       <Price amount={book.price} />
                     </dd>
@@ -203,10 +217,10 @@ export default function PersonalizeForm({ book }: Props) {
                   <div className="flex flex-col gap-6">
                     <div>
                       <h2 className="font-display text-xl font-extrabold text-brown-dark">
-                        Вы выбрали историю
+                        {t.personalize.chosenHeading}
                       </h2>
                       <p className="mt-1.5 text-[15px] text-brown">
-                        Проверьте книгу и продолжайте — дальше добавим имя и фото.
+                        {t.personalize.chosenLead}
                       </p>
                     </div>
 
@@ -219,7 +233,8 @@ export default function PersonalizeForm({ book }: Props) {
                           {book.title}
                         </p>
                         <p className="mt-1 text-sm text-brown">
-                          {book.ageRange} · {book.pageCount} страниц · твёрдая обложка
+                          {book.ageRange} ·{" "}
+                          {fill(t.common.pagesAndCover, { pages: book.pageCount })}
                         </p>
                         <p className="mt-2 font-display text-xl font-extrabold text-brown-dark">
                           <Price amount={book.price} />
@@ -228,7 +243,7 @@ export default function PersonalizeForm({ book }: Props) {
                     </div>
 
                     <Button onClick={() => setStep(1)} fullWidth size="lg">
-                      Продолжить
+                      {t.personalize.chosenContinue}
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -239,23 +254,24 @@ export default function PersonalizeForm({ book }: Props) {
                   <div className="flex flex-col gap-5">
                     <div>
                       <h2 className="font-display text-xl font-extrabold text-brown-dark">
-                        Расскажите о ребёнке
+                        {t.personalize.childHeading}
                       </h2>
                       <p className="mt-1.5 text-[15px] text-brown">
-                        Имя появится в тексте истории.
+                        {t.personalize.childLead}
                       </p>
                     </div>
 
                     <Input
-                      label="Имя ребёнка"
-                      placeholder="Например: Максим"
+                      label={t.personalize.nameLabel}
+                      placeholder={t.personalize.namePlaceholder}
                       value={form.childName}
                       inputMode="text"
                       autoComplete="given-name"
-                      lang="ru"
+                      lang={LOCALE_CONFIG[locale].htmlLang}
                       onChange={(e) => {
                         const { value, rejected } = sanitizeChildName(
-                          e.target.value
+                          e.target.value,
+                          nameScript
                         );
                         setNameRejected(rejected);
                         setForm((f) => ({ ...f, childName: value }));
@@ -263,16 +279,22 @@ export default function PersonalizeForm({ book }: Props) {
                       onBlur={() => setNameTouched(true)}
                       error={
                         nameRejected
-                          ? NAME_ERROR_LATIN
+                          ? nameScript === "cyrillic"
+                            ? t.personalize.nameErrorScriptCyrillic
+                            : t.personalize.nameErrorScriptCyrillicLatin
                           : nameTouched && !nameValid
-                            ? NAME_ERROR_SHORT
+                            ? t.personalize.nameErrorShort
                             : undefined
                       }
-                      hint={NAME_HINT}
+                      hint={
+                        nameScript === "cyrillic"
+                          ? t.personalize.nameHintCyrillic
+                          : t.personalize.nameHintCyrillicLatin
+                      }
                     />
 
                     <Input
-                      label="Возраст"
+                      label={t.personalize.ageLabel}
                       type="number"
                       inputMode="numeric"
                       placeholder="5"
@@ -292,13 +314,15 @@ export default function PersonalizeForm({ book }: Props) {
                         htmlFor="dedication"
                         className="mb-1.5 block text-sm font-semibold text-brown-dark"
                       >
-                        Посвящение{" "}
-                        <span className="font-normal text-brown-300">(необязательно)</span>
+                        {t.personalize.dedicationLabel}{" "}
+                        <span className="font-normal text-brown-300">
+                          {t.personalize.dedicationOptional}
+                        </span>
                       </label>
                       <textarea
                         id="dedication"
                         rows={3}
-                        placeholder="Дорогой Максим! Эта книга для тебя…"
+                        placeholder={t.personalize.dedicationPlaceholder}
                         value={form.dedication ?? ""}
                         onChange={(e) =>
                           setForm((f) => ({ ...f, dedication: e.target.value }))
@@ -306,17 +330,17 @@ export default function PersonalizeForm({ book }: Props) {
                         className="input-base resize-none"
                       />
                       <p className="mt-1.5 text-xs text-brown-300">
-                        Напечатаем на первой странице
+                        {t.personalize.dedicationHint}
                       </p>
                     </div>
 
                     <div className="flex gap-3">
                       <Button variant="ghost" onClick={() => setStep(0)}>
                         <ArrowLeft className="h-4 w-4" />
-                        Назад
+                        {t.personalize.back}
                       </Button>
                       <Button onClick={() => setStep(2)} disabled={!nameValid} fullWidth>
-                        Далее
+                        {t.personalize.next}
                         <ArrowRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -328,11 +352,12 @@ export default function PersonalizeForm({ book }: Props) {
                   <div className="flex flex-col gap-5">
                     <div>
                       <h2 className="font-display text-xl font-extrabold text-brown-dark">
-                        Добавьте фотографию
+                        {t.personalize.photoHeading}
                       </h2>
                       <p className="mt-1.5 text-[15px] text-brown">
-                        По этому снимку художник нарисует героя книги. Имя уже
-                        сохранили: {form.childName.trim()}.
+                        {fill(t.personalize.photoLead, {
+                          name: form.childName.trim(),
+                        })}
                       </p>
                     </div>
 
@@ -352,12 +377,7 @@ export default function PersonalizeForm({ book }: Props) {
                     )}
 
                     <ul className="grid gap-2.5 sm:grid-cols-2">
-                      {[
-                        "Лицо крупным планом",
-                        "Хорошее освещение",
-                        "Светлый однотонный фон",
-                        "Ребёнок смотрит в камеру",
-                      ].map((tip) => (
+                      {t.photoTipsShort.map((tip) => (
                         <li
                           key={tip}
                           className="flex items-center gap-2.5 rounded-2xl bg-cream-100 px-4 py-3 text-sm text-brown"
@@ -373,17 +393,16 @@ export default function PersonalizeForm({ book }: Props) {
                         className="mt-0.5 h-4 w-4 shrink-0 text-sage-500"
                         strokeWidth={2}
                       />
-                      Фотография используется только для создания вашей книги. Мы не
-                      передаём её третьим лицам и удаляем после выполнения заказа.
+{t.personalize.photoPrivacy}
                     </p>
 
                     <div className="flex gap-3">
                       <Button variant="ghost" onClick={() => setStep(1)}>
                         <ArrowLeft className="h-4 w-4" />
-                        Назад
+                        {t.personalize.back}
                       </Button>
                       <Button onClick={() => setStep(3)} fullWidth>
-                        {form.photoUrl ? "Далее" : "Пропустить"}
+                        {form.photoUrl ? t.personalize.next : t.personalize.skip}
                         <ArrowRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -395,27 +414,37 @@ export default function PersonalizeForm({ book }: Props) {
                   <div className="flex flex-col gap-5">
                     <div>
                       <h2 className="font-display text-xl font-extrabold text-brown-dark">
-                        Всё готово
+                        {t.personalize.reviewHeading}
                       </h2>
                       <p className="mt-1.5 text-[15px] text-brown">
-                        Проверьте данные — дальше покажем предварительный макет.
+                        {t.personalize.reviewLead}
                       </p>
                     </div>
 
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-3xl bg-cream-100 p-5 text-sm">
                       {[
-                        { label: "Книга", value: book.shortTitle },
-                        { label: "Имя", value: form.childName.trim() },
+                        { label: t.personalize.reviewBook, value: book.shortTitle },
+                        { label: t.personalize.reviewName, value: form.childName.trim() },
                         {
-                          label: "Возраст",
+                          label: t.personalize.reviewAge,
                           value: form.childAge ? `${form.childAge}` : "—",
                         },
-                        { label: "Фото", value: form.photoUrl ? "Загружено" : "Без фото" },
                         {
-                          label: "Посвящение",
-                          value: form.dedication?.trim() ? "Добавлено" : "—",
+                          label: t.personalize.reviewPhoto,
+                          value: form.photoUrl
+                            ? t.personalize.summaryPhotoDone
+                            : t.personalize.reviewPhotoNone,
                         },
-                        { label: "Обложка", value: "Твёрдая" },
+                        {
+                          label: t.personalize.reviewDedication,
+                          value: form.dedication?.trim()
+                            ? t.personalize.reviewDedicationAdded
+                            : t.personalize.reviewDedicationNone,
+                        },
+                        {
+                          label: t.personalize.reviewCover,
+                          value: t.personalize.summaryCoverValue,
+                        },
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <dt className="text-xs text-brown-300">{label}</dt>
@@ -427,7 +456,9 @@ export default function PersonalizeForm({ book }: Props) {
                     </dl>
 
                     <div className="flex items-center justify-between rounded-3xl bg-brand-50 px-5 py-4">
-                      <span className="text-[15px] font-semibold text-brown">К оплате</span>
+                      <span className="text-[15px] font-semibold text-brown">
+                        {t.personalize.reviewTotal}
+                      </span>
                       <span className="font-display text-2xl font-extrabold text-brown-dark">
                         <Price amount={book.price} />
                       </span>
@@ -436,13 +467,13 @@ export default function PersonalizeForm({ book }: Props) {
                     <div className="flex gap-3">
                       <Button variant="ghost" onClick={() => setStep(2)} disabled={loading}>
                         <ArrowLeft className="h-4 w-4" />
-                        Назад
+                        {t.personalize.back}
                       </Button>
                       <Button onClick={handleGenerate} isLoading={loading} fullWidth size="lg">
                         {!loading && (
                           <>
                             <Sparkles className="h-4 w-4" />
-                            Показать превью
+                            {t.personalize.showPreview}
                           </>
                         )}
                       </Button>

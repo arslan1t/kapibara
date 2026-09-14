@@ -2,6 +2,9 @@ import "server-only";
 
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill } from "@/i18n/format";
 
 /**
  * Fixed-window rate limiting, backed by the database.
@@ -145,10 +148,13 @@ export async function pruneRateLimits(): Promise<void> {
 }
 
 /** Russian message for a blocked attempt, with a human-readable wait. */
-export function rateLimitMessage(retryAfter: number): string {
+export function rateLimitMessage(
+  retryAfter: number,
+  locale: Locale = DEFAULT_LOCALE
+): string {
+  const t = getDictionary(locale);
   const minutes = Math.ceil(retryAfter / 60);
-  if (minutes <= 1) return "Слишком много попыток. Попробуйте через минуту";
-  if (minutes < 60) return `Слишком много попыток. Попробуйте через ${minutes} мин.`;
-  const hours = Math.ceil(minutes / 60);
-  return `Слишком много попыток. Попробуйте через ${hours} ч.`;
+  if (minutes <= 1) return t.errors.rateLimitMinute;
+  if (minutes < 60) return fill(t.errors.rateLimitMinutes, { count: minutes });
+  return fill(t.errors.rateLimitHours, { count: Math.ceil(minutes / 60) });
 }

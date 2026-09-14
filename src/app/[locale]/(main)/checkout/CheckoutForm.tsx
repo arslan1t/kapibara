@@ -10,6 +10,9 @@ import { useCartStore } from "@/store/cart";
 import { createOrder } from "@/app/actions/orders";
 import { AlertCircle } from "lucide-react";
 import type { DeliveryAddress } from "@/types";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { useLocale } from "@/i18n/navigation";
+import { LOCALE_CONFIG, REGION_CONFIG } from "@/i18n/config";
 
 type FormData = DeliveryAddress;
 
@@ -19,6 +22,14 @@ export default function CheckoutForm({
   /** True only when a payment provider actually has credentials. */
   onlinePaymentEnabled: boolean;
 }) {
+  const t = useDictionary();
+  const locale = useLocale();
+  const { region } = LOCALE_CONFIG[locale];
+  const { phone: phoneRules, deliveryMethods } = REGION_CONFIG[region];
+  // Six digits in Russia, six in Uzbekistan too, but the ranges differ enough
+  // that a Moscow example in a Tashkent form just looks like a mistake.
+  const postalExample = region === "UZ" ? "100000" : "101000";
+
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const hydrated = useCartStore((s) => s._hydrated);
@@ -71,12 +82,15 @@ export default function CheckoutForm({
       customerName: data.fullName,
       customerEmail: data.email,
       customerPhone: data.phone,
-      deliveryMethod: "courier",
+      locale,
+      // Courier everywhere it is offered; the region config is the authority
+      // on what that list is, and the server refuses anything outside it.
+      deliveryMethod: deliveryMethods[0] ?? "courier",
       deliveryAddress: [
         data.postalCode,
         data.city,
         data.street,
-        data.apartment && `кв. ${data.apartment}`,
+        data.apartment && `${t.checkout.apartment} ${data.apartment}`,
       ]
         .filter(Boolean)
         .join(", "),
@@ -117,10 +131,10 @@ export default function CheckoutForm({
     <div className="py-10 md:py-14">
       <div className="page-container">
         <h1 className="font-display text-3xl font-extrabold text-brown-dark sm:text-4xl">
-          Оформление заказа
+          {t.checkout.heading}
         </h1>
         <p className="mt-3 text-[15px] text-brown">
-          Заполните данные получателя — это займёт минуту.
+          {t.checkout.lead}
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-10">
@@ -130,76 +144,79 @@ export default function CheckoutForm({
               <section className="rounded-4xl bg-white p-6 shadow-card sm:p-7">
                 <h2 className="flex items-center gap-2.5 font-display text-lg font-extrabold text-brown-dark">
                   <Truck className="h-5 w-5 text-brand-500" strokeWidth={1.9} />
-                  Адрес доставки
+                  {t.checkout.addressHeading}
                 </h2>
                 <div className="mt-6 grid gap-5 sm:grid-cols-2">
                   <Input
-                    label="Имя и фамилия"
-                    placeholder="Иван Иванов"
+                    label={t.checkout.fullName}
+                    placeholder={t.checkout.fullNamePlaceholder}
                     autoComplete="name"
                     error={errors.fullName?.message}
-                    {...register("fullName", { required: "Обязательное поле" })}
+                    {...register("fullName", { required: t.checkout.required })}
                   />
                   <Input
-                    label="Телефон"
+                    label={t.checkout.phone}
                     type="tel"
-                    placeholder="+7 (999) 000-00-00"
+                    placeholder={phoneRules.example}
                     autoComplete="tel"
                     error={errors.phone?.message}
-                    {...register("phone", { required: "Обязательное поле" })}
+                    {...register("phone", { required: t.checkout.required })}
                   />
                   <div className="sm:col-span-2">
                     <Input
-                      label="Электронная почта"
+                      label={t.checkout.email}
                       type="email"
                       inputMode="email"
-                      placeholder="example@mail.ru"
+                      placeholder="example@mail.com"
                       autoComplete="email"
-                      hint="Отправим на неё подтверждение заказа"
+                      hint={t.checkout.emailHint}
                       error={errors.email?.message}
                       {...register("email", {
-                        required: "Обязательное поле",
+                        required: t.checkout.required,
                         pattern: {
                           value: /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/,
-                          message: "Введите корректный адрес",
+                          message: t.checkout.emailInvalid,
                         },
                       })}
                     />
                   </div>
                   <Input
-                    label="Город"
-                    placeholder="Москва"
+                    label={t.checkout.city}
+                    placeholder={t.checkout.cityPlaceholder}
                     autoComplete="address-level2"
                     error={errors.city?.message}
-                    {...register("city", { required: "Обязательное поле" })}
+                    {...register("city", { required: t.checkout.required })}
                   />
                   <Input
-                    label="Почтовый индекс"
+                    label={t.checkout.postalCode}
                     inputMode="numeric"
-                    placeholder="101000"
+                    placeholder={postalExample}
                     autoComplete="postal-code"
                     error={errors.postalCode?.message}
-                    {...register("postalCode", { required: "Обязательное поле" })}
+                    {...register("postalCode", { required: t.checkout.required })}
                   />
                   <div className="sm:col-span-2">
                     <Input
-                      label="Улица и дом"
-                      placeholder="ул. Пушкина, д. 10"
+                      label={t.checkout.street}
+                      placeholder={t.checkout.streetPlaceholder}
                       autoComplete="street-address"
                       error={errors.street?.message}
-                      {...register("street", { required: "Обязательное поле" })}
+                      {...register("street", { required: t.checkout.required })}
                     />
                   </div>
                   <Input
-                    label="Квартира"
+                    label={t.checkout.apartment}
                     placeholder="25"
                     {...register("apartment")}
                   />
-                  <input type="hidden" value="Россия" {...register("country")} />
+                  <input
+                    type="hidden"
+                    value={region}
+                    {...register("country")}
+                  />
                 </div>
                 <p className="mt-5 text-sm text-brown-300">
-                  Стоимость и срок доставки рассчитываются после оформления — мы
-                  свяжемся с вами для подтверждения.
+{t.checkout.deliveryNote}
                 </p>
               </section>
 
@@ -207,20 +224,20 @@ export default function CheckoutForm({
               <section className="rounded-4xl bg-white p-6 shadow-card sm:p-7">
                 <h2 className="flex items-center gap-2.5 font-display text-lg font-extrabold text-brown-dark">
                   <CreditCard className="h-5 w-5 text-brand-500" strokeWidth={1.9} />
-                  Способ оплаты
+                  {t.checkout.paymentHeading}
                 </h2>
                 {/* Exactly one method is ever available, so this states what
                     will happen rather than offering a choice that isn't one. */}
                 <div className="mt-6 rounded-3xl border-2 border-brand-300 bg-brand-50 p-5">
                   <p className="font-semibold text-brown-dark">
                     {onlinePaymentEnabled
-                      ? "Онлайн-оплата картой"
-                      : "Оплата после подтверждения"}
+                      ? t.checkout.paymentOnlineTitle
+                      : t.checkout.paymentManualTitle}
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-brown">
                     {onlinePaymentEnabled
-                      ? "После оформления вы перейдёте на защищённую страницу оплаты. Заказ подтвердится автоматически, как только платёж пройдёт."
-                      : "Мы свяжемся с вами, уточним детали и сумму доставки, а затем договоримся об оплате. Деньги сейчас не списываются."}
+                      ? t.checkout.paymentOnlineBody
+                      : t.checkout.paymentManualBody}
                   </p>
                 </div>
 
@@ -231,8 +248,8 @@ export default function CheckoutForm({
                     aria-hidden="true"
                   />
                   {onlinePaymentEnabled
-                    ? "Данные карты вводятся на стороне платёжного провайдера — мы их не получаем и не храним."
-                    : "Мы не просим данные карты на сайте и не храним их."}
+                    ? t.checkout.paymentOnlineNote
+                    : t.checkout.paymentManualNote}
                 </p>
               </section>
             </div>

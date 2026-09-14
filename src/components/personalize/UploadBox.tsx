@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Upload, X, Camera } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 interface UploadBoxProps {
   value?: string;
@@ -14,6 +15,7 @@ interface UploadBoxProps {
 }
 
 export default function UploadBox({ value, onChange, busy, className }: UploadBoxProps) {
+  const t = useDictionary();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -35,14 +37,14 @@ export default function UploadBox({ value, onChange, busy, className }: UploadBo
       <div className={cn("relative rounded-2xl overflow-hidden", className)}>
         <Image
           src={value}
-          alt="Фото ребёнка"
+          alt={t.upload.alt}
           width={200}
           height={200}
           className="h-48 w-full object-cover"
         />
         {busy && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-            <p className="text-sm font-semibold text-brown-dark">Загружаем…</p>
+            <p className="text-sm font-semibold text-brown-dark">{t.upload.uploading}</p>
           </div>
         )}
         <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/40 to-transparent p-3">
@@ -52,7 +54,7 @@ export default function UploadBox({ value, onChange, busy, className }: UploadBo
             className="flex items-center gap-1.5 rounded-xl bg-white/90 px-3 py-1.5 text-xs font-semibold text-brown-dark hover:bg-white transition-colors"
           >
             <X className="h-3.5 w-3.5" />
-            Удалить фото
+            {t.upload.remove}
           </button>
         </div>
       </div>
@@ -81,12 +83,12 @@ export default function UploadBox({ value, onChange, busy, className }: UploadBo
         )}
       </div>
       <p className="text-sm font-semibold text-brown-dark">
-        {dragging ? "Отпустите фото" : "Загрузите фото"}
+        {dragging ? t.upload.drop : t.upload.choose}
       </p>
       <p className="mt-1 text-xs text-brown-400 text-center">
-        Перетащите или нажмите, чтобы выбрать.
+        {t.upload.hint}
         <br />
-        JPG, PNG · до 10 МБ
+        {t.upload.limits}
       </p>
       <input
         ref={inputRef}

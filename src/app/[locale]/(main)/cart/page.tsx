@@ -8,8 +8,10 @@ import CheckoutSummary from "@/components/checkout/CheckoutSummary";
 import EmptyState from "@/components/shared/EmptyState";
 import Mascot from "@/components/shared/Mascot";
 import { useCartStore } from "@/store/cart";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 export default function CartPage() {
+  const t = useDictionary();
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const hydrated = useCartStore((s) => s._hydrated);
@@ -28,9 +30,9 @@ export default function CartPage() {
         <div className="page-container mx-auto max-w-lg">
           <EmptyState
             illustration={<Mascot variant={2} float />}
-            title="Корзина пуста"
-            description="Выберите историю и создайте книгу с именем вашего ребёнка."
-            action={{ label: "Выбрать книгу", href: "/catalog" }}
+            title={t.cart.emptyTitle}
+            description={t.cart.emptyBody}
+            action={{ label: t.cart.emptyCta, href: "/catalog" }}
           />
         </div>
       </div>
@@ -45,11 +47,11 @@ export default function CartPage() {
           className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-brown transition-colors hover:text-brown-dark"
         >
           <ArrowLeft className="h-4 w-4" />
-          В каталог
+          {t.cart.toCatalog}
         </Link>
 
         <h1 className="font-display text-3xl font-extrabold text-brown-dark sm:text-4xl">
-          Корзина
+          {t.cart.heading}
         </h1>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-3 lg:gap-8">
@@ -63,7 +65,7 @@ export default function CartPage() {
             <CheckoutSummary
               items={items}
               onSubmit={() => router.push("/checkout")}
-              submitLabel="Перейти к оформлению"
+              submitLabel={t.cart.goToCheckout}
             />
           </div>
         </div>

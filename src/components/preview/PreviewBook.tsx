@@ -5,6 +5,8 @@ import { Info, Loader2 } from "lucide-react";
 import type { GeneratedProject } from "@/types";
 import BookCover from "@/components/books/BookCover";
 import type { JobState } from "@/components/preview/GenerationPanel";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
 
 interface PreviewBookProps {
   project: GeneratedProject;
@@ -17,6 +19,7 @@ interface PreviewBookProps {
  * honest: this is the draft we work from, not a finished illustrated page.
  */
 export default function PreviewBook({ project, job }: PreviewBookProps) {
+  const t = useDictionary();
   const { book, personalization } = project;
 
   // photoUrl is a blob: handle created on the previous screen and is already
@@ -49,7 +52,7 @@ export default function PreviewBook({ project, job }: PreviewBookProps) {
               unoptimized
             />
             <figcaption className="mt-3 text-center text-sm text-brown">
-              {personalization.childName} в сцене из книги
+              {fill(t.preview.inSceneCaption, { name: personalization.childName })}
             </figcaption>
           </figure>
         ) : working ? (
@@ -59,10 +62,10 @@ export default function PreviewBook({ project, job }: PreviewBookProps) {
               aria-hidden="true"
             />
             <p className="font-display text-lg font-extrabold text-brown-dark">
-              Рисуем {personalization.childName}
+              {fill(t.preview.drawing, { name: personalization.childName })}
             </p>
             <p className="max-w-xs text-sm leading-relaxed text-brown">
-              Обычно одна–три минуты. Готовая иллюстрация появится прямо здесь.
+              {t.preview.drawingNote}
             </p>
           </div>
         ) : (
@@ -71,13 +74,13 @@ export default function PreviewBook({ project, job }: PreviewBookProps) {
 
         <div className="mt-6 rounded-3xl bg-cream-100 p-5">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-brown-300">
-            Персонализация
+            {t.preview.personalizationHeading}
           </p>
           <div className="mt-4 flex items-center gap-4">
             {photoSrc ? (
               <Image
                 src={photoSrc}
-                alt={`Фотография: ${personalization.childName}`}
+                alt={fill(t.preview.photoAlt, { name: personalization.childName })}
                 width={72}
                 height={72}
                 unoptimized
@@ -86,7 +89,7 @@ export default function PreviewBook({ project, job }: PreviewBookProps) {
               />
             ) : (
               <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl border-2 border-dashed border-cream-300 text-xs text-brown-300">
-                нет фото
+                {t.preview.noPhoto}
               </div>
             )}
             <div className="min-w-0">
@@ -95,8 +98,8 @@ export default function PreviewBook({ project, job }: PreviewBookProps) {
               </p>
               <p className="mt-1 text-sm text-brown">
                 {personalization.childAge
-                  ? `${personalization.childAge} лет · главный герой`
-                  : "Главный герой истории"}
+                  ? fill(t.preview.heroAge, { age: personalization.childAge })
+                  : t.preview.heroRole}
               </p>
             </div>
           </div>
@@ -111,8 +114,7 @@ export default function PreviewBook({ project, job }: PreviewBookProps) {
 
       <p className="mt-4 flex items-start gap-2.5 rounded-2xl bg-brand-100 px-4 py-3.5 text-sm leading-relaxed text-brown">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-300" strokeWidth={2} />
-        Это обложка серии. Иллюстрация с вашим ребёнком создаётся ниже —
-        окончательный макет мы согласуем с вами до печати.
+{t.preview.seriesCoverNote}
       </p>
     </div>
   );
