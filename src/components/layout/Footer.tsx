@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Instagram, Send } from "lucide-react";
 import Link from "@/i18n/navigation";
 import { sellerFor } from "@/lib/legal";
+import { legalFor } from "@/lib/legal-docs";
 import CookieSettingsLink from "@/components/legal/CookieSettingsLink";
 import { getPublishedProducts } from "@/lib/products";
 import { getDictionary } from "@/i18n/dictionary";
@@ -21,6 +22,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
   const t = getDictionary(locale);
   const { region } = LOCALE_CONFIG[locale];
   const seller = sellerFor(region);
+  const legalLabels = legalFor(locale).labels;
 
   // Linking to books that an administrator has actually published, so an
   // archived story never leaves a dead link in the footer.
@@ -147,7 +149,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
                 </span>
               </p>
               <p className="mt-1">
-                {seller.taxIdLabel} {seller.taxId} · {seller.registrationIdLabel}{" "}
+                {legalLabels.taxId} {seller.taxId} · {legalLabels.registrationId}{" "}
                 {seller.registrationId}
               </p>
               <p className="mt-1">{seller.address}</p>

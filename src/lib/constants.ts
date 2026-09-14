@@ -119,10 +119,14 @@ export type Role = (typeof ROLES)[number];
 // ─── Legal consents ───────────────────────────────────────────────────────────
 
 /**
- * Version stamped onto stored consents. Defined in src/lib/legal.ts alongside
- * the documents themselves, so the wording and the version cannot drift apart.
+ * Version stamped onto stored consents.
+ *
+ * Read from the bundle the reader was actually shown, so a Russian-law consent
+ * and an Uzbek-law one cannot be recorded under the same version string. The
+ * documents carry their own version for the same reason: it records what the
+ * person saw, not what is current.
  */
-export { LEGAL_VERSION as CONSENT_DOCUMENT_VERSION } from "@/lib/legal";
+export { legalFor as consentDocumentsFor } from "@/lib/legal-docs";
 
 /**
  * Consents collected at registration.

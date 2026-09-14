@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { Region } from "@/i18n/config";
 
 /**
@@ -126,14 +125,3 @@ export const LEGAL_VERSION = "2026-08-21";
 
 /** Human-readable date of the current wording, shown at the top of each document. */
 export const LEGAL_UPDATED = "21 августа 2026 г.";
-
-export interface LegalClause {
-  /** Optional sub-heading inside a section. */
-  title?: string;
-  body: ReactNode;
-}
-
-export interface LegalSection {
-  heading: string;
-  clauses: LegalClause[];
-}

@@ -36,6 +36,167 @@ const galleryImages = [
  * would put claims about the book in front of customers that nobody has agreed
  * to honour.
  */
+/**
+ * The same catalogue in Uzbek.
+ *
+ * Kept as a separate table rather than extra fields on CATALOGUE so the
+ * Russian entries stay readable, and so a third language is another table
+ * rather than another column in every row.
+ *
+ * The companions' names are translated, not transliterated. "Колёсик" is a
+ * little wheel and "Огонёк" a little flame; a child reading Oʻzbek should meet
+ * Gʻildirakcha and Olovcha, not a Russian word in Latin letters they cannot
+ * parse. Only the story is translated — the artwork still carries its Russian
+ * lettering, which is a separate job.
+ */
+const CATALOGUE_UZ: Record<
+  string,
+  { title: string; shortTitle: string; companion: string; idea: string }
+> = {
+  "priklyucheniya-devochki-i-kitenka": {
+    title: "Qizcha va Kit bolasi sarguzashtlari",
+    shortTitle: "Qizcha va Kit bolasi",
+    companion: "kit bolasi",
+    idea: "Dengiz, sukunat va yulduzli suvda porlaydigan kit bolasi bilan doʻstlik haqidagi hikoya.",
+  },
+  "priklyucheniya-malchika-i-sovenka": {
+    title: "Oʻgʻilcha va Boyqush bolasi sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Boyqush bolasi",
+    companion: "boyqush bolasi",
+    idea: "Jasorat haqidagi tungi hikoya: yoningda kichkina boyqush boʻlsa, qorongʻilikdan qoʻrqmasa ham boʻladi.",
+  },
+  "priklyucheniya-devochki-i-oblachka": {
+    title: "Qizcha va Bulutcha sarguzashtlari",
+    shortTitle: "Qizcha va Bulutcha",
+    companion: "bulutcha",
+    idea: "Orzular haqidagi yengil hikoya: kichkina bulutcha dunyoga yuqoridan qarashni oʻrgatadi.",
+  },
+  "priklyucheniya-malchika-i-ezhika": {
+    title: "Oʻgʻilcha va Kirpicha sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Kirpicha",
+    companion: "kirpicha",
+    idea: "Gʻamxoʻrlik haqidagi kuzgi hikoya: tikanli kirpicha bilan doʻstlashib, oʻrmonni qishga tayyorlash.",
+  },
+  "priklyucheniya-devochki-i-snezhka": {
+    title: "Qizcha va Qorcha sarguzashtlari",
+    shortTitle: "Qizcha va Qorcha",
+    companion: "oq tulki Qorcha",
+    idea: "Iliqlik haqidagi qishki hikoya: oq tulki Qorcha qorli oʻrmon orqali eng muhim narsaga boshlab boradi.",
+  },
+  "priklyucheniya-malchika-i-korablika": {
+    title: "Oʻgʻilcha va Kemacha sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Kemacha",
+    companion: "kemacha",
+    idea: "Uyga qaytish haqidagi dengiz hikoyasi: yogʻoch kemacha va doim kutib turadigan mayoq.",
+  },
+  "priklyucheniya-malchika-i-parovozika": {
+    title: "Oʻgʻilcha va Parovozcha sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Parovozcha",
+    companion: "parovozcha",
+    idea: "Yoʻl va doʻstlik haqidagi hikoya: yashil parovozcha vodiy orqali eng qiziq joyga olib boradi.",
+  },
+  "priklyucheniya-devochki-i-samoletika": {
+    title: "Qizcha va Samolyotcha sarguzashtlari",
+    shortTitle: "Qizcha va Samolyotcha",
+    companion: "samolyotcha",
+    idea: "Baland osmon va jasorat haqidagi hikoya: sariq samolyotcha balandlikdan qoʻrqmaslikni oʻrgatadi.",
+  },
+  "priklyucheniya-malchika-i-boltika": {
+    title: "Oʻgʻilcha va Boltcha sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Boltcha",
+    companion: "robot Boltcha",
+    idea: "Ixtiro haqidagi hikoya: misdan yasalgan robot Boltcha va imkonsizni ham tuzatadigan ustaxona.",
+  },
+  "priklyucheniya-devochki-i-zontika": {
+    title: "Qizcha va Soyaboncha sarguzashtlari",
+    shortTitle: "Qizcha va Soyaboncha",
+    companion: "soyaboncha",
+    idea: "Yomgʻir va quvonch haqidagi hikoya: qizil soyaboncha kulrang kunni bayramga aylantiradi.",
+  },
+  "priklyucheniya-malchika-i-vertoletika": {
+    title: "Oʻgʻilcha va Vertolyotcha sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Vertolyotcha",
+    companion: "vertolyotcha",
+    idea: "Togʻlar va yordam haqidagi hikoya: yashil vertolyotcha kerak boʻlganda doim yetib keladi.",
+  },
+  "priklyucheniya-devochki-i-fonarika": {
+    title: "Qizcha va Fonarcha sarguzashtlari",
+    shortTitle: "Qizcha va Fonarcha",
+    companion: "fonarcha",
+    idea: "Tungi oʻrmon haqidagi hikoya: iliq fonarcha qorongʻi va biroz qoʻrqinchli joylarni yoritadi.",
+  },
+  "priklyucheniya-devochki-i-snegovika": {
+    title: "Qizcha va Qor odam sarguzashtlari",
+    shortTitle: "Qizcha va Qor odam",
+    companion: "qor odam",
+    idea: "Moʻjiza haqidagi yangi yil hikoyasi: qizil sharfli qor odam maydondagi archa yonida kutib turadi.",
+  },
+  "priklyucheniya-malchika-i-olenenka": {
+    title: "Oʻgʻilcha va Bugʻu bolasi sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Bugʻu bolasi",
+    companion: "bugʻu bolasi",
+    idea: "Qish orqali oʻtadigan yoʻl haqidagi yangi yil hikoyasi: qoʻngʻiroqchali bugʻu bolasi shimoliy shafaq ostida boshlab boradi.",
+  },
+  "priklyucheniya-malchika-i-kolesika": {
+    title: "Oʻgʻilcha va Gʻildirakcha sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Gʻildirakcha",
+    companion: "gapiradigan mashina Gʻildirakcha",
+    idea: "Doʻstlik, jasorat va gapiradigan mashina Gʻildirakcha haqidagi sehrli sarguzasht.",
+  },
+  "priklyucheniya-devochki-i-kolesika": {
+    title: "Qizcha va Gʻildirakcha sarguzashtlari",
+    shortTitle: "Qizcha va Gʻildirakcha",
+    companion: "gapiradigan mashina Gʻildirakcha",
+    idea: "Doʻstlik, jasorat va gapiradigan mashina Gʻildirakcha haqidagi sehrli sarguzasht.",
+  },
+  "priklyucheniya-devochki-i-ogonka": {
+    title: "Qizcha va Olovcha sarguzashtlari",
+    shortTitle: "Qizcha va Olovcha",
+    companion: "kichkina ajdar Olovcha",
+    idea: "Kichkina ajdar Olovcha bilan doʻstlik haqidagi iliq hikoya.",
+  },
+  "priklyucheniya-malchika-i-ogonka": {
+    title: "Oʻgʻilcha va Olovcha sarguzashtlari",
+    shortTitle: "Oʻgʻilcha va Olovcha",
+    companion: "kichkina ajdar Olovcha",
+    idea: "Kichkina ajdar Olovcha bilan doʻstlik haqidagi iliq hikoya.",
+  },
+};
+
+/**
+ * Writes the Uzbek wording for one book.
+ *
+ * Built the same way the Russian is — premise plus companion — so the two
+ * languages say the same thing about the same book, and neither invents plot
+ * details nobody has agreed to honour.
+ */
+async function upsertUzbek(slug: string, gender: "boy" | "girl", ageMin: number, ageMax: number) {
+  const uz = CATALOGUE_UZ[slug];
+  if (!uz) return;
+
+  const product = await db.product.findUnique({ where: { slug }, select: { id: true } });
+  if (!product) return;
+
+  const hero = gender === "girl" ? "sizning qizingiz" : "sizning oʻgʻlingiz";
+  const shortDescription = `${uz.idea} Bosh qahramon — ${hero}.`;
+  const description = `${uz.idea} Farzandingizning ismi va yuzi har bir sahifaga kiritilgan: u shu hikoyaning bosh qahramoni, yonida esa ${uz.companion} bilan doʻstlik.`;
+
+  const data = {
+    language: "uz",
+    title: uz.title,
+    shortTitle: uz.shortTitle,
+    shortDescription,
+    description,
+    ageRange: `${ageMin}-${ageMax} yosh`,
+  };
+
+  await db.productTranslation.upsert({
+    where: { productId_language: { productId: product.id, language: "uz" } },
+    update: data,
+    create: { productId: product.id, ...data },
+  });
+}
+
 const CATALOGUE = [
   {
     slug: "priklyucheniya-devochki-i-kitenka",
@@ -385,10 +546,22 @@ async function main() {
       },
       create: { slug: book.slug, ...content },
     });
+
+    await upsertUzbek(book.slug, book.gender as "boy" | "girl", book.ageMin, book.ageMax);
   }
 
+  // The four books that predate the data table above, and so are upserted by
+  // hand higher up. Their age bands are fixed in those blocks.
+  await upsertUzbek("priklyucheniya-malchika-i-kolesika", "boy", 3, 8);
+  await upsertUzbek("priklyucheniya-devochki-i-kolesika", "girl", 3, 8);
+  await upsertUzbek("priklyucheniya-malchika-i-ogonka", "boy", 3, 8);
+  await upsertUzbek("priklyucheniya-devochki-i-ogonka", "girl", 3, 8);
+
   const products = await db.product.count();
-  console.log(`✔ Каталог: ${products} книг, галерея: ${galleryImages.length} изображений`);
+  const translations = await db.productTranslation.count();
+  console.log(
+    `✔ Каталог: ${products} книг (${translations} на узбекском), галерея: ${galleryImages.length} изображений`
+  );
 }
 
 main()

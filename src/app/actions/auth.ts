@@ -10,7 +10,7 @@ import {
   isFullNameValid,
   normalizeEmail,
 } from "@/lib/validation";
-import { CONSENT_DOCUMENT_VERSION, CONSENT_TYPES } from "@/lib/constants";
+import { consentDocumentsFor, CONSENT_TYPES } from "@/lib/constants";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
 import { sendVerificationEmail } from "@/lib/mail/verification";
 import { asLocale } from "@/i18n/config";
@@ -94,7 +94,8 @@ export async function registerAccount(input: {
           create: CONSENT_TYPES.map((type) => ({
             type,
             accepted: true,
-            documentVersion: CONSENT_DOCUMENT_VERSION,
+            // The version of the documents this person was actually shown.
+            documentVersion: consentDocumentsFor(locale).version,
           })),
         },
       },
