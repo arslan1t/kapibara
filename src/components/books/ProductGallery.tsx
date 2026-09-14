@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
 
 export interface GalleryImage {
   id: string;
@@ -19,6 +21,7 @@ export interface GalleryImage {
  * thumbnails. Both share arrow keys, a counter and a fullscreen view.
  */
 export default function ProductGallery({ images }: { images: GalleryImage[] }) {
+  const t = useDictionary();
   const [index, setIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -85,16 +88,16 @@ export default function ProductGallery({ images }: { images: GalleryImage[] }) {
         }}
         className="flex snap-x snap-mandatory overflow-x-auto scrollbar-hide rounded-4xl md:hidden"
         role="group"
-        aria-roledescription="карусель"
-        aria-label="Фотографии книги"
+        aria-roledescription={t.misc.galleryRole}
+        aria-label={t.misc.galleryAria}
       >
         {images.map((img, i) => (
           <div
             key={img.id}
             className="w-full shrink-0 snap-center"
             role="group"
-            aria-roledescription="слайд"
-            aria-label={`${i + 1} из ${count}`}
+            aria-roledescription={t.misc.slideRole}
+            aria-label={fill(t.misc.slideOf, { index: i + 1, total: count })}
           >
             <Image
               src={img.url}
@@ -125,7 +128,7 @@ export default function ProductGallery({ images }: { images: GalleryImage[] }) {
         <button
           type="button"
           onClick={() => go(index - 1)}
-          aria-label="Предыдущая фотография"
+          aria-label={t.misc.prevPhoto}
           className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-brown-dark shadow-soft backdrop-blur transition-transform hover:scale-105"
         >
           <ChevronLeft className="h-5 w-5" strokeWidth={2} />
@@ -133,7 +136,7 @@ export default function ProductGallery({ images }: { images: GalleryImage[] }) {
         <button
           type="button"
           onClick={() => go(index + 1)}
-          aria-label="Следующая фотография"
+          aria-label={t.misc.nextPhoto}
           className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-brown-dark shadow-soft backdrop-blur transition-transform hover:scale-105"
         >
           <ChevronRight className="h-5 w-5" strokeWidth={2} />
@@ -142,7 +145,7 @@ export default function ProductGallery({ images }: { images: GalleryImage[] }) {
         <button
           type="button"
           onClick={() => setZoomed(true)}
-          aria-label="Открыть фотографию во весь экран"
+          aria-label={t.misc.openFullscreen}
           className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-brown-dark shadow-soft backdrop-blur transition-transform hover:scale-105"
         >
           <Expand className="h-4 w-4" strokeWidth={2} />
@@ -157,7 +160,7 @@ export default function ProductGallery({ images }: { images: GalleryImage[] }) {
               key={img.id}
               type="button"
               onClick={() => go(i)}
-              aria-label={`Перейти к фотографии ${i + 1}`}
+              aria-label={fill(t.misc.goToPhoto, { index: i + 1 })}
               aria-current={i === index}
               className={cn(
                 "h-2 rounded-full transition-all duration-300",
@@ -181,7 +184,7 @@ export default function ProductGallery({ images }: { images: GalleryImage[] }) {
             <button
               type="button"
               onClick={() => go(i)}
-              aria-label={`Показать фотографию ${i + 1}: ${img.alt}`}
+              aria-label={fill(t.misc.showPhoto, { index: i + 1, alt: img.alt })}
               aria-current={i === index}
               className={cn(
                 "block w-full overflow-hidden rounded-xl ring-2 transition-all duration-300",
@@ -208,14 +211,14 @@ export default function ProductGallery({ images }: { images: GalleryImage[] }) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Просмотр фотографии"
+          aria-label={t.misc.viewingPhoto}
           className="fixed inset-0 z-[60] flex items-center justify-center bg-brown-dark/95 p-4"
           onClick={() => setZoomed(false)}
         >
           <button
             type="button"
             onClick={() => setZoomed(false)}
-            aria-label="Закрыть"
+            aria-label={t.common.close}
             autoFocus
             className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-brown-dark"
           >

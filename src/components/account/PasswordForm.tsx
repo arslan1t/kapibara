@@ -6,8 +6,11 @@ import PasswordInput from "@/components/ui/PasswordInput";
 import Button from "@/components/ui/Button";
 import { changePassword } from "@/app/actions/account";
 import { PASSWORD_MIN_LENGTH } from "@/lib/validation";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
 
 export default function PasswordForm() {
+  const t = useDictionary();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,20 +44,20 @@ export default function PasswordForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <PasswordInput
-        label="Текущий пароль"
+        label={t.account.currentPassword}
         autoComplete="current-password"
         value={currentPassword}
         onChange={(e) => setCurrentPassword(e.target.value)}
       />
       <PasswordInput
-        label="Новый пароль"
+        label={t.account.newPassword}
         autoComplete="new-password"
-        hint={`Не менее ${PASSWORD_MIN_LENGTH} символов, минимум одна буква и одна цифра`}
+        hint={fill(t.account.passwordHint, { min: PASSWORD_MIN_LENGTH })}
         value={newPassword}
         onChange={(e) => setNewPassword(e.target.value)}
       />
       <PasswordInput
-        label="Повторите новый пароль"
+        label={t.account.repeatNewPassword}
         autoComplete="new-password"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
@@ -76,7 +79,7 @@ export default function PasswordForm() {
           className="flex items-start gap-2 rounded-2xl bg-sage-50 px-3.5 py-3 text-[13px] font-medium leading-relaxed text-sage-500"
         >
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-          Пароль обновлён
+          {t.account.passwordUpdated}
         </p>
       )}
 
@@ -85,7 +88,7 @@ export default function PasswordForm() {
         isLoading={state === "saving"}
         className="mt-1 self-start rounded-full px-8 py-3.5"
       >
-        {state === "saving" ? "Сохраняем…" : "Изменить пароль"}
+        {state === "saving" ? t.account.saving : t.account.changePassword}
       </Button>
     </form>
   );

@@ -2,15 +2,23 @@ import type { Metadata } from "next";
 import Link from "@/i18n/navigation";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { verifyEmailToken } from "@/app/actions/account-recovery";
+import { asLocale, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill } from "@/i18n/format";
 
-export const metadata: Metadata = {
-  title: "Подтверждение адреса",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}): Promise<Metadata> {
+  const t = getDictionary(asLocale((await params).locale));
+  return { title: t.auth.verifyTitle, robots: { index: false, follow: false } };
+}
 
 export const dynamic = "force-dynamic";
 
 interface Props {
+  params: Promise<LocaleParams>;
   searchParams: Promise<{ token?: string }>;
 }
 
@@ -22,9 +30,11 @@ interface Props {
  * because the token is single-use and confirms only the address it was issued
  * for — there is no destructive side effect to protect against.
  */
-export default async function VerifyEmailPage({ searchParams }: Props) {
+export default async function VerifyEmailPage({ params, searchParams }: Props) {
+  const locale = asLocale((await params).locale);
+  const t = getDictionary(locale);
   const { token } = await searchParams;
-  const result = await verifyEmailToken(token ?? "");
+  const result = await verifyEmailToken(token ?? "", locale);
 
   if (!result.ok) {
     return (
@@ -33,14 +43,14 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
           <AlertCircle className="h-12 w-12 text-red-500" aria-hidden="true" />
         </div>
         <h1 className="font-display text-xl font-bold text-brown-dark">
-          Не удалось подтвердить адрес
+          {t.auth.verifyFailed}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-brown">{result.error}</p>
         <p className="mt-3 text-[13px] leading-relaxed text-brown">
-          Войдите в аккаунт — в личном кабинете можно запросить новое письмо.
+          {t.auth.verifyFailedLead}
         </p>
         <Link href="/login" className="btn-primary mt-6 inline-flex">
-          Войти
+          {t.auth.signIn}
         </Link>
       </div>
     );
@@ -52,13 +62,13 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
         <CheckCircle2 className="h-12 w-12 text-sage-500" aria-hidden="true" />
       </div>
       <h1 className="font-display text-xl font-bold text-brown-dark">
-        Адрес подтверждён
+        {t.auth.verifiedTitle}
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-brown">
-        {result.email} — теперь мы сможем присылать вам письма о заказах.
+        {fill(t.auth.verifiedLead, { email: result.email ?? "" })}
       </p>
       <Link href="/account" className="btn-primary mt-6 inline-flex">
-        В личный кабинет
+        {t.auth.toAccountShort}
       </Link>
     </div>
   );

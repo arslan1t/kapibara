@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { signIn, signOut } from "@/lib/auth";
 import {
-  AUTH_ERRORS,
+  authErrors,
   checkPassword,
   isEmailValid,
   isFullNameValid,
@@ -13,6 +13,7 @@ import {
 import { CONSENT_DOCUMENT_VERSION, CONSENT_TYPES } from "@/lib/constants";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
 import { sendVerificationEmail } from "@/lib/mail/verification";
+import { asLocale } from "@/i18n/config";
 
 export type ActionResult =
   | { ok: true }
@@ -26,12 +27,19 @@ export type ActionResult =
  * rather than trusted.
  */
 export async function registerAccount(input: {
+  /**
+   * The storefront the caller is reading, so a refusal comes back in their
+   * language. Untrusted input like any other field: it only selects wording.
+   */
+  locale?: string;
   fullName: string;
   email: string;
   password: string;
   confirmPassword: string;
   consents: Record<string, boolean>;
 }): Promise<ActionResult> {
+  const locale = asLocale(input.locale ?? "");
+  const AUTH_ERRORS = authErrors(locale);
   const fullName = input.fullName?.trim() ?? "";
   const email = normalizeEmail(input.email ?? "");
   const password = input.password ?? "";
@@ -43,7 +51,7 @@ export async function registerAccount(input: {
     return { ok: false, error: AUTH_ERRORS.emailInvalid, field: "email" };
   }
 
-  const strength = checkPassword(password);
+  const strength = checkPassword(password, locale);
   if (!strength.ok) {
     return { ok: false, error: strength.message, field: "password" };
   }
@@ -65,7 +73,7 @@ export async function registerAccount(input: {
   // accounts varies the email but not their origin.
   const limited = await rateLimit("register", `ip:${await clientIp()}`);
   if (!limited.ok) {
-    return { ok: false, error: rateLimitMessage(limited.retryAfter) };
+    return { ok: false, error: rateLimitMessage(limited.retryAfter, locale) };
   }
 
   const existing = await db.user.findUnique({ where: { email } });
@@ -105,9 +113,16 @@ export async function registerAccount(input: {
 
 /** Signs in with email + password. Returns a Russian message on failure. */
 export async function loginWithPassword(input: {
+  /**
+   * The storefront the caller is reading, so a refusal comes back in their
+   * language. Untrusted input like any other field: it only selects wording.
+   */
+  locale?: string;
   email: string;
   password: string;
 }): Promise<ActionResult> {
+  const locale = asLocale(input.locale ?? "");
+  const AUTH_ERRORS = authErrors(locale);
   const email = normalizeEmail(input.email ?? "");
 
   // Two keys, because either one alone is evadable: an attacker rotating
@@ -119,7 +134,7 @@ export async function loginWithPassword(input: {
   ]);
   if (!byEmail.ok || !byIp.ok) {
     const retry = Math.max(byEmail.retryAfter, byIp.retryAfter);
-    return { ok: false, error: rateLimitMessage(retry) };
+    return { ok: false, error: rateLimitMessage(retry, locale) };
   }
 
   try {

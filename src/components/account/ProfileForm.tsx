@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { updateProfile } from "@/app/actions/account";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 export default function ProfileForm({
   initialName,
@@ -16,6 +17,7 @@ export default function ProfileForm({
   initialPhone: string;
   email: string;
 }) {
+  const t = useDictionary();
   const router = useRouter();
   const [fullName, setFullName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
@@ -42,23 +44,23 @@ export default function ProfileForm({
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <Input
-        label="Имя"
+        label={t.account.name}
         autoComplete="name"
         value={fullName}
         onChange={(e) => setFullName(e.target.value)}
       />
 
       <Input
-        label="Электронная почта"
+        label={t.account.email}
         value={email}
         readOnly
         disabled
-        hint="Адрес используется для входа и изменить его пока нельзя"
+        hint={t.account.emailHint}
         className="cursor-not-allowed bg-cream-100"
       />
 
       <Input
-        label="Телефон"
+        label={t.account.phone}
         type="tel"
         inputMode="tel"
         autoComplete="tel"
@@ -83,7 +85,7 @@ export default function ProfileForm({
           className="flex items-start gap-2 rounded-2xl bg-sage-50 px-3.5 py-3 text-[13px] font-medium leading-relaxed text-sage-500"
         >
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-          Изменения сохранены
+          {t.account.saved}
         </p>
       )}
 
@@ -92,7 +94,7 @@ export default function ProfileForm({
         isLoading={state === "saving"}
         className="mt-1 self-start rounded-full px-8 py-3.5"
       >
-        {state === "saving" ? "Сохраняем…" : "Сохранить"}
+        {state === "saving" ? t.account.saving : t.account.save}
       </Button>
     </form>
   );

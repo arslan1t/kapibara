@@ -5,7 +5,9 @@
  * The wording that explains a failure lives in the dictionaries, because it
  * has to reach the reader in their own language.
  */
-import type { Region } from "@/i18n/config";
+import { DEFAULT_LOCALE, type Locale, type Region } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill } from "@/i18n/format";
 
 // ─── Child name ───────────────────────────────────────────────────────────────
 
@@ -75,25 +77,20 @@ const EMAIL_SHAPE = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 export const PASSWORD_MIN_LENGTH = 8;
 
-export const AUTH_ERRORS = {
-  emailInvalid: "Введите корректный адрес электронной почты",
-  emailTaken: "Этот адрес уже зарегистрирован",
-  passwordShort: `Пароль должен содержать не менее ${PASSWORD_MIN_LENGTH} символов`,
-  passwordWeak: "Пароль должен содержать хотя бы одну букву и одну цифру",
-  passwordMismatch: "Пароли не совпадают",
-  nameRequired: "Введите имя",
-  consentsRequired: "Для регистрации необходимо принять обязательные условия",
-  generic: "Не удалось создать аккаунт. Попробуйте ещё раз",
-  invalidCredentials: "Неверная почта или пароль",
-  // Emailed-link flows. Worded so they never reveal whether an address is
-  // registered — that would turn the reset form into an account-enumeration tool.
-  linkInvalid: "Ссылка недействительна. Запросите новую",
-  linkExpired: "Срок действия ссылки истёк. Запросите новую",
-  linkUsed: "Ссылка уже использована. Запросите новую",
-  resetFailed: "Не удалось сменить пароль. Попробуйте ещё раз",
-  verifyFailed: "Не удалось подтвердить адрес. Попробуйте ещё раз",
-  alreadyVerified: "Адрес уже подтверждён",
-} as const;
+/**
+ * The wording for every credential failure, in the caller's language.
+ *
+ * A function rather than a constant because the same failure has to reach a
+ * reader in Tashkent in Uzbek and a reader in Moscow in Russian, and server
+ * actions are the ones producing most of them.
+ */
+export function authErrors(locale: Locale = DEFAULT_LOCALE) {
+  const t = getDictionary(locale).authErrors;
+  return {
+    ...t,
+    passwordShort: fill(t.passwordShort, { min: PASSWORD_MIN_LENGTH }),
+  };
+}
 
 /** Lower-cased and trimmed, so one address can never register twice. */
 export function normalizeEmail(value: string): string {
@@ -109,12 +106,16 @@ export function isPasswordValid(value: string): boolean {
 }
 
 /** At least 8 characters, containing at least one letter and one digit. */
-export function checkPassword(value: string): { ok: true } | { ok: false; message: string } {
+export function checkPassword(
+  value: string,
+  locale: Locale = DEFAULT_LOCALE
+): { ok: true } | { ok: false; message: string } {
+  const errors = authErrors(locale);
   if (value.length < PASSWORD_MIN_LENGTH) {
-    return { ok: false, message: AUTH_ERRORS.passwordShort };
+    return { ok: false, message: errors.passwordShort };
   }
   if (!/\d/.test(value) || !/\p{L}/u.test(value)) {
-    return { ok: false, message: AUTH_ERRORS.passwordWeak };
+    return { ok: false, message: errors.passwordWeak };
   }
   return { ok: true };
 }

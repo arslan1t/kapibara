@@ -1,6 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { Book } from "@/types";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
 
 type CoverSize = "sm" | "md" | "lg";
 
@@ -58,6 +62,8 @@ export default function BookCover({
   glow = false,
   unoptimized = false,
 }: BookCoverProps) {
+  const t = useDictionary();
+
   return (
     <div className={cn("relative aspect-square w-full", className)}>
       {glow && (
@@ -72,7 +78,7 @@ export default function BookCover({
       <div className="relative h-full w-full overflow-hidden rounded-l-[2px] rounded-r-lg shadow-[0_16px_30px_-14px_rgba(74,45,26,0.5),0_4px_10px_-5px_rgba(74,45,26,0.32)]">
         <Image
           src={book.image}
-          alt={`Обложка книги «${book.title}»`}
+          alt={fill(t.misc.coverAlt, { title: book.title })}
           fill
           priority={priority}
           unoptimized={unoptimized}

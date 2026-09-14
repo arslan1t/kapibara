@@ -11,13 +11,16 @@ import ConsentCheckbox from "@/components/ui/ConsentCheckbox";
 import Button from "@/components/ui/Button";
 import { registerAccount, loginWithPassword } from "@/app/actions/auth";
 import {
-  AUTH_ERRORS,
+  authErrors,
   checkPassword,
   isEmailValid,
   isFullNameValid,
   PASSWORD_MIN_LENGTH,
 } from "@/lib/validation";
 import { CONSENT_TYPES, type ConsentType } from "@/lib/constants";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { useLocale } from "@/i18n/navigation";
+import { fill } from "@/i18n/format";
 
 /** A link inside consent text — underlined so it reads as tappable on mobile. */
 function DocLink({ href, children }: { href: string; children: string }) {
@@ -34,6 +37,9 @@ function DocLink({ href, children }: { href: string; children: string }) {
 }
 
 export default function RegisterPage() {
+  const t = useDictionary();
+  const locale = useLocale();
+  const AUTH_ERRORS = authErrors(locale);
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
@@ -52,7 +58,7 @@ export default function RegisterPage() {
 
   const allConsentsGiven = CONSENT_TYPES.every((t) => consents[t]);
 
-  const strength = checkPassword(password);
+  const strength = checkPassword(password, locale);
   const errors = {
     fullName: !isFullNameValid(fullName) ? AUTH_ERRORS.nameRequired : undefined,
     email: !isEmailValid(email) ? AUTH_ERRORS.emailInvalid : undefined,
@@ -76,6 +82,7 @@ export default function RegisterPage() {
 
     setStatus("loading");
     const result = await registerAccount({
+      locale,
       fullName,
       email,
       password,
@@ -91,7 +98,7 @@ export default function RegisterPage() {
     }
 
     // Sign the new customer straight in — they just proved the credentials.
-    await loginWithPassword({ email, password });
+    await loginWithPassword({ email, password, locale });
     setStatus("success");
     router.refresh();
   }
@@ -111,14 +118,13 @@ export default function RegisterPage() {
           <CheckCircle2 className="h-6 w-6" strokeWidth={1.9} />
         </span>
         <h1 className="mt-5 font-display text-2xl font-extrabold text-brown-dark">
-          Аккаунт создан
+          {t.auth.accountCreated}
         </h1>
         <p className="mt-2.5 text-[15px] leading-relaxed text-brown">
-          Добро пожаловать в Капибару! Теперь вы можете оформлять заказы и
-          следить за ними в личном кабинете.
+{t.auth.accountCreatedLead}
         </p>
         <Link href="/account" className="btn-primary mt-7 w-full">
-          Перейти в личный кабинет
+          {t.auth.toAccount}
         </Link>
       </div>
     );
@@ -128,25 +134,25 @@ export default function RegisterPage() {
     <div className="rounded-4xl bg-white p-6 shadow-card sm:p-8">
       <div className="mb-7 text-center">
         <h1 className="font-display text-2xl font-extrabold text-brown-dark">
-          Создать аккаунт
+          {t.auth.registerTitle}
         </h1>
         <p className="mt-1.5 text-[15px] text-brown">
-          Чтобы сохранять книги и следить за заказами
+          {t.auth.registerLead}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <Input
-          label="Имя"
+          label={t.auth.name}
           autoComplete="name"
-          placeholder="Как к вам обращаться"
+          placeholder={t.auth.namePlaceholder}
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           error={submitted ? (fieldError.fullName ?? errors.fullName) : undefined}
         />
 
         <Input
-          label="Электронная почта"
+          label={t.auth.email}
           type="email"
           inputMode="email"
           autoComplete="email"
@@ -157,19 +163,19 @@ export default function RegisterPage() {
         />
 
         <PasswordInput
-          label="Пароль"
+          label={t.auth.password}
           autoComplete="new-password"
-          placeholder={`Минимум ${PASSWORD_MIN_LENGTH} символов`}
-          hint="Не менее 8 символов, минимум одна буква и одна цифра"
+          placeholder={fill(t.auth.passwordMinPlaceholder, { min: PASSWORD_MIN_LENGTH })}
+          hint={fill(t.auth.passwordHint, { min: PASSWORD_MIN_LENGTH })}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={submitted ? (fieldError.password ?? errors.password) : undefined}
         />
 
         <PasswordInput
-          label="Повторите пароль"
+          label={t.auth.passwordRepeat}
           autoComplete="new-password"
-          placeholder="Введите пароль ещё раз"
+          placeholder={t.auth.passwordRepeatPlaceholder}
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           error={
@@ -179,7 +185,7 @@ export default function RegisterPage() {
 
         {/* ── Required consents — all start unchecked ── */}
         <fieldset className="mt-2 flex flex-col gap-3.5">
-          <legend className="sr-only">Обязательные согласия</legend>
+          <legend className="sr-only">{t.auth.consentsLegend}</legend>
 
           <ConsentCheckbox
             id="consent-personal-data"
@@ -187,10 +193,9 @@ export default function RegisterPage() {
             invalid={submitted && !consents.personal_data}
             onChange={(v) => setConsents((c) => ({ ...c, personal_data: v }))}
           >
-            Я даю согласие на обработку моих персональных данных в соответствии
-            с{" "}
+            {t.auth.consentPersonalData}{" "}
             <DocLink href="/personal-data-policy">
-              Политикой в отношении обработки персональных данных
+              {t.auth.consentPersonalDataLink}
             </DocLink>
           </ConsentCheckbox>
 
@@ -201,10 +206,11 @@ export default function RegisterPage() {
             invalid={submitted && !consents.user_agreement}
             onChange={(v) => setConsents((c) => ({ ...c, user_agreement: v }))}
           >
-            Я прочитал и принимаю условия{" "}
-            <DocLink href="/terms">Пользовательского соглашения</DocLink> и{" "}
+            {t.auth.consentTermsLead}{" "}
+            <DocLink href="/terms">{t.auth.consentTermsLink}</DocLink>{" "}
+            {t.auth.consentTermsAnd}{" "}
             <DocLink href="/personal-data-policy">
-              обработки персональных данных
+              {t.auth.consentTermsPolicyLink}
             </DocLink>
           </ConsentCheckbox>
 
@@ -235,17 +241,17 @@ export default function RegisterPage() {
           fullWidth
           className="mt-2 rounded-full py-4"
         >
-          {status === "loading" ? "Создаём аккаунт…" : "Создать аккаунт"}
+          {status === "loading" ? t.auth.creating : t.auth.createAccount}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-[15px] text-brown">
-        Уже есть аккаунт?{" "}
+        {t.auth.haveAccount}{" "}
         <Link
           href="/login"
           className="font-bold text-brand-500 underline-offset-4 hover:underline"
         >
-          Войти
+          {t.auth.signIn}
         </Link>
       </p>
     </div>

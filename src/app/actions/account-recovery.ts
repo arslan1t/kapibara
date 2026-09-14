@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import {
-  AUTH_ERRORS,
+  authErrors,
   checkPassword,
   isEmailValid,
   normalizeEmail,
@@ -24,6 +24,7 @@ import {
   passwordResetTemplate,
 } from "@/lib/mail";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
+import { asLocale } from "@/i18n/config";
 
 export type RecoveryResult =
   | { ok: true; notice: string }
@@ -32,7 +33,11 @@ export type RecoveryResult =
 // ─── Email verification ───────────────────────────────────────────────────────
 
 /** Resends the verification link to the signed-in user. */
-export async function resendVerificationEmail(): Promise<RecoveryResult> {
+export async function resendVerificationEmail(
+  rawLocale?: string
+): Promise<RecoveryResult> {
+  const locale = asLocale(rawLocale ?? "");
+  const AUTH_ERRORS = authErrors(locale);
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "Войдите в аккаунт" };
@@ -43,7 +48,7 @@ export async function resendVerificationEmail(): Promise<RecoveryResult> {
 
   const limited = await rateLimit("emailVerifyResend", user.id);
   if (!limited.ok) {
-    return { ok: false, error: rateLimitMessage(limited.retryAfter) };
+    return { ok: false, error: rateLimitMessage(limited.retryAfter, locale) };
   }
 
   const sent = await sendVerificationEmail(user.id);
@@ -62,7 +67,12 @@ export type VerifyOutcome =
  * Idempotent from the user's point of view: clicking an already-used link on an
  * account that is verified reports success rather than an alarming error.
  */
-export async function verifyEmailToken(token: string): Promise<VerifyOutcome> {
+export async function verifyEmailToken(
+  token: string,
+  rawLocale?: string
+): Promise<VerifyOutcome> {
+  const locale = asLocale(rawLocale ?? "");
+  const AUTH_ERRORS = authErrors(locale);
   const consumed = await consumeToken(token, "email_verify");
 
   if (!consumed.ok) {
@@ -99,8 +109,15 @@ export async function verifyEmailToken(token: string): Promise<VerifyOutcome> {
  * Anything else turns this form into a way to discover who has an account.
  */
 export async function requestPasswordReset(input: {
+  /**
+   * The storefront the caller is reading, so a refusal comes back in their
+   * language. Untrusted input like any other field: it only selects wording.
+   */
+  locale?: string;
   email: string;
 }): Promise<RecoveryResult> {
+  const locale = asLocale(input.locale ?? "");
+  const AUTH_ERRORS = authErrors(locale);
   const email = normalizeEmail(input.email ?? "");
 
   if (!isEmailValid(email)) {
@@ -115,7 +132,7 @@ export async function requestPasswordReset(input: {
   ]);
   if (!byEmail.ok || !byIp.ok) {
     const retry = Math.max(byEmail.retryAfter, byIp.retryAfter);
-    return { ok: false, error: rateLimitMessage(retry) };
+    return { ok: false, error: rateLimitMessage(retry, locale) };
   }
 
   const neutralSuccess: RecoveryResult = {
@@ -146,7 +163,11 @@ export type ResetTokenState =
   | { valid: false; error: string };
 
 /** Checks a reset link before showing the form, without consuming the token. */
-export async function inspectResetToken(token: string): Promise<ResetTokenState> {
+export async function inspectResetToken(
+  token: string,
+  rawLocale?: string
+): Promise<ResetTokenState> {
+  const AUTH_ERRORS = authErrors(asLocale(rawLocale ?? ""));
   const check = await checkToken(token, "password_reset");
   if (check.ok) return { valid: true };
 
@@ -168,11 +189,18 @@ export async function inspectResetToken(token: string): Promise<ResetTokenState>
  * replayed link cannot overwrite a password the real owner has already set.
  */
 export async function resetPassword(input: {
+  /**
+   * The storefront the caller is reading, so a refusal comes back in their
+   * language. Untrusted input like any other field: it only selects wording.
+   */
+  locale?: string;
   token: string;
   password: string;
   confirmPassword: string;
 }): Promise<RecoveryResult> {
-  const strength = checkPassword(input.password ?? "");
+  const locale = asLocale(input.locale ?? "");
+  const AUTH_ERRORS = authErrors(locale);
+  const strength = checkPassword(input.password ?? "", locale);
   if (!strength.ok) {
     return { ok: false, error: strength.message, field: "password" };
   }

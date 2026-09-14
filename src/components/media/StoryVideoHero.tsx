@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pause, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 interface StoryVideoHeroProps {
   src: string;
@@ -60,6 +61,7 @@ export default function StoryVideoHero({
   className,
   controls = true,
 }: StoryVideoHeroProps) {
+  const t = useDictionary();
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [reducedMotion, setReducedMotion] = useState<boolean | null>(null);
@@ -165,7 +167,7 @@ export default function StoryVideoHero({
         <button
           type="button"
           onClick={toggle}
-          aria-label={playing ? "Поставить видео на паузу" : "Продолжить видео"}
+          aria-label={playing ? t.misc.pauseVideo : t.misc.resumeVideo}
           className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-brown-dark/45 text-white backdrop-blur-sm transition-all duration-300 hover:bg-brown-dark/70"
         >
           {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-px" />}

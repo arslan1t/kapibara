@@ -4,20 +4,31 @@ import Image from "next/image";
 import { Package, ArrowRight } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { formatPrice } from "@/lib/utils";
 import VerifyEmailBanner from "@/components/account/VerifyEmailBanner";
-import {
-  ORDER_STATUS_LABELS,
-  ORDER_STATUS_TONE,
-  type OrderStatus,
-} from "@/lib/constants";
+import { asLocale, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill, formatAmount } from "@/i18n/format";
+import { ORDER_STATUS_TONE, type OrderStatus } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "Личный кабинет",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}): Promise<Metadata> {
+  const t = getDictionary(asLocale((await params).locale));
+  return {
+    title: t.account.metaTitle,
+    robots: { index: false, follow: false },
+  };
+}
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}) {
+  const locale = asLocale((await params).locale);
+  const t = getDictionary(locale);
   const user = (await getCurrentUser())!;
 
   // Every query is filtered by the session's own user id.
@@ -32,6 +43,7 @@ export default async function AccountPage() {
         orderNumber: true,
         createdAt: true,
         total: true,
+        currency: true,
         orderStatus: true,
       },
     }),
@@ -44,7 +56,7 @@ export default async function AccountPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-extrabold text-brown-dark sm:text-3xl">
-        Здравствуйте, {user.name.split(" ")[0]}!
+        {fill(t.account.greeting, { name: user.name.split(" ")[0] ?? "" })}
       </h1>
       <p className="mt-2 text-[15px] text-brown">{user.email}</p>
 
@@ -56,7 +68,7 @@ export default async function AccountPage() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-4xl bg-white p-6 shadow-soft">
-          <p className="text-sm text-brown-400">Всего заказов</p>
+          <p className="text-sm text-brown-400">{t.account.ordersTotal}</p>
           <p className="mt-1 font-display text-3xl font-extrabold text-brown-dark">
             {orderCount}
           </p>
@@ -66,10 +78,10 @@ export default async function AccountPage() {
           className="group flex flex-col justify-between rounded-4xl bg-brand-50 p-6 transition-colors hover:bg-brand-100"
         >
           <p className="text-[15px] font-semibold text-brown-dark">
-            Создать новую книгу
+            {t.account.createBook}
           </p>
           <span className="mt-4 inline-flex items-center gap-2 text-[15px] font-bold text-brand-500">
-            В каталог
+            {t.account.toCatalog}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </span>
         </Link>
@@ -78,14 +90,14 @@ export default async function AccountPage() {
       <section className="mt-10">
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-display text-xl font-extrabold text-brown-dark">
-            Последние заказы
+            {t.account.recentOrders}
           </h2>
           {orderCount > 0 && (
             <Link
               href="/account/orders"
               className="text-[15px] font-bold text-brand-500 underline-offset-4 hover:underline"
             >
-              Все заказы
+              {t.account.allOrders}
             </Link>
           )}
         </div>
@@ -101,14 +113,13 @@ export default async function AccountPage() {
               className="mx-auto h-32 w-auto object-contain"
             />
             <p className="mt-3 font-display text-lg font-extrabold text-brown-dark">
-              У вас пока нет заказов
+              {t.account.noOrders}
             </p>
             <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-brown">
-              Создайте первую персональную книгу — имя и фотография вашего
-              ребёнка станут частью истории.
+{t.account.noOrdersLead}
             </p>
             <Link href="/catalog" className="btn-primary mt-6">
-              Выбрать книгу
+              {t.account.chooseBook}
             </Link>
           </div>
         ) : (
@@ -133,10 +144,10 @@ export default async function AccountPage() {
                   <span
                     className={`badge ${ORDER_STATUS_TONE[order.orderStatus as OrderStatus]}`}
                   >
-                    {ORDER_STATUS_LABELS[order.orderStatus as OrderStatus]}
+                    {t.orderStatus[order.orderStatus as OrderStatus]}
                   </span>
                   <span className="font-display font-extrabold text-brown-dark">
-                    {formatPrice(order.total)}
+                    {formatAmount(order.total, order.currency, locale)}
                   </span>
                 </Link>
               </li>

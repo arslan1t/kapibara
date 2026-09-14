@@ -7,12 +7,16 @@ import { MailCheck, AlertCircle } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { requestPasswordReset } from "@/app/actions/account-recovery";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { useLocale } from "@/i18n/navigation";
 
 interface FormData {
   email: string;
 }
 
 export default function ForgotPasswordPage() {
+  const t = useDictionary();
+  const locale = useLocale();
   const [sent, setSent] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -26,7 +30,7 @@ export default function ForgotPasswordPage() {
   async function onSubmit(data: FormData) {
     setFormError(null);
 
-    const result = await requestPasswordReset({ email: data.email });
+    const result = await requestPasswordReset({ email: data.email, locale });
 
     if (!result.ok) {
       if (result.field === "email") {
@@ -48,17 +52,16 @@ export default function ForgotPasswordPage() {
           <MailCheck className="h-12 w-12 text-sage-500" aria-hidden="true" />
         </div>
         <h1 className="font-display text-xl font-bold text-brown-dark">
-          Проверьте почту
+          {t.auth.forgotSentTitle}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-brown">
-          Если этот адрес зарегистрирован, мы отправили на него ссылку для смены
-          пароля. {sent}
+{t.auth.forgotSentLead} {sent}
         </p>
         <p className="mt-3 text-[13px] leading-relaxed text-brown">
-          Ссылка действует один час и сработает только один раз.
+          {t.auth.forgotSentNote}
         </p>
         <Link href="/login" className="btn-primary mt-6 inline-flex">
-          Вернуться ко входу
+          {t.auth.backToLogin}
         </Link>
       </div>
     );
@@ -68,11 +71,10 @@ export default function ForgotPasswordPage() {
     <div className="rounded-3xl bg-white p-8 shadow-card">
       <div className="mb-6 text-center">
         <h1 className="font-display text-2xl font-extrabold text-brown-dark">
-          Восстановление пароля
+          {t.auth.forgotTitle}
         </h1>
         <p className="mt-2 text-sm text-brown">
-          Введите адрес, на который зарегистрирован аккаунт — мы пришлём ссылку
-          для смены пароля.
+{t.auth.forgotLead}
         </p>
       </div>
 
@@ -88,29 +90,29 @@ export default function ForgotPasswordPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <Input
-          label="Электронная почта"
+          label={t.auth.email}
           type="email"
           autoComplete="email"
           placeholder="ivan@example.com"
           error={errors.email?.message}
           {...register("email", {
-            required: "Введите адрес электронной почты",
+            required: t.auth.emailRequired,
             pattern: {
               value: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
-              message: "Введите корректный адрес электронной почты",
+              message: t.auth.emailInvalid,
             },
           })}
         />
 
         <Button type="submit" isLoading={isSubmitting} fullWidth>
-          {isSubmitting ? "Отправляем…" : "Отправить ссылку"}
+          {isSubmitting ? t.auth.sending : t.auth.sendLink}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-brown">
-        Вспомнили пароль?{" "}
+        {t.auth.rememberedPassword}{" "}
         <Link href="/login" className="font-semibold text-brand-600 hover:underline">
-          Войти
+          {t.auth.signIn}
         </Link>
       </p>
     </div>

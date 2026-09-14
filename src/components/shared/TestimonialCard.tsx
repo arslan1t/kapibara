@@ -1,5 +1,7 @@
 import { Star, Quote, BadgeCheck } from "lucide-react";
 import { getInitials } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
 
 export interface TestimonialCardData {
   id: string;
@@ -23,6 +25,7 @@ export interface TestimonialCardData {
  * allows it to exist against a delivered order line. A demo one says so.
  */
 export default function TestimonialCard({ review }: { review: TestimonialCardData }) {
+  const t = useDictionary();
   return (
     <figure className="flex h-full flex-col gap-5 rounded-4xl bg-white p-7 shadow-card">
       <div className="flex items-start justify-between">
@@ -30,7 +33,7 @@ export default function TestimonialCard({ review }: { review: TestimonialCardDat
         <div
           className="flex items-center gap-0.5"
           role="img"
-          aria-label={`Оценка ${review.rating} из 5`}
+          aria-label={fill(t.misc.ratingAria, { rating: review.rating })}
         >
           {Array.from({ length: 5 }).map((_, i) => (
             <Star
@@ -52,7 +55,7 @@ export default function TestimonialCard({ review }: { review: TestimonialCardDat
 
       {review.productTitle && (
         <p className="text-xs text-brown">
-          О книге:{" "}
+          {t.misc.aboutBook}{" "}
           <span className="font-semibold text-brown-dark">{review.productTitle}</span>
         </p>
       )}
@@ -67,11 +70,11 @@ export default function TestimonialCard({ review }: { review: TestimonialCardDat
         <div className="min-w-0">
           <p className="text-sm font-bold text-brown-dark">{review.authorName}</p>
           {review.isDemo ? (
-            <p className="text-xs text-brown">Демонстрационный отзыв</p>
+            <p className="text-xs text-brown">{t.misc.demoReview}</p>
           ) : (
             <p className="flex items-center gap-1 text-xs text-sage-500">
               <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              Подтверждённая покупка
+              {t.misc.verifiedPurchase}
               {review.createdAt && (
                 <span className="text-brown">
                   {" · "}

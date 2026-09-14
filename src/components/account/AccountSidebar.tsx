@@ -5,15 +5,17 @@ import { usePathname } from "next/navigation";
 import { User, ShoppingBag, ShieldCheck, LogOut, LayoutDashboard } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 const links = [
-  { href: "/account", label: "Обзор", icon: User, exact: true },
-  { href: "/account/profile", label: "Профиль", icon: User },
-  { href: "/account/orders", label: "Мои заказы", icon: ShoppingBag },
-  { href: "/account/security", label: "Безопасность", icon: ShieldCheck },
-];
+  { href: "/account", key: "navOverview", icon: User, exact: true },
+  { href: "/account/profile", key: "navProfile", icon: User, exact: false },
+  { href: "/account/orders", key: "navOrders", icon: ShoppingBag, exact: false },
+  { href: "/account/security", key: "navSecurity", icon: ShieldCheck, exact: false },
+] as const;
 
 export default function AccountSidebar({ isAdmin }: { isAdmin?: boolean }) {
+  const t = useDictionary();
   const pathname = usePathname();
 
   const isActive = (href: string, exact?: boolean) =>
@@ -27,11 +29,11 @@ export default function AccountSidebar({ isAdmin }: { isAdmin?: boolean }) {
     // min-width:auto, so the no-wrap links below would widen the whole grid
     // track and give the page a horizontal scrollbar on mobile.
     <nav
-      aria-label="Разделы личного кабинета"
+      aria-label={t.account.navAria}
       className="min-w-0 lg:sticky lg:top-28"
     >
       <ul className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide lg:flex-col lg:overflow-visible lg:pb-0">
-        {links.map(({ href, label, icon: Icon, exact }) => (
+        {links.map(({ href, key, icon: Icon, exact }) => (
           <li key={href} className="shrink-0 lg:shrink">
             <Link
               href={href}
@@ -44,7 +46,7 @@ export default function AccountSidebar({ isAdmin }: { isAdmin?: boolean }) {
               )}
             >
               <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-              {label}
+              {t.account[key]}
             </Link>
           </li>
         ))}
@@ -56,7 +58,7 @@ export default function AccountSidebar({ isAdmin }: { isAdmin?: boolean }) {
               className="flex items-center gap-3 whitespace-nowrap rounded-2xl px-4 py-3 text-[15px] font-semibold text-brand-600 transition-colors duration-300 hover:bg-brand-50"
             >
               <LayoutDashboard className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-              Панель управления
+              {t.header.adminPanel}
             </Link>
           </li>
         )}
@@ -68,7 +70,7 @@ export default function AccountSidebar({ isAdmin }: { isAdmin?: boolean }) {
               className="flex w-full items-center gap-3 whitespace-nowrap rounded-2xl px-4 py-3 text-left text-[15px] font-semibold text-brown transition-colors duration-300 hover:bg-cream-200"
             >
               <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-              Выйти
+              {t.header.signOut}
             </button>
           </form>
         </li>

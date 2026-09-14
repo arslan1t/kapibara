@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "@/i18n/navigation";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 /**
  * Cookie consent banner.
@@ -63,6 +64,7 @@ export function clearCookieChoice(): void {
 }
 
 export default function CookieConsent() {
+  const t = useDictionary();
   // `null` means "not decided yet"; undefined means "not yet read from storage",
   // which keeps the banner from flashing on every page load for people who have
   // already answered.
@@ -95,18 +97,17 @@ export default function CookieConsent() {
     <div
       role="dialog"
       aria-live="polite"
-      aria-label="Использование файлов cookie"
+      aria-label={t.misc.cookieAria}
       className="fixed inset-x-3 bottom-3 z-50 sm:inset-x-auto sm:bottom-6 sm:left-6 sm:max-w-md"
     >
       <div className="rounded-3xl bg-white p-5 shadow-elevated ring-1 ring-brown-900/10 sm:p-6">
         <p className="text-[15px] leading-relaxed text-brown">
-          Мы используем файлы cookie, чтобы работали вход в аккаунт и корзина.
-          Аналитические — только с вашего согласия.{" "}
+{t.misc.cookieBody}{" "}
           <Link
             href="/cookies"
             className="font-semibold text-brand-600 underline decoration-brand-300 underline-offset-2 hover:text-brand-700"
           >
-            Подробнее
+            {t.misc.cookieMore}
           </Link>
         </p>
 
@@ -116,14 +117,14 @@ export default function CookieConsent() {
             onClick={() => decide("all")}
             className="flex-1 rounded-full bg-brand-500 px-5 py-2.5 text-sm font-bold text-white transition-colors duration-300 hover:bg-brand-600"
           >
-            Принять все
+            {t.misc.cookieAcceptAll}
           </button>
           <button
             type="button"
             onClick={() => decide("necessary")}
             className="flex-1 rounded-full bg-cream-200 px-5 py-2.5 text-sm font-bold text-brown-dark transition-colors duration-300 hover:bg-cream-300"
           >
-            Только необходимые
+            {t.misc.cookieEssentialOnly}
           </button>
         </div>
       </div>

@@ -1,7 +1,9 @@
 import Link from "@/i18n/navigation";
 import { BookOpen, Home, Search, Compass } from "lucide-react";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 export default function NotFoundContent() {
+  const t = useDictionary();
   return (
     <section className="relative min-h-[75vh] flex items-center overflow-hidden bg-gradient-to-br from-cream-200 via-cream-50 to-brand-50">
       <div className="pointer-events-none absolute inset-0">
@@ -15,25 +17,24 @@ export default function NotFoundContent() {
         </div>
         <p className="font-display text-7xl font-extrabold text-accent leading-none sm:text-8xl">404</p>
         <h1 className="mt-4 font-display text-2xl font-extrabold text-brown-dark sm:text-3xl">
-          Эта страница потерялась в волшебном лесу
+          {t.misc.notFoundHeading}
         </h1>
         <p className="mt-3 text-brown max-w-md mx-auto leading-relaxed">
-          Даже Колёсик не смог найти сюда дорогу. Возможно, страница переехала
-          или ссылка устарела — но ваша книга точно никуда не делась.
+{t.misc.notFoundLead}
         </p>
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link href="/" className="btn-primary px-6 py-3.5">
             <Home className="h-4 w-4" />
-            На главную
+            {t.misc.toHome}
           </Link>
           <Link href="/catalog" className="btn-secondary px-6 py-3.5">
             <BookOpen className="h-4 w-4" />
-            В каталог
+            {t.misc.toCatalog}
           </Link>
           <Link href="/faq" className="btn-ghost px-6 py-3.5 border border-cream-200">
             <Search className="h-4 w-4" />
-            Частые вопросы
+            {t.misc.toFaq}
           </Link>
         </div>
       </div>

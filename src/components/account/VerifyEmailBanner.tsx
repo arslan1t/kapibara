@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { MailWarning, CheckCircle2, AlertCircle } from "lucide-react";
 import { resendVerificationEmail } from "@/app/actions/account-recovery";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
 
 /**
  * Prompt shown to a customer whose address is not yet confirmed.
@@ -12,6 +14,7 @@ import { resendVerificationEmail } from "@/app/actions/account-recovery";
  * that order emails will actually arrive.
  */
 export default function VerifyEmailBanner({ email }: { email: string }) {
+  const t = useDictionary();
   const [state, setState] = useState<
     | { kind: "idle" }
     | { kind: "sending" }
@@ -49,10 +52,9 @@ export default function VerifyEmailBanner({ email }: { email: string }) {
           aria-hidden="true"
         />
         <div className="text-sm leading-relaxed text-brown-dark">
-          <p className="font-semibold">Подтвердите адрес почты</p>
+          <p className="font-semibold">{t.account.verifyHeading}</p>
           <p className="mt-0.5 text-brown">
-            Мы отправили письмо на {email}. Без подтверждения письма о заказах
-            могут не дойти.
+{fill(t.account.verifyLead, { email })}
           </p>
           {state.kind === "error" && (
             <p
@@ -72,7 +74,7 @@ export default function VerifyEmailBanner({ email }: { email: string }) {
         disabled={state.kind === "sending"}
         className="shrink-0 rounded-full bg-brown-dark px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
       >
-        {state.kind === "sending" ? "Отправляем…" : "Отправить ещё раз"}
+        {state.kind === "sending" ? t.account.verifySending : t.account.verifyResend}
       </button>
     </div>
   );

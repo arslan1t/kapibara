@@ -7,6 +7,10 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 import PasswordInput from "@/components/ui/PasswordInput";
 import Button from "@/components/ui/Button";
 import { resetPassword } from "@/app/actions/account-recovery";
+import { PASSWORD_MIN_LENGTH } from "@/lib/validation";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { useLocale } from "@/i18n/navigation";
+import { fill } from "@/i18n/format";
 
 interface FormData {
   password: string;
@@ -14,6 +18,8 @@ interface FormData {
 }
 
 export default function ResetPasswordForm({ token }: { token: string }) {
+  const t = useDictionary();
+  const locale = useLocale();
   const [done, setDone] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -29,6 +35,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
     setFormError(null);
 
     const result = await resetPassword({
+      locale,
       token,
       password: data.password,
       confirmPassword: data.confirmPassword,
@@ -55,11 +62,11 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           <CheckCircle2 className="h-12 w-12 text-sage-500" aria-hidden="true" />
         </div>
         <h1 className="font-display text-xl font-bold text-brown-dark">
-          Пароль изменён
+          {t.auth.passwordChanged}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-brown">{done}</p>
         <Link href="/login" className="btn-primary mt-6 inline-flex">
-          Войти
+          {t.auth.signIn}
         </Link>
       </div>
     );
@@ -69,10 +76,10 @@ export default function ResetPasswordForm({ token }: { token: string }) {
     <div className="rounded-3xl bg-white p-8 shadow-card">
       <div className="mb-6 text-center">
         <h1 className="font-display text-2xl font-extrabold text-brown-dark">
-          Новый пароль
+          {t.auth.resetTitle}
         </h1>
         <p className="mt-2 text-sm text-brown">
-          Придумайте пароль, который вы ещё нигде не использовали.
+          {t.auth.resetLead}
         </p>
       </div>
 
@@ -88,7 +95,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
               href="/forgot-password"
               className="mt-1 inline-block font-semibold underline"
             >
-              Запросить новую ссылку
+              {t.auth.requestNewLink}
             </Link>
           </div>
         </div>
@@ -96,31 +103,34 @@ export default function ResetPasswordForm({ token }: { token: string }) {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <PasswordInput
-          label="Новый пароль"
+          label={t.auth.newPassword}
           autoComplete="new-password"
-          hint="Не менее 8 символов, минимум одна буква и одна цифра"
+          hint={fill(t.auth.passwordHint, { min: PASSWORD_MIN_LENGTH })}
           error={errors.password?.message}
           {...register("password", {
-            required: "Введите новый пароль",
-            minLength: { value: 8, message: "Пароль должен содержать не менее 8 символов" },
+            required: t.auth.newPasswordRequired,
+            minLength: {
+              value: PASSWORD_MIN_LENGTH,
+              message: fill(t.auth.passwordTooShort, { min: PASSWORD_MIN_LENGTH }),
+            },
             validate: (v) =>
               (/[A-Za-zА-Яа-яЁё]/.test(v) && /\d/.test(v)) ||
-              "Пароль должен содержать хотя бы одну букву и одну цифру",
+              t.auth.passwordNeedsLetterAndDigit,
           })}
         />
 
         <PasswordInput
-          label="Повторите пароль"
+          label={t.auth.passwordRepeat}
           autoComplete="new-password"
           error={errors.confirmPassword?.message}
           {...register("confirmPassword", {
-            required: "Повторите пароль",
-            validate: (v) => v === watch("password") || "Пароли не совпадают",
+            required: t.auth.passwordRepeatRequired,
+            validate: (v) => v === watch("password") || t.auth.passwordMismatch,
           })}
         />
 
         <Button type="submit" isLoading={isSubmitting} fullWidth>
-          {isSubmitting ? "Сохраняем…" : "Сохранить пароль"}
+          {isSubmitting ? t.auth.saving : t.auth.savePassword}
         </Button>
       </form>
     </div>

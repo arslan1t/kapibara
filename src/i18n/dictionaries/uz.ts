@@ -570,6 +570,267 @@ export const uz: Dictionary = {
     keepShopping: "Xaridni davom ettirish",
   },
 
+  auth: {
+    loginTitle: "Kirish",
+    loginLead: "Sizni yana koʻrganimizdan xursandmiz",
+    email: "Elektron pochta",
+    emailRequired: "Elektron pochtani kiriting",
+    password: "Parol",
+    passwordPlaceholder: "Parolni kiriting",
+    passwordRequired: "Parolni kiriting",
+    forgotPassword: "Parolni unutdingizmi?",
+    signingIn: "Kirilmoqda…",
+    signIn: "Kirish",
+    noAccount: "Hisobingiz yoʻqmi?",
+    register: "Roʻyxatdan oʻtish",
+
+    registerTitle: "Hisob yaratish",
+    registerLead: "Kitoblarni saqlash va buyurtmalarni kuzatish uchun",
+    name: "Ism",
+    namePlaceholder: "Sizga qanday murojaat qilaylik",
+    passwordMinPlaceholder: "Kamida {min} ta belgi",
+    passwordHint: "Kamida {min} ta belgi, hech boʻlmaganda bitta harf va bitta raqam",
+    passwordRepeat: "Parolni takrorlang",
+    passwordRepeatPlaceholder: "Parolni yana kiriting",
+    consentsLegend: "Majburiy roziliklar",
+    consentPersonalData:
+      "Men shaxsiy maʼlumotlarimni qayta ishlashga rozilik beraman —",
+    consentPersonalDataLink:
+      "Shaxsiy maʼlumotlarni qayta ishlash siyosatiga muvofiq",
+    consentTermsLead: "Men shartlarni oʻqidim va qabul qilaman:",
+    consentTermsLink: "Foydalanuvchi shartnomasi",
+    consentTermsAnd: "va",
+    consentTermsPolicyLink: "shaxsiy maʼlumotlarni qayta ishlash",
+    creating: "Hisob yaratilmoqda…",
+    createAccount: "Hisob yaratish",
+    haveAccount: "Hisobingiz bormi?",
+    accountCreated: "Hisob yaratildi",
+    accountCreatedLead:
+      "Kapibaraga xush kelibsiz! Endi buyurtma berishingiz va ularni shaxsiy kabinetda kuzatishingiz mumkin.",
+    toAccount: "Shaxsiy kabinetga oʻtish",
+
+    forgotTitle: "Parolni tiklash",
+    forgotLead:
+      "Hisob roʻyxatdan oʻtkazilgan manzilni kiriting — parolni almashtirish havolasini yuboramiz.",
+    forgotSentTitle: "Pochtangizni tekshiring",
+    forgotSentLead:
+      "Agar bu manzil roʻyxatdan oʻtgan boʻlsa, unga parolni almashtirish havolasini yubordik.",
+    forgotSentNote: "Havola bir soat amal qiladi va faqat bir marta ishlaydi.",
+    backToLogin: "Kirishga qaytish",
+    emailInvalid: "Toʻgʻri elektron pochta manzilini kiriting",
+    sending: "Yuborilmoqda…",
+    sendLink: "Havolani yuborish",
+    rememberedPassword: "Parolni esladingizmi?",
+
+    resetTitle: "Yangi parol",
+    resetLead: "Hali hech qayerda ishlatmagan parol oʻylab toping.",
+    resetLinkBroken: "Havola ishlamayapti",
+    requestNewLink: "Yangi havola soʻrash",
+    newPassword: "Yangi parol",
+    newPasswordRequired: "Yangi parolni kiriting",
+    passwordTooShort: "Parol kamida {min} ta belgidan iborat boʻlishi kerak",
+    passwordNeedsLetterAndDigit:
+      "Parolda hech boʻlmaganda bitta harf va bitta raqam boʻlishi kerak",
+    passwordRepeatRequired: "Parolni takrorlang",
+    passwordMismatch: "Parollar mos kelmadi",
+    saving: "Saqlanmoqda…",
+    savePassword: "Parolni saqlash",
+    passwordChanged: "Parol oʻzgartirildi",
+
+    verifyTitle: "Manzilni tasdiqlash",
+    verifyFailed: "Manzilni tasdiqlab boʻlmadi",
+    verifyFailedLead:
+      "Hisobingizga kiring — shaxsiy kabinetda yangi xat soʻrash mumkin.",
+    verifiedTitle: "Manzil tasdiqlandi",
+    verifiedLead: "{email} — endi sizga buyurtmalar haqida xat yubora olamiz.",
+    toAccountShort: "Shaxsiy kabinetga",
+  },
+
+  authErrors: {
+    emailInvalid: "Toʻgʻri elektron pochta manzilini kiriting",
+    emailTaken: "Bu manzil allaqachon roʻyxatdan oʻtgan",
+    passwordShort: "Parol kamida {min} ta belgidan iborat boʻlishi kerak",
+    passwordWeak: "Parolda hech boʻlmaganda bitta harf va bitta raqam boʻlishi kerak",
+    passwordMismatch: "Parollar mos kelmadi",
+    nameRequired: "Ismni kiriting",
+    consentsRequired: "Roʻyxatdan oʻtish uchun majburiy shartlarni qabul qilish kerak",
+    generic: "Hisob yaratib boʻlmadi. Qayta urinib koʻring",
+    invalidCredentials: "Pochta yoki parol notoʻgʻri",
+    linkInvalid: "Havola yaroqsiz. Yangisini soʻrang",
+    linkExpired: "Havolaning amal qilish muddati tugadi. Yangisini soʻrang",
+    linkUsed: "Havola allaqachon ishlatilgan. Yangisini soʻrang",
+    resetFailed: "Parolni almashtirib boʻlmadi. Qayta urinib koʻring",
+    verifyFailed: "Manzilni tasdiqlab boʻlmadi. Qayta urinib koʻring",
+    alreadyVerified: "Manzil allaqachon tasdiqlangan",
+  },
+
+  orderStatus: {
+    new: "Yangi",
+    awaiting_confirmation: "Tasdiqlash kutilmoqda",
+    in_progress: "Ishlanmoqda",
+    personalization: "Shaxsiylashtirilmoqda",
+    sent_to_print: "Chop etishga yuborildi",
+    ready_to_ship: "Joʻnatishga tayyor",
+    in_delivery: "Yetkazib berishga topshirildi",
+    completed: "Yakunlandi",
+    cancelled: "Bekor qilindi",
+  },
+  paymentStatus: {
+    unpaid: "Toʻlanmagan",
+    pay_on_confirmation: "Tasdiqlashda toʻlov",
+    paid: "Toʻlangan",
+    refunded: "Qaytarilgan",
+  },
+  deliveryMethod: {
+    courier: "Kuryer orqali",
+    pickup_point: "Topshirish punktiga",
+    post: "Pochta orqali",
+  },
+
+  account: {
+    metaTitle: "Shaxsiy kabinet",
+    greeting: "Assalomu alaykum, {name}!",
+    ordersTotal: "Jami buyurtmalar",
+    createBook: "Yangi kitob yaratish",
+    toCatalog: "Katalogga",
+    recentOrders: "Soʻnggi buyurtmalar",
+    allOrders: "Barcha buyurtmalar",
+    noOrders: "Sizda hozircha buyurtmalar yoʻq",
+    noOrdersLead:
+      "Birinchi shaxsiy kitobni yarating — farzandingizning ismi va fotosurati hikoyaning bir qismiga aylanadi.",
+    chooseBook: "Kitob tanlash",
+
+    ordersTitle: "Mening buyurtmalarim",
+    reviewInviteOne: "Kitobingiz haqida gapirib bering",
+    reviewInviteMany: "Kitoblaringiz haqida gapirib bering",
+    reviewInviteLead:
+      "Buyurtmangiz yetkazildi — taassurotlaringizni ulashing. Sharh tekshiruvdan soʻng saytda paydo boʻladi.",
+    noOrdersYet: "Sizda hozircha buyurtmalar yoʻq",
+    noOrdersYetLead:
+      "Birinchi buyurtmani rasmiylashtirganingizdan soʻng u tayyorlanish holati bilan birga shu yerda koʻrinadi.",
+    orderedOn: "{date} dan",
+
+    orderTitle: "Buyurtma",
+    orderContents: "Buyurtma tarkibi",
+    childName: "Bolaning ismi:",
+    childAge: "Yoshi:",
+    photo: "Fotosurat:",
+    photoUploaded: "Yuklangan",
+    photoMissing: "Qoʻshilmagan",
+    dedication: "Bagʻishlov:",
+    goods: "Mahsulotlar",
+    delivery: "Yetkazib berish",
+    deliveryPending: "hisoblanmoqda",
+    total: "Jami",
+    payment: "Toʻlov",
+    deliveryHeading: "Yetkazib berish",
+    recipient: "Qabul qiluvchi",
+    history: "Buyurtma tarixi",
+
+    profileTitle: "Profil",
+    profileLead: "Bu maʼlumotlarni buyurtma rasmiylashtirishda ishlatamiz.",
+    securityTitle: "Xavfsizlik",
+    securityLead: "Shaxsiy kabinetga kirish parolini almashtirish.",
+
+    navOverview: "Umumiy",
+    navProfile: "Profil",
+    navOrders: "Mening buyurtmalarim",
+    navSecurity: "Xavfsizlik",
+    navAria: "Shaxsiy kabinet boʻlimlari",
+
+    name: "Ism",
+    email: "Elektron pochta",
+    emailHint: "Manzil kirish uchun ishlatiladi va hozircha oʻzgartirib boʻlmaydi",
+    phone: "Telefon",
+    saved: "Oʻzgarishlar saqlandi",
+    saving: "Saqlanmoqda…",
+    save: "Saqlash",
+
+    currentPassword: "Joriy parol",
+    newPassword: "Yangi parol",
+    passwordHint: "Kamida {min} ta belgi, hech boʻlmaganda bitta harf va bitta raqam",
+    repeatNewPassword: "Yangi parolni takrorlang",
+    passwordUpdated: "Parol yangilandi",
+    changePassword: "Parolni oʻzgartirish",
+
+    verifyHeading: "Pochta manzilini tasdiqlang",
+    verifyLead:
+      "{email} manziliga xat yubordik. Tasdiqlanmasa, buyurtmalar haqidagi xatlar yetib bormasligi mumkin.",
+    verifySending: "Yuborilmoqda…",
+    verifyResend: "Yana yuborish",
+  },
+
+  review: {
+    thanks:
+      "Rahmat! Sharh tekshiruvga yuborildi va moderatsiyadan soʻng saytda paydo boʻladi.",
+    heading: "«{title}» kitobini baholang",
+    childLine: "Bolaning ismi: {name}",
+    ratingLegend: "1 dan 5 gacha baho",
+    ratingValue: "5 dan {value}",
+    textLabel: "Sizning sharhingiz",
+    textPlaceholder:
+      "Sizga va bolangizga nima yoqdi? Kitob jonli holda qanday koʻrinadi?",
+    charsLeft: "Yana {count} ta belgi",
+    sending: "Yuborilmoqda…",
+    submit: "Sharh yuborish",
+    note:
+      "Sharh tekshiruvdan soʻng saytda paydo boʻladi. Uni ism va familiyaning birinchi harfi bilan eʼlon qilamiz.",
+  },
+
+  misc: {
+    notFoundHeading: "Bu sahifa sehrli oʻrmonda adashib qoldi",
+    notFoundLead:
+      "Balki sahifa koʻchgandir yoki havola eskirgandir — lekin kitobingiz hech qayerga ketmagan.",
+    toHome: "Bosh sahifaga",
+    toCatalog: "Katalogga",
+    toFaq: "Koʻp beriladigan savollar",
+
+    noAccessTitle: "Ruxsat yoʻq",
+    noAccessHeading: "Huquqlar yetarli emas",
+    noAccessLead:
+      "Bu boʻlim faqat administratorlarga ochiq. Agar sizga ruxsat kerak boʻlsa, doʻkon egasiga murojaat qiling.",
+    toAccount: "Shaxsiy kabinetga",
+
+    coverAlt: "«{title}» kitobining muqovasi",
+    previewMetaTitle: "Kitob maketi",
+    storyNotFound: "Hikoya topilmadi",
+    personalizationMetaTitle: "Shaxsiylashtirish — {title}",
+    personalizationMetaDescription:
+      "«{title}» kitobiga bolaning ismi va fotosuratini qoʻshing.",
+    notOrderable: "«{title}» ni hozircha buyurtma qilib boʻlmaydi",
+    notOrderableLead:
+      "Bu hikoya hali chiqishga tayyorlanmoqda. Uni shaxsiylashtirish mumkin boʻlganda xabar beramiz.",
+
+    cookieAria: "Cookie fayllardan foydalanish",
+    cookieBody:
+      "Hisobga kirish va savat ishlashi uchun cookie fayllardan foydalanamiz. Tahliliy fayllar — faqat sizning roziligingiz bilan.",
+    cookieMore: "Batafsil",
+    cookieAcceptAll: "Hammasini qabul qilish",
+    cookieEssentialOnly: "Faqat zaruriylari",
+    cookieSettings: "Cookie sozlamalari",
+
+    galleryRole: "karusel",
+    galleryAria: "Kitob fotosuratlari",
+    slideRole: "slayd",
+    slideOf: "{total} dan {index}",
+    prevPhoto: "Oldingi fotosurat",
+    nextPhoto: "Keyingi fotosurat",
+    openFullscreen: "Fotosuratni toʻliq ekranda ochish",
+    goToPhoto: "{index}-fotosuratga oʻtish",
+    showPhoto: "{index}-fotosuratni koʻrsatish: {alt}",
+    viewingPhoto: "Fotosuratni koʻrish",
+
+    ratingAria: "Baho: 5 dan {rating}",
+    aboutBook: "Kitob haqida:",
+    demoReview: "Namoyish sharhi",
+    verifiedPurchase: "Tasdiqlangan xarid",
+
+    pauseVideo: "Videoni pauza qilish",
+    resumeVideo: "Videoni davom ettirish",
+    hidePassword: "Parolni yashirish",
+    showPassword: "Parolni koʻrsatish",
+  },
+
   catalog: {
     metaTitle: "Shaxsiy kitoblar katalogi",
     metaDescription:

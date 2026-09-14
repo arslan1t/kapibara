@@ -1,23 +1,27 @@
+"use client";
+
 import Link from "@/i18n/navigation";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const t = useDictionary();
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-200 via-cream-50 to-brand-50">
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
         <Link
           href="/"
           className="group mb-8 inline-block"
-          aria-label="Капибара — на главную"
+          aria-label={t.header.logoAria}
         >
           {/* The mark already contains the wordmark, so it stands alone here. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/capybara-logo.svg"
-            alt="Капибара"
+            alt={t.common.brand}
             draggable={false}
             width={493}
             height={462}

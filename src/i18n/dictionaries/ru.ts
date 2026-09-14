@@ -593,6 +593,274 @@ export const ru = {
     keepShopping: "Продолжить покупки",
   },
 
+  // ─── Sign-in, registration and password recovery ────────────────────────────
+  auth: {
+    loginTitle: "Вход",
+    loginLead: "Рады видеть вас снова",
+    email: "Электронная почта",
+    emailRequired: "Введите электронную почту",
+    password: "Пароль",
+    passwordPlaceholder: "Введите пароль",
+    passwordRequired: "Введите пароль",
+    forgotPassword: "Забыли пароль?",
+    signingIn: "Входим…",
+    signIn: "Войти",
+    noAccount: "Нет аккаунта?",
+    register: "Зарегистрироваться",
+
+    registerTitle: "Создать аккаунт",
+    registerLead: "Чтобы сохранять книги и следить за заказами",
+    name: "Имя",
+    namePlaceholder: "Как к вам обращаться",
+    passwordMinPlaceholder: "Минимум {min} символов",
+    passwordHint: "Не менее {min} символов, минимум одна буква и одна цифра",
+    passwordRepeat: "Повторите пароль",
+    passwordRepeatPlaceholder: "Введите пароль ещё раз",
+    consentsLegend: "Обязательные согласия",
+    consentPersonalData:
+      "Я даю согласие на обработку моих персональных данных в соответствии с",
+    consentPersonalDataLink: "Политикой в отношении обработки персональных данных",
+    consentTermsLead: "Я прочитал и принимаю условия",
+    consentTermsLink: "Пользовательского соглашения",
+    consentTermsAnd: "и",
+    consentTermsPolicyLink: "обработки персональных данных",
+    creating: "Создаём аккаунт…",
+    createAccount: "Создать аккаунт",
+    haveAccount: "Уже есть аккаунт?",
+    accountCreated: "Аккаунт создан",
+    accountCreatedLead:
+      "Добро пожаловать в Капибару! Теперь вы можете оформлять заказы и следить за ними в личном кабинете.",
+    toAccount: "Перейти в личный кабинет",
+
+    forgotTitle: "Восстановление пароля",
+    forgotLead:
+      "Введите адрес, на который зарегистрирован аккаунт — мы пришлём ссылку для смены пароля.",
+    forgotSentTitle: "Проверьте почту",
+    forgotSentLead:
+      "Если этот адрес зарегистрирован, мы отправили на него ссылку для смены пароля.",
+    forgotSentNote: "Ссылка действует один час и сработает только один раз.",
+    backToLogin: "Вернуться ко входу",
+    emailInvalid: "Введите корректный адрес электронной почты",
+    sending: "Отправляем…",
+    sendLink: "Отправить ссылку",
+    rememberedPassword: "Вспомнили пароль?",
+
+    resetTitle: "Новый пароль",
+    resetLead: "Придумайте пароль, который вы ещё нигде не использовали.",
+    resetLinkBroken: "Ссылка не работает",
+    requestNewLink: "Запросить новую ссылку",
+    newPassword: "Новый пароль",
+    newPasswordRequired: "Введите новый пароль",
+    passwordTooShort: "Пароль должен содержать не менее {min} символов",
+    passwordNeedsLetterAndDigit:
+      "Пароль должен содержать хотя бы одну букву и одну цифру",
+    passwordRepeatRequired: "Повторите пароль",
+    passwordMismatch: "Пароли не совпадают",
+    saving: "Сохраняем…",
+    savePassword: "Сохранить пароль",
+    passwordChanged: "Пароль изменён",
+
+    verifyTitle: "Подтверждение адреса",
+    verifyFailed: "Не удалось подтвердить адрес",
+    verifyFailedLead:
+      "Войдите в аккаунт — в личном кабинете можно запросить новое письмо.",
+    verifiedTitle: "Адрес подтверждён",
+    verifiedLead: "{email} — теперь мы сможем присылать вам письма о заказах.",
+    toAccountShort: "В личный кабинет",
+  },
+
+  authErrors: {
+    emailInvalid: "Введите корректный адрес электронной почты",
+    emailTaken: "Этот адрес уже зарегистрирован",
+    passwordShort: "Пароль должен содержать не менее {min} символов",
+    passwordWeak: "Пароль должен содержать хотя бы одну букву и одну цифру",
+    passwordMismatch: "Пароли не совпадают",
+    nameRequired: "Введите имя",
+    consentsRequired: "Для регистрации необходимо принять обязательные условия",
+    generic: "Не удалось создать аккаунт. Попробуйте ещё раз",
+    invalidCredentials: "Неверная почта или пароль",
+    // Worded so they never reveal whether an address is registered — that
+    // would turn the reset form into an account-enumeration tool.
+    linkInvalid: "Ссылка недействительна. Запросите новую",
+    linkExpired: "Срок действия ссылки истёк. Запросите новую",
+    linkUsed: "Ссылка уже использована. Запросите новую",
+    resetFailed: "Не удалось сменить пароль. Попробуйте ещё раз",
+    verifyFailed: "Не удалось подтвердить адрес. Попробуйте ещё раз",
+    alreadyVerified: "Адрес уже подтверждён",
+  },
+
+  // ─── Order, payment and delivery vocabulary ─────────────────────────────────
+  //
+  // The database stores these as codes; this is what a customer reads. The back
+  // office has its own Russian labels in constants.ts and does not use these.
+  orderStatus: {
+    new: "Новый",
+    awaiting_confirmation: "Ожидает подтверждения",
+    in_progress: "В работе",
+    personalization: "На персонализации",
+    sent_to_print: "Отправлен в печать",
+    ready_to_ship: "Готов к отправке",
+    in_delivery: "Передан в доставку",
+    completed: "Завершён",
+    cancelled: "Отменён",
+  },
+  paymentStatus: {
+    unpaid: "Не оплачен",
+    pay_on_confirmation: "Оплата при подтверждении",
+    paid: "Оплачен",
+    refunded: "Возврат",
+  },
+  deliveryMethod: {
+    courier: "Курьером",
+    pickup_point: "В пункт выдачи",
+    post: "Почтой",
+  },
+
+  // ─── Personal account ───────────────────────────────────────────────────────
+  account: {
+    metaTitle: "Личный кабинет",
+    greeting: "Здравствуйте, {name}!",
+    ordersTotal: "Всего заказов",
+    createBook: "Создать новую книгу",
+    toCatalog: "В каталог",
+    recentOrders: "Последние заказы",
+    allOrders: "Все заказы",
+    noOrders: "У вас пока нет заказов",
+    noOrdersLead:
+      "Создайте первую персональную книгу — имя и фотография вашего ребёнка станут частью истории.",
+    chooseBook: "Выбрать книгу",
+
+    ordersTitle: "Мои заказы",
+    reviewInviteOne: "Расскажите о своей книге",
+    reviewInviteMany: "Расскажите о своих книгах",
+    reviewInviteLead:
+      "Ваш заказ доставлен — поделитесь впечатлением. Отзыв появится на сайте после проверки.",
+    noOrdersYet: "У вас пока нет заказов",
+    noOrdersYetLead:
+      "Как только вы оформите первый заказ, он появится здесь вместе со статусом изготовления.",
+    orderedOn: "от {date}",
+
+    orderTitle: "Заказ",
+    orderContents: "Состав заказа",
+    childName: "Имя ребёнка:",
+    childAge: "Возраст:",
+    photo: "Фотография:",
+    photoUploaded: "Загружена",
+    photoMissing: "Не добавлена",
+    dedication: "Посвящение:",
+    goods: "Товары",
+    delivery: "Доставка",
+    deliveryPending: "рассчитывается",
+    total: "Итого",
+    payment: "Оплата",
+    deliveryHeading: "Доставка",
+    recipient: "Получатель",
+    history: "История заказа",
+
+    profileTitle: "Профиль",
+    profileLead: "Эти данные мы используем при оформлении заказа.",
+    securityTitle: "Безопасность",
+    securityLead: "Смена пароля для входа в личный кабинет.",
+
+    navOverview: "Обзор",
+    navProfile: "Профиль",
+    navOrders: "Мои заказы",
+    navSecurity: "Безопасность",
+    navAria: "Разделы личного кабинета",
+
+    name: "Имя",
+    email: "Электронная почта",
+    emailHint: "Адрес используется для входа и изменить его пока нельзя",
+    phone: "Телефон",
+    saved: "Изменения сохранены",
+    saving: "Сохраняем…",
+    save: "Сохранить",
+
+    currentPassword: "Текущий пароль",
+    newPassword: "Новый пароль",
+    passwordHint: "Не менее {min} символов, минимум одна буква и одна цифра",
+    repeatNewPassword: "Повторите новый пароль",
+    passwordUpdated: "Пароль обновлён",
+    changePassword: "Изменить пароль",
+
+    verifyHeading: "Подтвердите адрес почты",
+    verifyLead:
+      "Мы отправили письмо на {email}. Без подтверждения письма о заказах могут не дойти.",
+    verifySending: "Отправляем…",
+    verifyResend: "Отправить ещё раз",
+  },
+
+  review: {
+    thanks:
+      "Спасибо! Отзыв отправлен на проверку и появится на сайте после модерации.",
+    heading: "Оцените книгу «{title}»",
+    childLine: "Имя ребёнка: {name}",
+    ratingLegend: "Оценка от 1 до 5",
+    ratingValue: "{value} из 5",
+    textLabel: "Ваш отзыв",
+    textPlaceholder: "Что понравилось вам и ребёнку? Как выглядит книга вживую?",
+    charsLeft: "Ещё {count} символов",
+    sending: "Отправляем…",
+    submit: "Отправить отзыв",
+    note:
+      "Отзыв появится на сайте после проверки. Мы публикуем его под именем и первой буквой фамилии.",
+  },
+
+  // ─── Odds and ends ──────────────────────────────────────────────────────────
+  misc: {
+    notFoundHeading: "Эта страница потерялась в волшебном лесу",
+    notFoundLead:
+      "Возможно, страница переехала или ссылка устарела — но ваша книга точно никуда не делась.",
+    toHome: "На главную",
+    toCatalog: "В каталог",
+    toFaq: "Частые вопросы",
+
+    noAccessTitle: "Нет доступа",
+    noAccessHeading: "Недостаточно прав",
+    noAccessLead:
+      "Этот раздел доступен только администраторам. Если вам нужен доступ, обратитесь к владельцу магазина.",
+    toAccount: "В личный кабинет",
+
+    coverAlt: "Обложка книги «{title}»",
+    previewMetaTitle: "Превью книги",
+    storyNotFound: "История не найдена",
+    personalizationMetaTitle: "Персонализация — {title}",
+    personalizationMetaDescription:
+      "Добавьте имя и фотографию ребёнка в книгу «{title}».",
+    notOrderable: "«{title}» пока нельзя заказать",
+    notOrderableLead:
+      "Эта история ещё готовится к выпуску. Мы сообщим, когда её можно будет персонализировать.",
+
+    cookieAria: "Использование файлов cookie",
+    cookieBody:
+      "Мы используем файлы cookie, чтобы работали вход в аккаунт и корзина. Аналитические — только с вашего согласия.",
+    cookieMore: "Подробнее",
+    cookieAcceptAll: "Принять все",
+    cookieEssentialOnly: "Только необходимые",
+    cookieSettings: "Настройки cookie",
+
+    galleryRole: "карусель",
+    galleryAria: "Фотографии книги",
+    slideRole: "слайд",
+    slideOf: "{index} из {total}",
+    prevPhoto: "Предыдущая фотография",
+    nextPhoto: "Следующая фотография",
+    openFullscreen: "Открыть фотографию во весь экран",
+    goToPhoto: "Перейти к фотографии {index}",
+    showPhoto: "Показать фотографию {index}: {alt}",
+    viewingPhoto: "Просмотр фотографии",
+
+    ratingAria: "Оценка {rating} из 5",
+    aboutBook: "О книге:",
+    demoReview: "Демонстрационный отзыв",
+    verifiedPurchase: "Подтверждённая покупка",
+
+    pauseVideo: "Поставить видео на паузу",
+    resumeVideo: "Продолжить видео",
+    hidePassword: "Скрыть пароль",
+    showPassword: "Показать пароль",
+  },
+
   // ─── Catalogue ──────────────────────────────────────────────────────────────
   catalog: {
     metaTitle: "Каталог персональных книг",

@@ -4,6 +4,7 @@ import { forwardRef, useId, useState } from "react";
 import type { InputHTMLAttributes } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 interface PasswordInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
@@ -15,6 +16,7 @@ interface PasswordInputProps
 /** Password field with a show/hide control that stays reachable by keyboard. */
 const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ label, error, hint, className, id, ...props }, ref) => {
+    const t = useDictionary();
     const [visible, setVisible] = useState(false);
     const autoId = useId();
     const inputId = id ?? autoId;
@@ -49,7 +51,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
+            aria-label={visible ? t.misc.hidePassword : t.misc.showPassword}
             aria-pressed={visible}
             className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-brown-400 transition-colors hover:bg-cream-100 hover:text-brown-dark"
           >

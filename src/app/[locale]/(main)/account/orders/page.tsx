@@ -4,25 +4,34 @@ import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { formatPrice } from "@/lib/utils";
 import { getReviewableItems } from "@/lib/reviews";
 import ReviewForm from "@/components/account/ReviewForm";
-import {
-  ORDER_STATUS_LABELS,
-  ORDER_STATUS_TONE,
-  PAYMENT_STATUS_LABELS,
-  type OrderStatus,
-  type PaymentStatus,
-} from "@/lib/constants";
+import { asLocale, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill, formatDate, formatAmount } from "@/i18n/format";
+import { ORDER_STATUS_TONE, type OrderStatus, type PaymentStatus } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "Мои заказы",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}): Promise<Metadata> {
+  const t = getDictionary(asLocale((await params).locale));
+  return {
+    title: t.account.ordersTitle,
+    robots: { index: false, follow: false },
+  };
+}
 
 export const dynamic = "force-dynamic";
 
-export default async function AccountOrdersPage() {
+export default async function AccountOrdersPage({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}) {
+  const locale = asLocale((await params).locale);
+  const t = getDictionary(locale);
   const user = (await getCurrentUser())!;
 
   // Delivered books this customer has not reviewed yet. Scoped to their own
@@ -42,19 +51,18 @@ export default async function AccountOrdersPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-extrabold text-brown-dark sm:text-3xl">
-        Мои заказы
+        {t.account.ordersTitle}
       </h1>
 
       {reviewable.length > 0 && (
         <section id="review" className="mt-8 scroll-mt-28">
           <h2 className="font-display text-xl font-extrabold text-brown-dark">
             {reviewable.length === 1
-              ? "Расскажите о своей книге"
-              : "Расскажите о своих книгах"}
+              ? t.account.reviewInviteOne
+              : t.account.reviewInviteMany}
           </h2>
           <p className="mt-1.5 text-[15px] leading-relaxed text-brown">
-            Ваш заказ доставлен — поделитесь впечатлением. Отзыв появится на
-            сайте после проверки.
+{t.account.reviewInviteLead}
           </p>
           <div className="mt-4 flex flex-col gap-4">
             {reviewable.map((item) => (
@@ -80,14 +88,13 @@ export default async function AccountOrdersPage() {
             className="mx-auto h-32 w-auto object-contain"
           />
           <p className="mt-3 font-display text-lg font-extrabold text-brown-dark">
-            У вас пока нет заказов
+            {t.account.noOrdersYet}
           </p>
           <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-brown">
-            Как только вы оформите первый заказ, он появится здесь вместе со
-            статусом изготовления.
+{t.account.noOrdersYetLead}
           </p>
           <Link href="/catalog" className="btn-primary mt-6">
-            Выбрать книгу
+            {t.account.chooseBook}
           </Link>
         </div>
       ) : (
@@ -104,13 +111,13 @@ export default async function AccountOrdersPage() {
                       {order.orderNumber}
                     </p>
                     <p className="mt-1 text-sm text-brown-400">
-                      от {order.createdAt.toLocaleDateString("ru-RU")}
+                      {fill(t.account.orderedOn, { date: formatDate(order.createdAt, locale) })}
                     </p>
                   </div>
                   <span
                     className={`badge ${ORDER_STATUS_TONE[order.orderStatus as OrderStatus]}`}
                   >
-                    {ORDER_STATUS_LABELS[order.orderStatus as OrderStatus]}
+                    {t.orderStatus[order.orderStatus as OrderStatus]}
                   </span>
                 </div>
 
@@ -125,10 +132,10 @@ export default async function AccountOrdersPage() {
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                   <span className="text-sm text-brown-400">
-                    {PAYMENT_STATUS_LABELS[order.paymentStatus as PaymentStatus]}
+                    {t.paymentStatus[order.paymentStatus as PaymentStatus]}
                   </span>
                   <span className="inline-flex items-center gap-1.5 font-display text-lg font-extrabold text-brown-dark">
-                    {formatPrice(order.total)}
+                    {formatAmount(order.total, order.currency, locale)}
                     <ChevronRight className="h-4 w-4 text-brand-500 transition-transform group-hover:translate-x-1" />
                   </span>
                 </div>

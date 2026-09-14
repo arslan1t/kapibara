@@ -1,6 +1,7 @@
 "use client";
 
 import { clearCookieChoice } from "./CookieConsent";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 /**
  * Lets someone change their cookie decision after the fact.
@@ -14,9 +15,10 @@ export default function CookieSettingsLink({
 }: {
   className?: string;
 }) {
+  const t = useDictionary();
   return (
     <button type="button" onClick={clearCookieChoice} className={className}>
-      Настройки cookie
+      {t.misc.cookieSettings}
     </button>
   );
 }
