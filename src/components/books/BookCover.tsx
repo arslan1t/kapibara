@@ -26,17 +26,29 @@ const sizeHints: Record<CoverSize, string> = {
 };
 
 /**
- * A bound book, not a picture of one.
+ * A bound hardback, not a picture of one.
  *
- * The artwork files are flat cover faces. Everything that makes it read as a
+ * The artwork files are flat cover faces. Everything that makes one read as a
  * physical book is drawn here, so it is identical on every product however
  * light or dark the artwork happens to be.
  *
- * The spine is an opaque band with the face sitting beside it, not a shadow
- * laid over the artwork. That was the first attempt and it failed exactly where
- * it mattered: a translucent dark gradient is clearly visible over a pale sky
- * and invisible over a dark forest, so half the catalogue looked bound and half
- * looked like a flat PNG.
+ * Two earlier attempts failed, and the reasons are worth keeping:
+ *
+ *  1. A translucent dark gradient laid over the artwork. Plainly visible on a
+ *     pale sky, invisible on a dark forest — so half the catalogue looked bound
+ *     and half looked like a flat PNG.
+ *
+ *  2. An opaque board beside the face, five percent wide. Consistent, but
+ *     wrong: a book seen face-on does not show its spine at full width. You
+ *     are either looking at the front board or at the spine, never at both
+ *     square-on, and the eye catches the impossibility even when it cannot
+ *     name it. It read as a brown stripe glued to the picture.
+ *
+ * What is drawn instead is what a hardback actually presents face-on: the
+ * rounded spine curving away at the left, the hinge groove a few millimetres
+ * in from it, the highlight along the top board, and the page block peeking
+ * past the fore edge on the right. Every dimension is a percentage, so the
+ * same book survives a 160px thumbnail and a 560px product shot.
  */
 export default function BookCover({
   book,
@@ -55,55 +67,79 @@ export default function BookCover({
         />
       )}
 
-      {/* rounded-r more than rounded-l: a hardback's fore edge is noticeably
-          rounder than its spine, and matching that is most of what makes the
-          silhouette read as a book. */}
-      <div className="relative flex h-full w-full overflow-hidden rounded-l-[3px] rounded-r-xl shadow-[0_12px_30px_-10px_rgba(74,45,26,0.45)]">
-        {/* ── The bound edge ──
-            Five stops across five percent of the width: the dark outer board,
-            the lit curve of the binding, the crease where it turns, and the
-            shadow it casts onto the face. Flat colour here reads as a printed
-            stripe; it is the curve that reads as a spine. */}
-        <div
-          aria-hidden="true"
-          className="relative h-full w-[5%] shrink-0 bg-[linear-gradient(to_right,#2f1b0f_0%,#4a2d1a_28%,#6b4630_52%,#3a2315_78%,#241109_100%)]"
-        >
-          {/* Highlight along the top edge of the boards. */}
-          <span className="absolute inset-x-0 top-0 h-[1.5%] bg-white/25" />
-        </div>
+      {/* The fore edge is noticeably rounder than the bound edge. Matching that
+          asymmetry is most of what makes the silhouette read as a book. */}
+      <div className="relative h-full w-full overflow-hidden rounded-l-[2px] rounded-r-lg shadow-[0_16px_30px_-14px_rgba(74,45,26,0.5),0_4px_10px_-5px_rgba(74,45,26,0.32)]">
+        <Image
+          src={book.image}
+          alt={`Обложка книги «${book.title}»`}
+          fill
+          priority={priority}
+          unoptimized={unoptimized}
+          sizes={sizeHints[size]}
+          className="object-cover"
+        />
 
-        {/* ── The face ── */}
-        <div className="relative h-full flex-1">
-          <Image
-            src={book.image}
-            alt={`Обложка книги «${book.title}»`}
-            fill
-            priority={priority}
-            unoptimized={unoptimized}
-            sizes={sizeHints[size]}
-            className="object-cover"
-          />
-
-          {/* Shadow the spine throws across the gutter. */}
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-0 w-[7%] bg-gradient-to-r from-black/28 to-transparent"
-          />
-          {/* Light on the top board, and the fore edge turning away. */}
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-[2%] bg-gradient-to-b from-white/20 to-transparent"
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-[2%] bg-gradient-to-l from-black/18 to-transparent"
-          />
-        </div>
-
-        {/* Keeps the artwork off the rounded corner and gives the boards an edge. */}
+        {/* The spine roll, curving out of sight. Darkening rather than opaque
+            paint: it is the same edge of the same board, in shadow. */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-l-[3px] rounded-r-xl ring-1 ring-inset ring-black/15"
+          className="pointer-events-none absolute inset-y-0 left-0 w-[3.2%]"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(18,9,3,0.82), rgba(42,24,11,0.46) 55%, rgba(64,38,19,0.12))",
+          }}
+        />
+
+        {/* The hinge groove, where the board folds away from the spine. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-[3.2%] w-[2.8%]"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(0,0,0,0.30), rgba(0,0,0,0.04) 70%, rgba(255,255,255,0.12))",
+          }}
+        />
+
+        {/* Light catching the top board. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[3.2%] right-[2%] top-0 h-[1.6%]"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(255,250,240,0.78), rgba(255,250,240,0))",
+          }}
+        />
+
+        {/* The page block past the fore edge. Hairlines, because a stack of
+            paper is never one flat colour. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-[1.6%] right-0 w-[2%] shadow-[-1px_0_2px_rgba(0,0,0,0.28)]"
+          style={{
+            background:
+              "repeating-linear-gradient(to right, #f0e5d3 0 1px, #c8b395 1px 2px)",
+          }}
+        />
+
+        {/* Volume, and the wear a cloth corner picks up. Percentage stops, so
+            it survives being scaled down to a thumbnail — a px blur radius
+            would swallow a small cover whole. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: [
+              "radial-gradient(130% 130% at 50% 45%, rgba(60,35,15,0) 58%, rgba(60,35,15,0.20) 100%)",
+              "radial-gradient(9% 9% at 100% 0%, rgba(60,35,15,0.30), rgba(60,35,15,0) 70%)",
+              "radial-gradient(9% 9% at 100% 100%, rgba(60,35,15,0.30), rgba(60,35,15,0) 70%)",
+            ].join(", "),
+          }}
+        />
+
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-l-[2px] rounded-r-lg ring-1 ring-inset ring-[rgba(60,35,15,0.18)]"
         />
       </div>
     </div>
