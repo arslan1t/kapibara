@@ -6,30 +6,40 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ShoppingBag, User, Menu, X } from "lucide-react";
 import { useCartStore } from "@/store/cart";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
+import RegionSwitcher from "@/components/layout/RegionSwitcher";
 import { logout } from "@/app/actions/auth";
 import UserMenu from "@/components/layout/UserMenu";
 import { cn } from "@/lib/utils";
+import { stripLocale } from "@/i18n/config";
 
-const navLinks = [
-  { href: "/catalog", label: "Каталог" },
-  { href: "/how-it-works", label: "Как это работает" },
-  { href: "/reviews", label: "Отзывы" },
-  { href: "/about", label: "О нас" },
-  { href: "/delivery", label: "Доставка" },
-];
+/** Order is the reading order of the site, not alphabetical. */
+const NAV = [
+  { href: "/catalog", key: "catalog" },
+  { href: "/how-it-works", key: "howItWorks" },
+  { href: "/reviews", key: "reviews" },
+  { href: "/about", key: "about" },
+  { href: "/delivery", key: "delivery" },
+] as const;
 
 interface HeaderProps {
   user: { name: string; role: string } | null;
 }
 
 export default function Header({ user }: HeaderProps) {
+  const t = useDictionary();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const navLinks = NAV.map((item) => ({ ...item, label: t.nav[item.key] }));
   const items = useCartStore((s) => s.items);
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
+  // Compared against the path with its locale segment removed, so /uz/catalog
+  // lights up the same link /ru/catalog does.
+  const path = stripLocale(pathname).path;
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+    path === href || path.startsWith(href + "/");
 
   // Lock body scroll while the mobile sheet is open.
   useEffect(() => {
@@ -52,7 +62,7 @@ export default function Header({ user }: HeaderProps) {
           <Link
             href="/"
             className="shrink-0 transition-transform duration-300 hover:scale-[1.04]"
-            aria-label="Капибара — на главную"
+            aria-label={t.header.logoAria}
           >
             {/* Intrinsic size matches the viewBox (493×462) so the browser
                 reserves the correct aspect ratio and never squeezes the mark.
@@ -64,7 +74,7 @@ export default function Header({ user }: HeaderProps) {
                 brand, as it did before. */}
             <Image
               src="/capybara-logo.svg"
-              alt="Капибара"
+              alt={t.common.brand}
               width={493}
               height={462}
               priority
@@ -73,7 +83,7 @@ export default function Header({ user }: HeaderProps) {
           </Link>
 
           {/* ── Desktop nav ── */}
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="Основная навигация">
+          <nav className="hidden items-center gap-1 lg:flex" aria-label={t.header.mainNavAria}>
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -96,10 +106,18 @@ export default function Header({ user }: HeaderProps) {
 
           {/* ── Actions ── */}
           <div className="flex items-center gap-2">
+            {/* Before the cart: the country decides what a price in the cart
+                even means, so it belongs upstream of it. */}
+            <RegionSwitcher className="hidden sm:block" />
+
             <Link
               href="/cart"
               className="relative flex h-11 w-11 items-center justify-center rounded-full text-brown-dark transition-colors duration-300 hover:bg-cream-200"
-              aria-label={itemCount > 0 ? `Корзина, товаров: ${itemCount}` : "Корзина"}
+              aria-label={
+                itemCount > 0
+                  ? fill(t.header.cartWithCount, { count: itemCount })
+                  : t.header.cart
+              }
             >
               <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={1.9} />
               {itemCount > 0 && (
@@ -115,7 +133,7 @@ export default function Header({ user }: HeaderProps) {
             <button
               className="flex h-11 w-11 items-center justify-center rounded-full text-brown-dark transition-colors duration-300 hover:bg-cream-200 lg:hidden"
               onClick={() => setMobileOpen((v) => !v)}
-              aria-label={mobileOpen ? "Закрыть меню" : "Открыть меню"}
+              aria-label={mobileOpen ? t.header.closeMenu : t.header.openMenu}
               aria-expanded={mobileOpen}
             >
               {mobileOpen ? (
@@ -133,7 +151,7 @@ export default function Header({ user }: HeaderProps) {
           it a containing block, which would trap this fixed panel inside it. */}
       {mobileOpen && (
         <div className="fixed inset-x-0 bottom-0 top-20 z-40 overflow-y-auto bg-parchment lg:hidden">
-          <nav className="page-container flex flex-col gap-1 py-6" aria-label="Мобильная навигация">
+          <nav className="page-container flex flex-col gap-1 py-6" aria-label={t.header.mobileNavAria}>
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -149,6 +167,10 @@ export default function Header({ user }: HeaderProps) {
               </Link>
             ))}
 
+            <div className="px-1 py-2 sm:hidden">
+              <RegionSwitcher />
+            </div>
+
             <hr className="my-4 border-cream-300" />
 
             {user ? (
@@ -158,7 +180,7 @@ export default function Header({ user }: HeaderProps) {
                     href="/admin"
                     className="flex items-center gap-3 rounded-2xl px-4 py-4 text-lg font-bold text-brand-600 hover:bg-brand-50"
                   >
-                    Панель управления
+                    {t.header.adminPanel}
                   </Link>
                 )}
                 <Link
@@ -166,20 +188,20 @@ export default function Header({ user }: HeaderProps) {
                   className="flex items-center gap-3 rounded-2xl px-4 py-4 text-lg font-semibold text-brown-dark hover:bg-cream-200"
                 >
                   <User className="h-5 w-5" strokeWidth={1.9} />
-                  Личный кабинет
+                  {t.header.account}
                 </Link>
                 <Link
                   href="/account/orders"
                   className="flex items-center gap-3 rounded-2xl px-4 py-4 text-lg font-semibold text-brown-dark hover:bg-cream-200"
                 >
-                  Мои заказы
+                  {t.header.myOrders}
                 </Link>
                 <form action={logout}>
                   <button
                     type="submit"
                     className="w-full rounded-2xl px-4 py-4 text-left text-lg font-semibold text-brown hover:bg-cream-200"
                   >
-                    Выйти
+                    {t.header.signOut}
                   </button>
                 </form>
               </>
@@ -190,10 +212,10 @@ export default function Header({ user }: HeaderProps) {
                   className="flex items-center gap-3 rounded-2xl px-4 py-4 text-lg font-semibold text-brown-dark hover:bg-cream-200"
                 >
                   <User className="h-5 w-5" strokeWidth={1.9} />
-                  Войти
+                  {t.header.signIn}
                 </Link>
                 <Link href="/register" className="btn-primary mt-3 w-full py-4 text-base">
-                  Создать аккаунт
+                  {t.header.createAccount}
                 </Link>
               </>
             )}

@@ -1,12 +1,16 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { getCurrentUser } from "@/lib/auth";
+import { asLocale, type LocaleParams } from "@/i18n/config";
 
 export default async function MainLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<LocaleParams>;
 }) {
+  const locale = asLocale((await params).locale);
   // Read on the server so the header renders in the correct state on first
   // paint, with no signed-out flash.
   const user = await getCurrentUser();
@@ -15,7 +19,7 @@ export default async function MainLayout({
     <>
       <Header user={user ? { name: user.name, role: user.role } : null} />
       <main className="min-h-screen">{children}</main>
-      <Footer />
+      <Footer locale={locale} />
     </>
   );
 }

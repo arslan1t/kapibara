@@ -6,7 +6,7 @@ import type { FAQItem } from "@/data/mock";
 import { cn } from "@/lib/utils";
 
 interface FAQAccordionProps {
-  items: FAQItem[];
+  items: readonly FAQItem[];
 }
 
 export default function FAQAccordion({ items }: FAQAccordionProps) {

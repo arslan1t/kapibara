@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "@/i18n/navigation";
 import { ArrowRight } from "lucide-react";
 import type { Book } from "@/types";
 import Price from "@/components/shared/Price";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
+import { fill } from "@/i18n/format";
 import BookCover from "./BookCover";
 
 interface BookCardProps {
@@ -16,6 +20,8 @@ interface BookCardProps {
  * and the whole card lifts gently on hover.
  */
 export default function BookCard({ book, priority = false, className }: BookCardProps) {
+  const t = useDictionary();
+
   return (
     <article
       className={cn(
@@ -59,7 +65,7 @@ export default function BookCard({ book, priority = false, className }: BookCard
             <Price amount={book.price} />
           </span>
           <span className="text-sm text-brown-300">
-            {book.pageCount} страниц · твёрдая обложка
+            {fill(t.common.pagesAndCover, { pages: book.pageCount })}
           </span>
         </div>
 
@@ -69,12 +75,12 @@ export default function BookCard({ book, priority = false, className }: BookCard
             href={`/personalize/${book.slug}`}
             className="btn-primary flex-1 px-5 py-3 text-[15px]"
           >
-            Создать эту книгу
+            {t.book.create}
           </Link>
           <Link
             href={`/books/${book.slug}`}
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-cream-300 text-brown-dark transition-all duration-300 hover:border-brand-300 hover:text-brand-500"
-            aria-label={`Подробнее о книге «${book.title}»`}
+            aria-label={fill(t.book.moreAbout, { title: book.title })}
           >
             <ArrowRight className="h-5 w-5" strokeWidth={2} />
           </Link>

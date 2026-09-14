@@ -2,9 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "@/i18n/navigation";
 import type { Metadata } from "next";
 import { ChevronRight, Sparkles, PenLine, ScanFace, Truck, Star } from "lucide-react";
-import { bookIncludes } from "@/data/books";
 import Price from "@/components/shared/Price";
-import { mockFAQ } from "@/data/mock";
+import { BOOK_PAGE_COUNT } from "@/data/books";
 import TestimonialCard from "@/components/shared/TestimonialCard";
 import { getProductReviews, getRatingSummary } from "@/lib/reviews";
 import BookCover from "@/components/books/BookCover";
@@ -13,7 +12,9 @@ import FAQAccordion from "@/components/shared/FAQAccordion";
 import Reveal from "@/components/shared/Reveal";
 import ProductGallery from "@/components/books/ProductGallery";
 import { getBookBySlugOrId, getPublishedProducts, getProductGallery } from "@/lib/products";
-import { asLocale, type LocaleParams } from "@/i18n/config";
+import { asLocale, LOCALE_CONFIG, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill, formatNumber, plural } from "@/i18n/format";
 
 interface Props {
   params: Promise<LocaleParams & { id: string }>;
@@ -41,20 +42,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const personalizationPoints = [
-  { icon: PenLine, text: "Имя ребёнка встречается в тексте истории" },
-  { icon: ScanFace, text: "Лицо ребёнка появляется в иллюстрациях" },
-  { icon: Sparkles, text: "Персональное посвящение на первой странице" },
-];
-
 export default async function BookDetailPage({ params }: Props) {
   const { id, locale: raw } = await params;
   const locale = asLocale(raw);
+  const t = getDictionary(locale);
   const book = await getBookBySlugOrId(id, locale);
   if (!book) notFound();
 
+  const personalizationPoints = [
+    { icon: PenLine, text: t.book.personalizationName },
+    { icon: ScanFace, text: t.book.personalizationFace },
+    { icon: Sparkles, text: t.book.personalizationDedication },
+  ];
+
   const allBooks = await getPublishedProducts(locale);
-  const otherBook = allBooks.find((b) => b.id !== book.id);
+  // Three, not "the other one": there were two books when this was written and
+  // there are eighteen now.
+  const otherBooks = allBooks.filter((b) => b.id !== book.id).slice(0, 3);
   const gallery = await getProductGallery(book.slug);
 
   // Approved reviews only. An empty list renders no section at all rather
@@ -70,13 +74,23 @@ export default async function BookDetailPage({ params }: Props) {
     name: book.title,
     description: book.shortDescription,
     image: book.image,
-    brand: { "@type": "Brand", name: "Капибара" },
-    offers: {
-      "@type": "Offer",
-      price: book.price,
-      priceCurrency: book.currency,
-      availability: "https://schema.org/InStock",
-    },
+    brand: { "@type": "Brand", name: t.common.brand },
+    // A book with no price in this market has no offer to describe. Emitting
+    // one with a null price is worse than emitting none: it is a structured,
+    // machine-read claim that the book is available for nothing.
+    ...(book.price !== null
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: book.price,
+            priceCurrency: book.currency,
+            availability: book.available
+              ? "https://schema.org/InStock"
+              : "https://schema.org/PreOrder",
+            areaServed: LOCALE_CONFIG[locale].region,
+          },
+        }
+      : {}),
   };
 
   return (
@@ -90,15 +104,15 @@ export default async function BookDetailPage({ params }: Props) {
       <section className="bg-gradient-to-b from-cream-100 to-parchment pb-16 pt-8 md:pb-20">
         <div className="page-container">
           <nav
-            aria-label="Хлебные крошки"
+            aria-label={t.book.breadcrumbAria}
             className="mb-8 flex flex-wrap items-center gap-1.5 text-sm text-brown-300"
           >
             <Link href="/" className="transition-colors hover:text-brown">
-              Главная
+              {t.nav.home}
             </Link>
             <ChevronRight className="h-3.5 w-3.5 shrink-0" />
             <Link href="/catalog" className="transition-colors hover:text-brown">
-              Каталог
+              {t.nav.catalog}
             </Link>
             <ChevronRight className="h-3.5 w-3.5 shrink-0" />
             <span className="text-brown">{book.shortTitle}</span>
@@ -118,7 +132,7 @@ export default async function BookDetailPage({ params }: Props) {
                     }))}
                   />
                   <p className="mt-4 text-center text-sm text-brown-300">
-                    Настоящие фотографии напечатанной книги
+                    {t.book.galleryCaption}
                   </p>
                 </>
               ) : (
@@ -127,7 +141,7 @@ export default async function BookDetailPage({ params }: Props) {
                     <BookCover book={book} size="lg" priority glow />
                   </div>
                   <p className="mt-4 text-center text-sm text-brown-300">
-                    Настоящая обложка книги — именно её вы получите
+                    {t.book.coverCaption}
                   </p>
                 </>
               )}
@@ -150,7 +164,7 @@ export default async function BookDetailPage({ params }: Props) {
                   <Price amount={book.price} />
                 </span>
                 <span className="text-[15px] text-brown-300">
-                  {book.pageCount} страниц · твёрдая обложка
+                  {fill(t.common.pagesAndCover, { pages: book.pageCount })}
                 </span>
               </div>
 
@@ -158,26 +172,26 @@ export default async function BookDetailPage({ params }: Props) {
                 href={`/personalize/${book.slug}`}
                 className="btn-primary mt-8 w-full py-4 text-base sm:w-auto sm:px-10"
               >
-                Создать эту книгу
+                {t.book.create}
               </Link>
 
               <p className="mt-3 text-sm text-brown-300">
-                Стоимость и срок доставки рассчитываются при оформлении заказа.
+                {t.book.deliveryNote}
               </p>
 
               {/* What's inside */}
               <div className="mt-10 rounded-4xl bg-white p-7 shadow-soft">
                 <h2 className="font-display text-lg font-extrabold text-brown-dark">
-                  Что входит в книгу
+                  {t.book.includesHeading}
                 </h2>
                 <ul className="mt-5 space-y-3">
-                  {bookIncludes.map((item) => (
+                  {t.bookIncludes.map((item) => (
                     <li key={item} className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sage-500">
                         <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
                       </span>
                       <span className="text-[15px] leading-relaxed text-brown">
-                        {item}
+                        {fill(item, { pages: BOOK_PAGE_COUNT })}
                       </span>
                     </li>
                   ))}
@@ -187,7 +201,7 @@ export default async function BookDetailPage({ params }: Props) {
               {/* Story */}
               <div className="mt-8">
                 <h2 className="font-display text-lg font-extrabold text-brown-dark">
-                  Об истории
+                  {t.book.storyHeading}
                 </h2>
                 <p className="mt-3 text-[15px] leading-relaxed text-brown">
                   {book.description}
@@ -202,10 +216,9 @@ export default async function BookDetailPage({ params }: Props) {
       <section className="bg-white py-16 md:py-20">
         <div className="page-container">
           <Reveal className="mx-auto max-w-2xl text-center">
-            <h2 className="section-title">Как книга становится персональной</h2>
+            <h2 className="section-title">{t.book.personalizationHeading}</h2>
             <p className="section-subtitle">
-              После загрузки фотографии вы увидите предварительный макет и
-              сможете проверить данные перед заказом.
+{t.book.personalizationLead}
             </p>
           </Reveal>
 
@@ -232,12 +245,10 @@ export default async function BookDetailPage({ params }: Props) {
               <Truck className="h-6 w-6" strokeWidth={1.8} />
             </span>
             <h2 className="font-display text-xl font-extrabold text-brown-dark">
-              Печать и доставка
+              {t.book.printHeading}
             </h2>
             <p className="max-w-xl text-[15px] leading-relaxed text-brown">
-              Каждая книга печатается отдельно под ваш заказ. Стоимость и срок
-              доставки рассчитываются при оформлении заказа — они зависят от
-              вашего города.
+{t.book.printBody}
             </p>
           </Reveal>
         </div>
@@ -248,7 +259,7 @@ export default async function BookDetailPage({ params }: Props) {
         <section className="bg-cream-100 py-16 md:py-20">
           <div className="page-container">
             <Reveal className="mx-auto max-w-2xl text-center">
-              <h2 className="section-title">Отзывы о книге</h2>
+              <h2 className="section-title">{t.book.reviewsHeading}</h2>
               {rating.average !== null && (
                 <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 shadow-soft">
                   <Star
@@ -256,17 +267,10 @@ export default async function BookDetailPage({ params }: Props) {
                     aria-hidden="true"
                   />
                   <span className="font-display text-lg font-extrabold text-brown-dark">
-                    {rating.average.toLocaleString("ru-RU", {
-                      minimumFractionDigits: 1,
-                    })}
+{formatNumber(rating.average, locale)}
                   </span>
                   <span className="text-sm text-brown">
-                    {rating.count}{" "}
-                    {rating.count === 1
-                      ? "отзыв"
-                      : rating.count < 5
-                        ? "отзыва"
-                        : "отзывов"}
+                    {plural(rating.count, t.book.reviewCount, locale)}
                   </span>
                 </p>
               )}
@@ -296,25 +300,29 @@ export default async function BookDetailPage({ params }: Props) {
         <div className="page-container">
           <div className="mx-auto max-w-2xl">
             <Reveal className="text-center">
-              <h2 className="section-title">Частые вопросы</h2>
+              <h2 className="section-title">{t.book.faqHeading}</h2>
             </Reveal>
             <Reveal delay={100} className="mt-10">
-              <FAQAccordion items={mockFAQ.slice(0, 4)} />
+              <FAQAccordion items={t.faq.slice(0, 4)} />
             </Reveal>
           </div>
         </div>
       </section>
 
       {/* ── The other story ── */}
-      {otherBook && (
+      {otherBooks.length > 0 && (
         <section className="bg-cream-100 py-16 md:py-24">
           <div className="page-container">
             <Reveal className="mx-auto max-w-2xl text-center">
-              <h2 className="section-title">Вторая история</h2>
+              <h2 className="section-title">{t.book.otherStoriesHeading}</h2>
             </Reveal>
-            <Reveal delay={100} className="mx-auto mt-10 max-w-md">
-              <BookCard book={otherBook} />
-            </Reveal>
+            <div className="mx-auto mt-10 grid max-w-5xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {otherBooks.map((other, i) => (
+                <Reveal key={other.id} delay={i * 90}>
+                  <BookCard book={other} className="h-full" />
+                </Reveal>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -332,7 +340,7 @@ export default async function BookDetailPage({ params }: Props) {
             href={`/personalize/${book.slug}`}
             className="btn-primary ml-auto shrink-0 px-6 py-3 text-[15px]"
           >
-            Создать книгу
+            {t.book.createShort}
           </Link>
         </div>
       </div>

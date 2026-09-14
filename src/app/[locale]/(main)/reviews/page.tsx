@@ -5,11 +5,21 @@ import TestimonialCard from "@/components/shared/TestimonialCard";
 import Reveal from "@/components/shared/Reveal";
 import Mascot from "@/components/shared/Mascot";
 import { getApprovedReviews, getSiteRatingSummary } from "@/lib/reviews";
+import { asLocale, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { formatNumber, plural } from "@/i18n/format";
 
-export const metadata: Metadata = {
-  title: "Отзывы",
-  description: "Отзывы родителей о персональных книгах Капибара.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}): Promise<Metadata> {
+  const t = getDictionary(asLocale((await params).locale));
+  return {
+    title: t.reviewsPage.metaTitle,
+    description: t.reviewsPage.metaDescription,
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +29,13 @@ export const dynamic = "force-dynamic";
  * When there are none, the page says so rather than filling the gap with
  * invented testimonials — an empty section is honest, a fabricated one is not.
  */
-export default async function ReviewsPage() {
+export default async function ReviewsPage({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}) {
+  const locale = asLocale((await params).locale);
+  const t = getDictionary(locale);
   const [reviews, summary] = await Promise.all([
     getApprovedReviews(),
     getSiteRatingSummary(),
@@ -29,29 +45,22 @@ export default async function ReviewsPage() {
     <div className="py-16 md:py-24">
       <div className="page-container">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <span className="eyebrow">Отзывы</span>
-          <h1 className="section-title mt-5">Что говорят родители</h1>
+          <span className="eyebrow">{t.reviewsPage.eyebrow}</span>
+          <h1 className="section-title mt-5">{t.reviewsPage.heading}</h1>
 
           {summary.average !== null ? (
             <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 shadow-soft">
               <Star className="h-5 w-5 fill-gold-300 text-gold-300" aria-hidden="true" />
               <span className="font-display text-lg font-extrabold text-brown-dark">
-                {summary.average.toLocaleString("ru-RU", {
-                  minimumFractionDigits: 1,
-                })}
+{formatNumber(summary.average, locale)}
               </span>
               <span className="text-sm text-brown">
-                {summary.count}{" "}
-                {summary.count === 1
-                  ? "отзыв"
-                  : summary.count < 5
-                    ? "отзыва"
-                    : "отзывов"}
+                {plural(summary.count, t.book.reviewCount, locale)}
               </span>
             </p>
           ) : (
             <p className="section-subtitle">
-              Каждый отзыв здесь оставлен человеком, который получил книгу.
+              {t.reviewsPage.verified}
             </p>
           )}
         </Reveal>
@@ -60,11 +69,10 @@ export default async function ReviewsPage() {
           <Reveal delay={80} className="mx-auto mt-14 max-w-lg text-center">
             <Mascot variant={2} float />
             <h2 className="mt-6 font-display text-xl font-extrabold text-brown-dark">
-              Отзывов пока нет
+              {t.reviewsPage.emptyHeading}
             </h2>
             <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-brown">
-              Мы публикуем только отзывы покупателей, которые действительно
-              получили книгу. Как только появятся первые — они будут здесь.
+{t.reviewsPage.emptyLead}
             </p>
             <div className="mx-auto mt-6 flex max-w-md items-start gap-3 rounded-3xl bg-cream-100 px-5 py-4 text-left">
               <Info
@@ -73,12 +81,11 @@ export default async function ReviewsPage() {
                 aria-hidden="true"
               />
               <p className="text-sm leading-relaxed text-brown">
-                Мы не публикуем придуманные отзывы и не покупаем их. Оставить
-                отзыв может только покупатель после доставки заказа.
+{t.reviewsPage.policy}
               </p>
             </div>
             <Link href="/catalog" className="btn-primary mt-8 text-base">
-              Создать свою книгу
+              {t.reviewsPage.cta}
             </Link>
           </Reveal>
         ) : (
@@ -102,7 +109,7 @@ export default async function ReviewsPage() {
 
             <Reveal delay={150} className="mt-16 text-center">
               <Link href="/catalog" className="btn-primary text-base">
-                Создать свою книгу
+                {t.reviewsPage.cta}
               </Link>
             </Reveal>
           </>

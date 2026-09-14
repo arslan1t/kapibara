@@ -1,36 +1,42 @@
 import type { Metadata } from "next";
 import FAQAccordion from "@/components/shared/FAQAccordion";
-import { mockFAQ } from "@/data/mock";
 import Link from "@/i18n/navigation";
+import { asLocale, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
 
-export const metadata: Metadata = {
-  title: "Частые вопросы",
-  description:
-    "Ответы на частые вопросы о персонализации, изготовлении, доставке и оплате книг Капибара.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}): Promise<Metadata> {
+  const t = getDictionary(asLocale((await params).locale));
+  return { title: t.faqPage.metaTitle, description: t.faqPage.metaDescription };
+}
 
-export default function FAQPage() {
+export default async function FAQPage({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}) {
+  const t = getDictionary(asLocale((await params).locale));
+
   return (
     <div className="py-12 md:py-16">
-      <div className="page-container max-w-3xl mx-auto">
+      <div className="page-container mx-auto max-w-3xl">
         <div className="mb-10 text-center">
-          <h1 className="section-title">Частые вопросы</h1>
-          <p className="section-subtitle">
-            Ответы на самые популярные вопросы о наших книгах
-          </p>
+          <h1 className="section-title">{t.faqPage.heading}</h1>
+          <p className="section-subtitle">{t.faqPage.lead}</p>
         </div>
 
-        <FAQAccordion items={mockFAQ} />
+        <FAQAccordion items={t.faq} />
 
-        <div className="mt-12 rounded-3xl bg-brand-50 border border-brand-100 p-8 text-center">
+        <div className="mt-12 rounded-3xl border border-brand-100 bg-brand-50 p-8 text-center">
           <p className="font-display text-lg font-bold text-brown-dark">
-            Не нашли ответ?
+            {t.faqPage.notFoundHeading}
           </p>
-          <p className="mt-2 text-sm text-brown">
-            Напишите нам — ответим в течение нескольких часов
-          </p>
+          <p className="mt-2 text-sm text-brown">{t.faqPage.notFoundLead}</p>
           <Link href="/contact" className="btn-primary mt-4 inline-flex">
-            Написать нам
+            {t.faqPage.notFoundCta}
           </Link>
         </div>
       </div>

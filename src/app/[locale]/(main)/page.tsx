@@ -18,41 +18,12 @@ import Reveal from "@/components/shared/Reveal";
 import SectionDivider from "@/components/shared/SectionDivider";
 import Mascot from "@/components/shared/Mascot";
 import StoryVideoHero from "@/components/media/StoryVideoHero";
-import { mockFAQ } from "@/data/mock";
 import { getFeaturedReviews } from "@/lib/reviews";
-import { BOOK_PAGE_COUNT, bookIncludes } from "@/data/books";
+import { BOOK_PAGE_COUNT } from "@/data/books";
 import { getPublishedProducts } from "@/lib/products";
 import { asLocale, type LocaleParams } from "@/i18n/config";
-
-const trustPoints = [
-  { icon: PenLine, label: "Имя ребёнка в истории" },
-  { icon: ScanFace, label: "Фото в иллюстрациях" },
-  { icon: Layers, label: "Плотная бумага, твёрдый переплёт" },
-  { icon: BookHeart, label: `${BOOK_PAGE_COUNT} иллюстрированных страниц` },
-];
-
-const steps = [
-  {
-    icon: BookOpenCheck,
-    title: "Выберите историю",
-    text: "Истории про машинки, животных и чудеса — отдельно для мальчика и для девочки, от 2 до 9 лет.",
-  },
-  {
-    icon: PenLine,
-    title: "Добавьте имя и фотографию",
-    text: "Имя войдёт в текст, а лицо ребёнка — в иллюстрации.",
-  },
-  {
-    icon: Camera,
-    title: "Проверьте превью",
-    text: "Покажем предварительный макет — вы всё проверите до заказа.",
-  },
-  {
-    icon: PackageOpen,
-    title: "Получите книгу",
-    text: "Печатаем и отправляем настоящую книгу в твёрдой обложке.",
-  },
-];
+import { getDictionary, type Dictionary } from "@/i18n/dictionary";
+import { fill } from "@/i18n/format";
 
 // Prices, availability and the book line-up all come from the database, so the
 // homepage reflects whatever an administrator has published.
@@ -64,6 +35,7 @@ export default async function HomePage({
   params: Promise<LocaleParams>;
 }) {
   const locale = asLocale((await params).locale);
+  const t = getDictionary(locale);
   const [catalogue, featuredReviews] = await Promise.all([
     getPublishedProducts(locale),
     // Only approved reviews an administrator pinned. No reviews yet means
@@ -77,7 +49,21 @@ export default async function HomePage({
   const secondCover = catalogue.find((b) => b.id !== heroBook?.id);
 
   // Nothing published yet — the storefront has no product to show.
-  if (!heroBook) return <EmptyCatalogueNotice />;
+  if (!heroBook) return <EmptyCatalogueNotice t={t} />;
+
+  const trustPoints = [
+    { icon: PenLine, label: t.home.trustName },
+    { icon: ScanFace, label: t.home.trustPhoto },
+    { icon: Layers, label: t.home.trustPaper },
+    { icon: BookHeart, label: fill(t.home.trustPages, { pages: BOOK_PAGE_COUNT }) },
+  ];
+
+  const steps = [
+    { icon: BookOpenCheck, title: t.home.step1Title, text: t.home.step1Text },
+    { icon: PenLine, title: t.home.step2Title, text: t.home.step2Text },
+    { icon: Camera, title: t.home.step3Title, text: t.home.step3Text },
+    { icon: PackageOpen, title: t.home.step4Title, text: t.home.step4Text },
+  ];
 
   return (
     <>
@@ -100,31 +86,30 @@ export default async function HomePage({
               <Reveal>
                 <span className="eyebrow">
                   <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
-                  Персональная сказка о вашем ребёнке
+                  {t.home.heroEyebrow}
                 </span>
               </Reveal>
 
               <Reveal delay={80}>
                 <h1 className="mt-6 font-display text-[2.4rem] font-extrabold leading-[1.08] text-brown-dark sm:text-5xl lg:text-[3.4rem]">
-                  Ваш ребёнок становится{" "}
-                  <span className="text-brand-500">героем настоящей книги</span>
+                  {t.home.heroTitleLead}{" "}
+                  <span className="text-brand-500">{t.home.heroTitleAccent}</span>
                 </h1>
               </Reveal>
 
               <Reveal delay={150}>
                 <p className="mt-6 max-w-lg text-lg leading-relaxed text-brown">
-                  Добавьте имя и фотографию — мы создадим волшебную историю
-                  с вашим ребёнком на каждой странице.
+{t.home.heroLead}
                 </p>
               </Reveal>
 
               <Reveal delay={220}>
                 <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                   <Link href="/catalog" className="btn-primary text-base">
-                    Создать свою книгу
+                    {t.home.heroCtaPrimary}
                   </Link>
                   <Link href="/catalog" className="btn-secondary text-base">
-                    Посмотреть книги
+                    {t.home.heroCtaSecondary}
                   </Link>
                 </div>
               </Reveal>
@@ -135,8 +120,7 @@ export default async function HomePage({
                     <Price amount={heroBook.price} />
                   </span>
                   <span className="text-[15px] text-brown">
-                    Персональная обложка · {BOOK_PAGE_COUNT} иллюстрированных страниц ·
-                    твёрдый переплёт
+{fill(t.home.heroSpec, { pages: BOOK_PAGE_COUNT })}
                   </span>
                 </div>
               </Reveal>
@@ -146,7 +130,7 @@ export default async function HomePage({
             <Reveal delay={120} className="order-1 lg:order-2">
               <StoryVideoHero
                 src="/videos/hero-story.mp4"
-                label="Фотография ребёнка превращается в иллюстрацию, а затем в напечатанную книгу"
+                label={t.home.videoLabel}
                 className="shadow-elevated ring-1 ring-white/60"
                 fallback={
                   <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-200 via-brand-100 to-cream-100">
@@ -187,10 +171,8 @@ export default async function HomePage({
       <section className="relative overflow-hidden bg-parchment py-20 pb-40 md:py-28 md:pb-52">
         <div className="page-container">
           <Reveal className="mx-auto max-w-2xl text-center">
-            <span className="eyebrow">Выберите приключение</span>
-            <h2 className="section-title mt-5">
-              История, в которой главный герой — ваш ребёнок
-            </h2>
+            <span className="eyebrow">{t.home.booksEyebrow}</span>
+            <h2 className="section-title mt-5">{t.home.booksHeading}</h2>
           </Reveal>
 
           <div className="mx-auto mt-14 grid max-w-5xl gap-8 sm:grid-cols-2">
@@ -220,10 +202,10 @@ export default async function HomePage({
         <div className="page-container relative">
           <Reveal className="mx-auto max-w-2xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-white">
-              Как это работает
+              {t.home.howEyebrow}
             </span>
             <h2 className="mt-5 font-display text-3xl font-extrabold leading-[1.15] text-white sm:text-4xl md:text-[2.75rem]">
-              Четыре шага до вашей книги
+              {t.home.howHeading}
             </h2>
           </Reveal>
 
@@ -255,8 +237,7 @@ export default async function HomePage({
           <Reveal delay={200} className="mt-16 flex flex-col items-center gap-6 sm:flex-row sm:justify-center sm:gap-10">
             <Mascot variant={1} float className="w-40 shrink-0 sm:w-48" />
             <p className="max-w-md text-center text-[15px] leading-relaxed text-brand-100/90 sm:text-left">
-              После загрузки фотографии вы увидите предварительный макет и
-              сможете проверить данные перед заказом.
+{t.home.howNote}
             </p>
           </Reveal>
         </div>
@@ -293,26 +274,27 @@ export default async function HomePage({
             </Reveal>
 
             <Reveal delay={120}>
-              <span className="eyebrow">Что вы получите</span>
-              <h2 className="section-title mt-5">Настоящая книга, а не файл</h2>
+              <span className="eyebrow">{t.home.receiveEyebrow}</span>
+              <h2 className="section-title mt-5">{t.home.receiveHeading}</h2>
               <p className="section-subtitle">
-                Мы печатаем и переплетаем каждый экземпляр отдельно — это
-                книга, которую можно поставить на полку и перечитывать годами.
+{t.home.receiveLead}
               </p>
 
               <ul className="mt-8 space-y-3.5">
-                {bookIncludes.map((item) => (
+                {t.bookIncludes.map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-500">
                       <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
                     </span>
-                    <span className="text-[15px] leading-relaxed text-brown">{item}</span>
+                    <span className="text-[15px] leading-relaxed text-brown">
+                      {fill(item, { pages: BOOK_PAGE_COUNT })}
+                    </span>
                   </li>
                 ))}
               </ul>
 
               <Link href="/catalog" className="btn-primary mt-9 text-base">
-                Создать свою книгу
+                {t.home.heroCtaPrimary}
               </Link>
             </Reveal>
           </div>
@@ -327,10 +309,10 @@ export default async function HomePage({
         <section className="relative bg-cream-100 py-20 pb-36 md:py-28 md:pb-44">
           <div className="page-container">
             <Reveal className="mx-auto max-w-2xl text-center">
-              <span className="eyebrow">Отзывы</span>
-              <h2 className="section-title mt-5">Что говорят родители</h2>
+              <span className="eyebrow">{t.home.reviewsEyebrow}</span>
+              <h2 className="section-title mt-5">{t.home.reviewsHeading}</h2>
               <p className="mt-4 text-[15px] text-brown">
-                Отзывы покупателей, получивших книгу.
+                {t.home.reviewsLead}
               </p>
             </Reveal>
 
@@ -356,7 +338,7 @@ export default async function HomePage({
                 href="/reviews"
                 className="text-[15px] font-bold text-brand-500 underline-offset-4 hover:underline"
               >
-                Все отзывы
+                {t.home.reviewsAll}
               </Link>
             </Reveal>
           </div>
@@ -370,18 +352,18 @@ export default async function HomePage({
         <div className="page-container">
           <div className="mx-auto max-w-2xl">
             <Reveal className="text-center">
-              <span className="eyebrow">Вопросы</span>
-              <h2 className="section-title mt-5">Частые вопросы</h2>
+              <span className="eyebrow">{t.home.faqEyebrow}</span>
+              <h2 className="section-title mt-5">{t.home.faqHeading}</h2>
             </Reveal>
             <Reveal delay={100} className="mt-10">
-              <FAQAccordion items={mockFAQ.slice(0, 5)} />
+              <FAQAccordion items={t.faq.slice(0, 5)} />
             </Reveal>
             <Reveal delay={150} className="mt-8 text-center">
               <Link
                 href="/faq"
                 className="text-[15px] font-bold text-brand-500 underline-offset-4 hover:underline"
               >
-                Все вопросы
+                {t.home.faqAll}
               </Link>
             </Reveal>
           </div>
@@ -420,7 +402,7 @@ export default async function HomePage({
         <div className="page-container relative">
           <Reveal>
             <h2 className="mx-auto max-w-2xl font-display text-3xl font-extrabold leading-[1.15] text-white sm:text-4xl md:text-[2.9rem]">
-              Подарите ребёнку историю, которую он запомнит
+              {t.home.ctaHeading}
             </h2>
           </Reveal>
           <Reveal delay={120}>
@@ -428,7 +410,7 @@ export default async function HomePage({
               href="/catalog"
               className="mt-10 inline-flex items-center justify-center rounded-full bg-gold-300 px-8 py-4 text-base font-bold text-brown-dark shadow-[0_14px_36px_rgba(0,0,0,0.32)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-gold-200 active:translate-y-0"
             >
-              Создать персональную книгу
+              {t.home.ctaButton}
             </Link>
           </Reveal>
         </div>
@@ -442,19 +424,19 @@ export default async function HomePage({
  * state rather than a hardcoded fallback book, so the storefront never
  * advertises something that is not actually for sale.
  */
-function EmptyCatalogueNotice() {
+function EmptyCatalogueNotice({ t }: { t: Dictionary }) {
   return (
     <div className="flex min-h-[70vh] items-center justify-center py-20">
       <div className="page-container mx-auto max-w-lg text-center">
         <Mascot variant={1} float />
         <h1 className="mt-8 font-display text-3xl font-extrabold text-brown-dark">
-          Каталог скоро откроется
+          {t.home.emptyHeading}
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-brown">
-          Мы готовим наши истории к публикации. Загляните чуть позже.
+          {t.home.emptyLead}
         </p>
         <Link href="/contact" className="btn-secondary mt-8 inline-flex">
-          Связаться с нами
+          {t.home.emptyCta}
         </Link>
       </div>
     </div>

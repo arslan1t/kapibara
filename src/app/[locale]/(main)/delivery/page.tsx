@@ -3,46 +3,71 @@ import Link from "@/i18n/navigation";
 import { Truck, Printer, CreditCard, ShieldCheck } from "lucide-react";
 import Reveal from "@/components/shared/Reveal";
 import { BOOK_PAGE_COUNT } from "@/data/books";
+import { isOnlinePaymentEnabled } from "@/lib/payments";
+import { asLocale, LOCALE_CONFIG, type LocaleParams } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { fill } from "@/i18n/format";
 
-export const metadata: Metadata = {
-  title: "Доставка и оплата",
-  description:
-    "Как мы печатаем и доставляем персональные книги Капибара, какие есть способы оплаты и что делать при браке.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}): Promise<Metadata> {
+  const t = getDictionary(asLocale((await params).locale));
+  return { title: t.delivery.metaTitle, description: t.delivery.metaDescription };
+}
 
-const blocks = [
-  {
-    icon: Printer,
-    title: "Печать",
-    text: `Каждая книга печатается отдельно под ваш заказ: ${BOOK_PAGE_COUNT} иллюстрированных страниц, твёрдая обложка, квадратный формат. Мы сообщим срок изготовления при подтверждении заказа.`,
-  },
-  {
-    icon: Truck,
-    title: "Доставка",
-    text: "Отправляем по всей России. Стоимость и срок доставки рассчитываются при оформлении заказа — они зависят от вашего города и выбранной службы.",
-  },
-  {
-    icon: CreditCard,
-    title: "Оплата",
-    text: "Банковской картой (Visa, Mastercard, МИР) или через СБП. Способ оплаты подтверждается вместе с заказом.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Если что-то не так",
-    text: "Если книга придёт повреждённой или с браком печати — напишите нам с фотографиями, и мы бесплатно перепечатаем экземпляр.",
-  },
-];
+/**
+ * What the payment section says depends on what the shop can actually take.
+ *
+ * Online payment is not connected, and a page that lists card brands anyway is
+ * making a promise the checkout cannot keep. This reads the gateway
+ * configuration so the page changes by itself the day credentials are added.
+ */
+export const dynamic = "force-dynamic";
 
-export default function DeliveryPage() {
+export default async function DeliveryPage({
+  params,
+}: {
+  params: Promise<LocaleParams>;
+}) {
+  const locale = asLocale((await params).locale);
+  const t = getDictionary(locale);
+  const { region } = LOCALE_CONFIG[locale];
+  const regional = t.delivery.regions[region];
+
+  const blocks = [
+    {
+      icon: Printer,
+      title: t.delivery.printTitle,
+      text: fill(t.delivery.printText, { pages: BOOK_PAGE_COUNT }),
+    },
+    {
+      icon: Truck,
+      title: t.delivery.deliveryTitle,
+      text: regional.delivery,
+    },
+    {
+      icon: CreditCard,
+      title: t.delivery.paymentTitle,
+      text: isOnlinePaymentEnabled()
+        ? t.delivery.paymentOnline
+        : t.delivery.paymentOnConfirmation,
+    },
+    {
+      icon: ShieldCheck,
+      title: t.delivery.defectTitle,
+      text: t.delivery.defectText,
+    },
+  ];
+
   return (
     <div className="py-16 md:py-24">
       <div className="page-container">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <span className="eyebrow">Доставка</span>
-          <h1 className="section-title mt-5">Доставка и оплата</h1>
-          <p className="section-subtitle">
-            Мы печатаем книги под заказ и отправляем их по всей России.
-          </p>
+          <span className="eyebrow">{t.delivery.eyebrow}</span>
+          <h1 className="section-title mt-5">{t.delivery.heading}</h1>
+          <p className="section-subtitle">{regional.lead}</p>
         </Reveal>
 
         <div className="mx-auto mt-14 grid max-w-4xl gap-6 sm:grid-cols-2">
@@ -63,11 +88,11 @@ export default function DeliveryPage() {
 
         <Reveal delay={200} className="mx-auto mt-14 max-w-3xl text-center">
           <p className="text-[15px] leading-relaxed text-brown">
-            Остались вопросы о доставке?{" "}
+            {t.delivery.questionsLead}{" "}
             <Link href="/contact" className="font-bold text-brand-500 hover:underline">
-              Напишите нам
+              {t.delivery.questionsLink}
             </Link>{" "}
-            — ответим и поможем.
+            {t.delivery.questionsTail}
           </p>
         </Reveal>
       </div>

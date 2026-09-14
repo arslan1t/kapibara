@@ -101,7 +101,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
     if (!isAdmin) return NextResponse.redirect(at("/no-access"));
-    return withLocaleCookie(NextResponse.next(), locale);
+    return withLocaleCookie(pass(request, locale), locale);
   }
 
   if (path === "/account" || path.startsWith("/account/")) {
@@ -110,7 +110,7 @@ export async function middleware(request: NextRequest) {
       url.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(url);
     }
-    return withLocaleCookie(NextResponse.next(), locale);
+    return withLocaleCookie(pass(request, locale), locale);
   }
 
   // Signed-in users have no reason to see the auth screens.
@@ -118,7 +118,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(at("/account"));
   }
 
-  return withLocaleCookie(NextResponse.next(), locale);
+  return withLocaleCookie(pass(request, locale), locale);
+}
+
+/**
+ * The locale of the current request, for the few server components that cannot
+ * reach the route parameter.
+ *
+ * `not-found.tsx` is the reason this exists: Next renders it without params,
+ * so a 404 inside the Uzbek site would otherwise come back with a Russian
+ * header and footer.
+ */
+export const LOCALE_HEADER = "x-kapibara-locale";
+
+function pass(request: NextRequest, locale: Locale): NextResponse {
+  const headers = new Headers(request.headers);
+  headers.set(LOCALE_HEADER, locale);
+  return NextResponse.next({ request: { headers } });
 }
 
 /** Keeps the remembered locale in step with the one actually being viewed. */

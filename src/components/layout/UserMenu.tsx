@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { User, ChevronDown, Package, LogOut, LayoutDashboard } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/DictionaryProvider";
 
 interface UserMenuProps {
   user: { name: string; role: string } | null;
@@ -12,6 +13,7 @@ interface UserMenuProps {
 
 /** Header account control: sign-in links when signed out, a menu when signed in. */
 export default function UserMenu({ user }: UserMenuProps) {
+  const t = useDictionary();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -39,19 +41,19 @@ export default function UserMenu({ user }: UserMenuProps) {
           className="hidden h-11 items-center gap-2 rounded-full px-4 text-[15px] font-semibold text-brown-dark transition-colors duration-300 hover:bg-cream-200 sm:flex"
         >
           <User className="h-[19px] w-[19px]" strokeWidth={1.9} />
-          Войти
+          {t.header.signIn}
         </Link>
         <Link
           href="/register"
           className="hidden rounded-full bg-brand-500 px-6 py-3 text-[15px] font-bold text-white shadow-[0_8px_22px_rgba(188,81,41,0.28)] transition-all duration-300 hover:bg-brand-600 sm:inline-flex"
         >
-          Создать аккаунт
+          {t.header.createAccount}
         </Link>
       </div>
     );
   }
 
-  const firstName = user.name.split(" ")[0] || "Профиль";
+  const firstName = user.name.split(" ")[0] || t.header.account;
 
   return (
     <div className="relative" ref={ref}>
@@ -82,7 +84,7 @@ export default function UserMenu({ user }: UserMenuProps) {
               className="flex items-center gap-3 px-5 py-3 text-[15px] font-semibold text-brand-600 transition-colors hover:bg-brand-50"
             >
               <LayoutDashboard className="h-4 w-4" strokeWidth={1.9} />
-              Панель управления
+              {t.header.adminPanel}
             </Link>
           )}
           <Link
@@ -91,7 +93,7 @@ export default function UserMenu({ user }: UserMenuProps) {
             className="flex items-center gap-3 px-5 py-3 text-[15px] text-brown-dark transition-colors hover:bg-cream-100"
           >
             <User className="h-4 w-4" strokeWidth={1.9} />
-            Личный кабинет
+            {t.header.account}
           </Link>
           <Link
             href="/account/orders"
@@ -99,7 +101,7 @@ export default function UserMenu({ user }: UserMenuProps) {
             className="flex items-center gap-3 px-5 py-3 text-[15px] text-brown-dark transition-colors hover:bg-cream-100"
           >
             <Package className="h-4 w-4" strokeWidth={1.9} />
-            Мои заказы
+            {t.header.myOrders}
           </Link>
           <form action={logout} className="border-t border-cream-200">
             <button
@@ -107,7 +109,7 @@ export default function UserMenu({ user }: UserMenuProps) {
               className="flex w-full items-center gap-3 px-5 py-3 text-left text-[15px] text-brown transition-colors hover:bg-cream-100"
             >
               <LogOut className="h-4 w-4" strokeWidth={1.9} />
-              Выйти
+              {t.header.signOut}
             </button>
           </form>
         </div>

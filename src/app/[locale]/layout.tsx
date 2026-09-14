@@ -39,38 +39,59 @@ export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
 }
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "Капибара — Персонализированные детские книги",
-    template: "%s | Капибара",
-  },
-  description:
-    "Создайте уникальную книгу, в которой главным героем станет ваш ребёнок. Вплетите его имя и фото в волшебную историю!",
-  keywords: [
-    "персонализированные книги",
-    "детские книги с именем",
-    "книга с фото ребёнка",
-    "подарок ребёнку",
-    "именная книга",
-  ],
-  openGraph: {
-    title: "Капибара — Персонализированные детские книги",
-    description: "Уникальные книги, где главный герой — ваш ребёнок!",
-    type: "website",
-    locale: "ru_RU",
-    siteName: "Капибара",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Капибара — Персонализированные детские книги",
-    description: "Уникальные книги, где главный герой — ваш ребёнок!",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+/**
+ * Per-locale metadata, including the hreflang set.
+ *
+ * Without `alternates.languages` the three versions of every page compete with
+ * one another in search results as duplicates, and the one that wins is not
+ * necessarily the one in the reader's language.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+
+  const t = getDictionary(locale);
+  const config = LOCALE_CONFIG[locale];
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: { default: t.meta.titleDefault, template: t.meta.titleTemplate },
+    description: t.meta.description,
+    keywords: [
+      t.meta.keyword1,
+      t.meta.keyword2,
+      t.meta.keyword3,
+      t.meta.keyword4,
+      t.meta.keyword5,
+    ],
+    alternates: {
+      canonical: `${siteUrl}/${locale}`,
+      languages: Object.fromEntries(
+        LOCALES.map((other) => [
+          LOCALE_CONFIG[other].htmlLang,
+          `${siteUrl}/${other}`,
+        ])
+      ),
+    },
+    openGraph: {
+      title: t.meta.ogTitle,
+      description: t.meta.ogDescription,
+      type: "website",
+      locale: config.ogLocale,
+      siteName: t.meta.siteName,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t.meta.ogTitle,
+      description: t.meta.ogDescription,
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function RootLayout({
   children,
