@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
   BookHeart,
   Camera,
@@ -11,6 +10,7 @@ import {
   PackageOpen,
 } from "lucide-react";
 import BookCard from "@/components/books/BookCard";
+import BookCover from "@/components/books/BookCover";
 import TestimonialCard from "@/components/shared/TestimonialCard";
 import FAQAccordion from "@/components/shared/FAQAccordion";
 import Reveal from "@/components/shared/Reveal";
@@ -34,7 +34,7 @@ const steps = [
   {
     icon: BookOpenCheck,
     title: "Выберите историю",
-    text: "Две сказки о Колёсике — для мальчика и для девочки.",
+    text: "Истории про машинки, животных и чудеса — отдельно для мальчика и для девочки, от 2 до 9 лет.",
   },
   {
     icon: PenLine,
@@ -144,14 +144,9 @@ export default async function HomePage() {
                 className="shadow-elevated ring-1 ring-white/60"
                 fallback={
                   <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-200 via-brand-100 to-cream-100">
-                    <Image
-                      src={heroBook.image}
-                      alt={`Обложка книги «${heroBook.title}»`}
-                      width={520}
-                      height={520}
-                      priority
-                      className="h-[86%] w-auto object-contain drop-shadow-2xl"
-                    />
+                    <div className="w-[62%] max-w-[360px]">
+                      <BookCover book={heroBook} size="md" priority />
+                    </div>
                   </div>
                 }
               />
@@ -276,24 +271,17 @@ export default async function HomePage() {
                 {/* Two covers, layered like books on a table */}
                 <div className="relative flex items-center justify-center">
                   {secondCover && (
-                    <Image
-                      src={secondCover.image}
-                      alt=""
-                      aria-hidden="true"
-                      width={420}
-                      height={420}
-                      className="w-[52%] -rotate-6 rounded-2xl drop-shadow-2xl"
-                    />
+                    <div aria-hidden="true" className="w-[52%] -rotate-6">
+                      <BookCover book={secondCover} size="sm" />
+                    </div>
                   )}
-                  <Image
-                    src={heroBook.image}
-                    alt={`Обложка книги «${heroBook.title}»`}
-                    width={460}
-                    height={460}
-                    className={`w-[58%] rotate-3 rounded-2xl drop-shadow-2xl ${
+                  <div
+                    className={`relative z-10 w-[58%] rotate-3 ${
                       secondCover ? "-ml-14" : ""
                     }`}
-                  />
+                  >
+                    <BookCover book={heroBook} size="md" />
+                  </div>
                 </div>
               </div>
             </Reveal>

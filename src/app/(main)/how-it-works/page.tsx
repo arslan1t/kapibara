@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import {
   BookOpenCheck,
   PenLine,
@@ -9,6 +8,7 @@ import {
   Check,
   ShieldCheck,
 } from "lucide-react";
+import BookCover from "@/components/books/BookCover";
 import Reveal from "@/components/shared/Reveal";
 import SectionDivider from "@/components/shared/SectionDivider";
 import StoryVideoHero from "@/components/media/StoryVideoHero";
@@ -25,7 +25,7 @@ const steps = [
   {
     icon: BookOpenCheck,
     title: "Выберите историю",
-    text: "Две сказки о говорящем автомобильчике Колёсике — одна про мальчика, другая про девочку. Обе одинаковой длины и качества печати.",
+    text: "Истории про машинки, животных и чудеса — отдельно для мальчика и для девочки, от 2 до 9 лет. Все книги одинаковой длины и качества печати.",
   },
   {
     icon: PenLine,
@@ -59,6 +59,10 @@ export const dynamic = "force-dynamic";
 export default async function HowItWorksPage() {
   const catalogue = await getPublishedProducts();
   const heroBook = catalogue.find((b) => b.available) ?? catalogue[0];
+  // Two covers, layered like books on a table. The catalogue has grown well
+  // past the pair this arrangement was drawn for; rendering all of it turned
+  // the illustration into a ribbon of thumbnails.
+  const stack = catalogue.slice(0, 2);
 
   return (
     <>
@@ -81,14 +85,9 @@ export default async function HowItWorksPage() {
               className="shadow-elevated ring-1 ring-white/60"
               fallback={
                 <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-cream-200 via-cream-100 to-gold-100">
-                  <Image
-                    src={heroBook.image}
-                    alt={`Обложка книги «${heroBook.title}»`}
-                    width={520}
-                    height={520}
-                    priority
-                    className="h-[86%] w-auto object-contain drop-shadow-2xl"
-                  />
+                  <div className="w-[46%] max-w-[360px]">
+                    <BookCover book={heroBook} size="md" priority />
+                  </div>
                 </div>
               }
             />
@@ -181,19 +180,17 @@ export default async function HowItWorksPage() {
                   aria-hidden="true"
                   className="absolute inset-8 rounded-full bg-gold-200/35 blur-3xl"
                 />
-                {catalogue.map((book, i) => (
-                  <Image
+                {stack.map((book, i) => (
+                  <div
                     key={book.id}
-                    src={book.image}
-                    alt={`Обложка книги «${book.title}»`}
-                    width={440}
-                    height={440}
                     className={
                       i === 0
-                        ? "relative w-[48%] -rotate-3 rounded-3xl drop-shadow-2xl"
-                        : "relative -ml-8 w-[48%] rotate-3 rounded-3xl drop-shadow-2xl"
+                        ? "relative w-[48%] -rotate-3"
+                        : "relative z-10 -ml-8 w-[48%] rotate-3"
                     }
-                  />
+                  >
+                    <BookCover book={book} size="sm" />
+                  </div>
                 ))}
               </div>
             </Reveal>

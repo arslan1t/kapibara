@@ -39,14 +39,14 @@ export default function PreviewBook({ project, job }: PreviewBookProps) {
             below the fold. */}
         {illustration ? (
           <figure>
-            <Image
-              src={`/api/uploads/${illustration.storageKey}`}
-              alt={`${personalization.childName} в иллюстрации из книги`}
-              width={720}
-              height={720}
-              unoptimized
+            <BookCover
+              book={{
+                image: `/api/uploads/${illustration.storageKey}`,
+                title: `${book.title} — ${personalization.childName}`,
+              }}
+              size="lg"
               priority
-              className="aspect-square w-full rounded-3xl object-cover"
+              unoptimized
             />
             <figcaption className="mt-3 text-center text-sm text-brown">
               {personalization.childName} в сцене из книги

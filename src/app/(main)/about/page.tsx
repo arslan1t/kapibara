@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { Heart, Printer, ShieldCheck, Sparkles } from "lucide-react";
+import BookCover from "@/components/books/BookCover";
 import Reveal from "@/components/shared/Reveal";
 import SectionDivider from "@/components/shared/SectionDivider";
 import { getPublishedProducts } from "@/lib/products";
@@ -35,6 +35,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AboutPage() {
   const catalogue = await getPublishedProducts();
+  // Two covers, overlapped. See the note in how-it-works: the arrangement only
+  // works for a pair, and the catalogue is far longer than that now.
+  const stack = catalogue.slice(0, 2);
 
   return (
     <>
@@ -57,19 +60,17 @@ export default async function AboutPage() {
 
           <Reveal delay={140} className="mx-auto mt-14 max-w-3xl">
             <div className="flex items-center justify-center">
-              {catalogue.map((book, i) => (
-                <Image
+              {stack.map((book, i) => (
+                <div
                   key={book.id}
-                  src={book.image}
-                  alt={`Обложка книги «${book.title}»`}
-                  width={440}
-                  height={440}
                   className={
                     i === 0
-                      ? "w-[46%] -rotate-3 rounded-3xl drop-shadow-2xl"
-                      : "-ml-8 w-[46%] rotate-3 rounded-3xl drop-shadow-2xl"
+                      ? "w-[46%] -rotate-3"
+                      : "relative z-10 -ml-8 w-[46%] rotate-3"
                   }
-                />
+                >
+                  <BookCover book={book} size="sm" />
+                </div>
               ))}
             </div>
           </Reveal>
@@ -93,9 +94,10 @@ export default async function AboutPage() {
                   снова и снова.
                 </p>
                 <p>
-                  Поэтому мы начали с одной истории про автомобильчика Колёсика —
-                  и сделали две её версии, для мальчика и для девочки. Сейчас
-                  работаем над продолжением серии.
+                  Мы начали с одной истории про автомобильчика Колёсика — в двух
+                  версиях, для мальчика и для девочки. Сегодня в каталоге{" "}
+                  {catalogue.length} историй для детей от 2 до 9 лет, и серия
+                  продолжает расти.
                 </p>
               </div>
             </Reveal>
