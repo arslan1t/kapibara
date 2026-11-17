@@ -56,7 +56,7 @@ export async function resetDatabase(): Promise<void> {
     TRUNCATE TABLE
       generation_results, generation_jobs, reviews, payments,
       order_status_history, personalizations, order_items, orders,
-      product_images, product_variants, products,
+      product_images, product_translations, product_variants, products,
       consents, verification_tokens, users,
       email_messages, rate_limit_counters
     RESTART IDENTITY CASCADE

@@ -355,3 +355,51 @@ describe("Click SHOP API", () => {
     assert.equal(after?.paymentStatus, "unpaid");
   });
 });
+
+describe("Uzbek product wording in the back office", () => {
+  after(async () => {
+    await db.$disconnect();
+  });
+  beforeEach(async () => {
+    await resetDatabase();
+    configure();
+  });
+
+  // The half-filled case is refused in validateProduct, which cannot be
+  // reached from here: importing a server action pulls in Next's client
+  // navigation context and the module graph does not load under the test
+  // runner. What is asserted instead is the rule underneath it, which is the
+  // one that holds even if the form is bypassed entirely.
+
+  test("the database refuses an empty translation outright", async () => {
+    const product = await createProduct();
+    await assert.rejects(() =>
+      db.productTranslation.create({
+        data: {
+          productId: product.id,
+          language: "uz",
+          title: "",
+          shortTitle: "",
+          shortDescription: "",
+          description: "",
+        },
+      })
+    );
+  });
+
+  test("only Uzbek may be stored as a translation — Russian lives on the product", async () => {
+    const product = await createProduct();
+    await assert.rejects(() =>
+      db.productTranslation.create({
+        data: {
+          productId: product.id,
+          language: "ru",
+          title: "T",
+          shortTitle: "T",
+          shortDescription: "S",
+          description: "D",
+        },
+      })
+    );
+  });
+});

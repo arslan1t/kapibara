@@ -36,6 +36,11 @@ export default function ProductForm({ productId, initial }: Props) {
     oldPrice: initial?.oldPrice ?? null,
     priceUzs: initial?.priceUzs ?? null,
     oldPriceUzs: initial?.oldPriceUzs ?? null,
+    titleUz: initial?.titleUz ?? "",
+    shortTitleUz: initial?.shortTitleUz ?? "",
+    shortDescriptionUz: initial?.shortDescriptionUz ?? "",
+    descriptionUz: initial?.descriptionUz ?? "",
+    ageRangeUz: initial?.ageRangeUz ?? "",
     status: initial?.status ?? "coming_soon",
     published: initial?.published ?? false,
     featured: initial?.featured ?? false,
@@ -325,6 +330,76 @@ export default function ProductForm({ productId, initial }: Props) {
           Показывать как рекомендованный
         </label>
       </div>
+
+      {/* ── Uzbek wording ──
+          Separate from the Russian fields above rather than interleaved with
+          them: filling in half a translation produces a card with an Uzbek
+          title and a Russian description, which reads as a bug. Leaving the
+          whole block empty is fine — the Uzbek site then shows the Russian
+          text, which is worse than a translation and much better than nothing. */}
+      <fieldset className="rounded-2xl border border-cream-300 p-5">
+        <legend className="px-2 text-sm font-bold text-brown-dark">
+          Узбекская версия{" "}
+          <span className="font-normal text-brown-300">
+            (необязательно, но заполняется целиком)
+          </span>
+        </legend>
+
+        <div className="mt-2 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="p-title-uz" className={label}>Название, oʻzbekcha</label>
+            <input
+              id="p-title-uz"
+              className={`${field} mt-1.5`}
+              value={form.titleUz ?? ""}
+              placeholder="Qizcha va Kit bolasi sarguzashtlari"
+              onChange={(e) => set("titleUz", e.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="p-short-title-uz" className={label}>Короткое название</label>
+            <input
+              id="p-short-title-uz"
+              className={`${field} mt-1.5`}
+              value={form.shortTitleUz ?? ""}
+              placeholder="Qizcha va Kit bolasi"
+              onChange={(e) => set("shortTitleUz", e.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="p-age-uz" className={label}>Возраст, oʻzbekcha</label>
+            <input
+              id="p-age-uz"
+              className={`${field} mt-1.5`}
+              value={form.ageRangeUz ?? ""}
+              placeholder="3-7 yosh"
+              onChange={(e) => set("ageRangeUz", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="p-short-desc-uz" className={label}>Краткое описание</label>
+          <textarea
+            id="p-short-desc-uz"
+            rows={2}
+            className={`${field} mt-1.5 resize-y`}
+            value={form.shortDescriptionUz ?? ""}
+            onChange={(e) => set("shortDescriptionUz", e.target.value)}
+          />
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="p-desc-uz" className={label}>Полное описание</label>
+          <textarea
+            id="p-desc-uz"
+            rows={4}
+            className={`${field} mt-1.5 resize-y`}
+            value={form.descriptionUz ?? ""}
+            onChange={(e) => set("descriptionUz", e.target.value)}
+          />
+        </div>
+      </fieldset>
 
       {error && (
         <p

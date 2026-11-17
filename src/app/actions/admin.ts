@@ -211,6 +211,20 @@ export type ProductInput = {
    */
   priceUzs?: number | null;
   oldPriceUzs?: number | null;
+
+  /**
+   * The book's own words in Uzbek.
+   *
+   * Optional as a group: a book with no Uzbek text still appears on the Uzbek
+   * site, in Russian, which is worse than a translation and much better than
+   * an empty page. Supplying some but not all of the four is refused, because
+   * a card with an Uzbek title and a Russian description reads as a bug.
+   */
+  titleUz?: string | null;
+  shortTitleUz?: string | null;
+  shortDescriptionUz?: string | null;
+  descriptionUz?: string | null;
+  ageRangeUz?: string | null;
   status: string;
   published: boolean;
   featured: boolean;
@@ -246,6 +260,17 @@ function validateProduct(input: ProductInput): string | null {
     (input.priceUzs == null || input.oldPriceUzs <= input.priceUzs)
   ) {
     return "Старая цена в сумах должна быть больше текущей";
+  }
+
+  const uzFields = [
+    input.titleUz,
+    input.shortTitleUz,
+    input.shortDescriptionUz,
+    input.descriptionUz,
+  ].map((value) => (value ?? "").trim());
+  const filled = uzFields.filter(Boolean).length;
+  if (filled > 0 && filled < uzFields.length) {
+    return "Узбекский перевод заполняется целиком: название, короткое название, краткое и полное описание";
   }
   if (!(PRODUCT_STATUSES as readonly string[]).includes(input.status)) {
     return "Неизвестный статус товара";
@@ -294,11 +319,45 @@ export async function createProduct(input: ProductInput): Promise<Result & { id?
     select: { id: true },
   });
 
+  await saveUzbekTranslation(created.id, input);
+
   await audit(admin, "product.created", "product", created.id, input.slug);
 
   revalidatePath("/admin/products");
   revalidatePath("/catalog");
   return { ok: true, id: created.id };
+}
+
+/**
+ * Writes or removes a product's Uzbek wording.
+ *
+ * Clearing all four fields deletes the row rather than storing empty strings:
+ * an empty translation and no translation mean the same thing to the
+ * storefront, and only one of them is a state the database CHECK allows.
+ */
+async function saveUzbekTranslation(
+  productId: string,
+  input: ProductInput
+): Promise<void> {
+  const title = (input.titleUz ?? "").trim();
+  const shortTitle = (input.shortTitleUz ?? "").trim();
+  const shortDescription = (input.shortDescriptionUz ?? "").trim();
+  const description = (input.descriptionUz ?? "").trim();
+  const ageRange = (input.ageRangeUz ?? "").trim() || null;
+
+  if (!title || !shortTitle || !shortDescription || !description) {
+    await db.productTranslation.deleteMany({
+      where: { productId, language: "uz" },
+    });
+    return;
+  }
+
+  const data = { title, shortTitle, shortDescription, description, ageRange };
+  await db.productTranslation.upsert({
+    where: { productId_language: { productId, language: "uz" } },
+    update: data,
+    create: { productId, language: "uz", ...data },
+  });
 }
 
 export async function updateProduct(
@@ -318,6 +377,8 @@ export async function updateProduct(
 
   const existing = await db.product.findUnique({ where: { id } });
   if (!existing) return { ok: false, error: "Товар не найден" };
+
+  await saveUzbekTranslation(id, input);
 
   await db.product.update({
     where: { id },

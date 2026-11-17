@@ -16,10 +16,15 @@ export default async function EditProductPage({
   const { id } = await params;
   const product = await db.product.findUnique({
     where: { id },
-    include: { images: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+      translations: true,
+    },
   });
 
   if (!product) notFound();
+
+  const uz = product.translations.find((t) => t.language === "uz");
 
   return (
     <div>
@@ -65,6 +70,14 @@ export default async function EditProductPage({
             ageMax: product.ageMax,
             pageCount: product.pageCount,
             childGender: product.childGender,
+            coverImage: product.coverImage,
+            priceUzs: product.priceUzs,
+            oldPriceUzs: product.oldPriceUzs,
+            titleUz: uz?.title ?? "",
+            shortTitleUz: uz?.shortTitle ?? "",
+            shortDescriptionUz: uz?.shortDescription ?? "",
+            descriptionUz: uz?.description ?? "",
+            ageRangeUz: uz?.ageRange ?? "",
           }}
         />
       </div>
