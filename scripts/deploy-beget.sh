@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 #
-# Deploys Капибара to Beget shared hosting.
+# Deploys the RUSSIAN Капибара to Beget shared hosting — capibara.su.
+#
+# The Uzbek site is a separate deployment on separate infrastructure with a
+# separate database; see scripts/deploy-uz.sh. This script refuses to run
+# against a server whose .env declares a different market, because pushing the
+# Uzbek build here would put sum prices and an Uzbek seller on capibara.su.
 #
 #   ./scripts/deploy-beget.sh
 #
@@ -150,6 +155,7 @@ chmod 600 "$REMOTE_DIR/.env"
 # Report which required keys are absent, by name only — never a value.
 missing=""
 for key in DATABASE_URL DIRECT_URL AUTH_SECRET NEXT_PUBLIC_SITE_URL \
+           NEXT_PUBLIC_MARKET \
            STORAGE_DRIVER SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY \
            SUPABASE_PRIVATE_BUCKET SUPABASE_PUBLIC_BUCKET; do
   grep -qE "^${key}=.+" "$REMOTE_DIR/.env" || missing="$missing $key"
@@ -158,7 +164,17 @@ if [ -n "$missing" ]; then
   echo "These required variables are empty or absent in .env:$missing" >&2
   exit 1
 fi
-echo "all required variables present"
+
+# The market is checked, not assumed. The build inlines it, so deploying with
+# the wrong value would serve one country's prices under the other country's
+# law — and nothing later in this script would notice.
+market=$(grep -E '^NEXT_PUBLIC_MARKET=' "$REMOTE_DIR/.env" | head -1 | cut -d= -f2- | tr -d '"'"'"' ')
+if [ "$market" != "RU" ]; then
+  echo "This script deploys the Russian site, but .env declares NEXT_PUBLIC_MARKET=$market." >&2
+  echo "Use scripts/deploy-uz.sh for the Uzbek site." >&2
+  exit 1
+fi
+echo "all required variables present; market=RU"
 REMOTE
 
 say "Installing dependencies and building (this generates the Linux Prisma engine)"

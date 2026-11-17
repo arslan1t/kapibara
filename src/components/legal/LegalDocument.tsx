@@ -52,6 +52,7 @@ export default function LegalDocument({
     // market, and "СТИР (ИНН)" in the middle of an Uzbek sentence is the one
     // Cyrillic string a reader of the Uzbek document would trip over.
     taxIdLabel: labels.taxId,
+    registrationIdLabel: labels.registrationId,
     registrationId: orNotSet(seller.registrationId),
     registeredOn: orNotSet(seller.registeredOn),
     address: orNotSet(seller.address),
