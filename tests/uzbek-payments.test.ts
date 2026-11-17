@@ -1,6 +1,13 @@
 import { test, describe, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { db, resetDatabase, createUser, createProduct, createOrder } from "./helpers";
+import {
+  db,
+  resetDatabase,
+  createUser,
+  createProduct,
+  createOrder,
+  expectRejected,
+} from "./helpers";
 
 /**
  * Payme and Click.
@@ -371,35 +378,44 @@ describe("Uzbek product wording in the back office", () => {
   // runner. What is asserted instead is the rule underneath it, which is the
   // one that holds even if the form is bypassed entirely.
 
+  // expectRejected rather than assert.rejects: PGlite drops the session on a
+  // CHECK violation, so the next query — including the reset that starts the
+  // following test — fails on a closed connection. The helper reconnects.
   test("the database refuses an empty translation outright", async () => {
     const product = await createProduct();
-    await assert.rejects(() =>
-      db.productTranslation.create({
-        data: {
-          productId: product.id,
-          language: "uz",
-          title: "",
-          shortTitle: "",
-          shortDescription: "",
-          description: "",
-        },
-      })
+    await expectRejected(
+      "an Uzbek translation with empty text",
+      () =>
+        db.productTranslation.create({
+          data: {
+            productId: product.id,
+            language: "uz",
+            title: "",
+            shortTitle: "",
+            shortDescription: "",
+            description: "",
+          },
+        }),
+      async () => (await db.productTranslation.count()) === 0
     );
   });
 
   test("only Uzbek may be stored as a translation — Russian lives on the product", async () => {
     const product = await createProduct();
-    await assert.rejects(() =>
-      db.productTranslation.create({
-        data: {
-          productId: product.id,
-          language: "ru",
-          title: "T",
-          shortTitle: "T",
-          shortDescription: "S",
-          description: "D",
-        },
-      })
+    await expectRejected(
+      "a Russian row in the translations table",
+      () =>
+        db.productTranslation.create({
+          data: {
+            productId: product.id,
+            language: "ru",
+            title: "T",
+            shortTitle: "T",
+            shortDescription: "S",
+            description: "D",
+          },
+        }),
+      async () => (await db.productTranslation.count()) === 0
     );
   });
 });
