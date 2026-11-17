@@ -25,11 +25,15 @@ import type {
  * on this integration, so the conversion happens in exactly two places below
  * and nowhere else.
  *
- * NOT YET VERIFIED AGAINST THE LIVE PROVIDER. The protocol below is written
- * from Payme's published Merchant API specification; no request has been made
- * with real credentials, because there are none yet. It must be run through
- * Payme's own test suite in the merchant cabinet before the Uzbek site takes
- * a real payment.
+ * Checked against developer.help.paycom.uz on 17.11.2026: the six methods, the
+ * Basic authorization header, and the rule that every answer — including an
+ * error — must carry HTTP 200, because Payme reads a non-200 as RPC error
+ * -32400 rather than as the error we are trying to report.
+ *
+ * STILL NOT VERIFIED AGAINST THE LIVE PROVIDER. No request has been made with
+ * real credentials, because there are none yet. It must be run through Payme's
+ * sandbox from the merchant cabinet before the Uzbek site takes a real
+ * payment.
  */
 
 const CHECKOUT_URL = "https://checkout.paycom.uz";

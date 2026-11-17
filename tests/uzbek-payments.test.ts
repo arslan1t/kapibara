@@ -403,3 +403,43 @@ describe("Uzbek product wording in the back office", () => {
     );
   });
 });
+
+describe("Click prepare id stays inside the type Click declares", () => {
+  after(async () => {
+    await db.$disconnect();
+  });
+  beforeEach(async () => {
+    await resetDatabase();
+    configure();
+  });
+
+  test("merchant_prepare_id fits in a 32-bit signed integer", async () => {
+    const { handleClickPrepare, clickSignature } = await import(
+      "../src/lib/payments/click"
+    );
+    const order = await uzbekOrder();
+
+    // Repeated, because the value is random and a range violation would
+    // otherwise show up only occasionally in production.
+    for (let i = 0; i < 25; i++) {
+      await db.payment.deleteMany({});
+      const params: Record<string, string> = {
+        click_trans_id: `ck-${i}`,
+        service_id: CLICK_SERVICE,
+        merchant_trans_id: order.id,
+        amount: "1290000.00",
+        action: "0",
+        error: "0",
+        sign_time: "2026-11-17 10:00:00",
+        sign_string: "",
+      };
+      params.sign_string = clickSignature(params as never, CLICK_SECRET);
+      const answer = await handleClickPrepare(params as never);
+
+      assert.equal(answer.error, 0);
+      const value = Number(answer.merchant_prepare_id);
+      assert.ok(Number.isInteger(value), `not an integer: ${value}`);
+      assert.ok(value >= 0 && value <= 2_147_483_647, `out of int32 range: ${value}`);
+    }
+  });
+});

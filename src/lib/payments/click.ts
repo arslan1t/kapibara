@@ -25,10 +25,14 @@ import type {
  * sort of thing that produces a hundredfold error, so each conversion lives in
  * its own file and neither is shared.
  *
- * NOT YET VERIFIED AGAINST THE LIVE PROVIDER. Written from Click's published
- * SHOP API specification; no request has been made with real credentials,
- * because there are none yet. It must be run through Click's test merchant
- * before the Uzbek site takes a real payment.
+ * Checked line by line against docs.click.uz on 17.11.2026: both signature
+ * formulas, the form-encoded request and JSON response, the amount in sum, the
+ * full error table, and the rule that a negative `error` from Click means
+ * annul the payment and answer -9.
+ *
+ * STILL NOT VERIFIED AGAINST THE LIVE PROVIDER. No request has been made with
+ * real credentials, because there are none yet. It must be run through Click's
+ * test merchant before the Uzbek site takes a real payment.
  */
 
 const CHECKOUT_URL = "https://my.click.uz/services/pay";
@@ -225,9 +229,15 @@ export async function handleClickPrepare(
     return refuse(params, CLICK_ERRORS.incorrectAmount);
   }
 
-  // Our own id for this attempt, quoted back to us on Complete. Click requires
-  // an integer, and milliseconds are unique enough for one order's attempts.
-  const prepareId = String(Date.now());
+  // Our own id for this attempt, quoted back to us on Complete.
+  //
+  // Click's specification types merchant_prepare_id as `int`, so it has to fit
+  // in 32 bits — milliseconds since the epoch do not, and a value Click
+  // truncates would never match on the way back. Nine random digits fit with
+  // room to spare, and uniqueness only has to hold within one transaction:
+  // Complete is looked up by click_trans_id, and the prepare id is then
+  // checked against that one row.
+  const prepareId = String(Math.floor(Math.random() * 1_000_000_000));
   const state: ClickState = {
     clickTransId: params.click_trans_id,
     prepareId,
