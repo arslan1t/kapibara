@@ -24,7 +24,7 @@ import {
   passwordResetTemplate,
 } from "@/lib/mail";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
-import { localeFromSegment } from "@/i18n/market";
+import { localeFromSegment, localeFromStored } from "@/i18n/market";
 
 export type RecoveryResult =
   | { ok: true; notice: string }
@@ -146,7 +146,7 @@ export async function requestPasswordReset(input: {
   // The account's own language, not the one the request came in on: the link
   // is a credential for that account, and its owner may not be the person at
   // the keyboard.
-  const userLocale = localeFromSegment(user.locale);
+  const userLocale = localeFromStored(user.locale);
   const { token } = await issueToken(user.id, "password_reset");
   await sendEmail(
     user.email,

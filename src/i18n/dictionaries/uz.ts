@@ -236,7 +236,7 @@ export const uz: Dictionary = {
 
     paymentTitle: "Toʻlov",
     paymentOnline:
-      "Buyurtma rasmiylashtirilayotganda bank kartasi orqali onlayn. Toʻlov usuli buyurtma bilan birga tasdiqlanadi.",
+      "Buyurtma rasmiylashtirilayotganda onlayn. Karta maʼlumotlari toʻlov tizimi tomonida kiritiladi — biz ularni olmaymiz va saqlamaymiz.",
     paymentOnConfirmation:
       "Saytda onlayn toʻlov hozircha ulanmagan. Siz buyurtma berasiz, menejer siz bilan bogʻlanadi, yetkazib berish bilan birga umumiy narxni tasdiqlaydi va toʻlov rekvizitlarini yuboradi.",
 
@@ -896,6 +896,18 @@ export const uz: Dictionary = {
     in_delivery: "Buyurtma yetkazib berishga topshirildi.",
     completed: "Buyurtma yetkazildi. {brand} ni tanlaganingiz uchun rahmat!",
     cancelled: "Buyurtma bekor qilindi. Agar bu xato boʻlsa, bizga yozing.",
+  },
+
+  payment: {
+    chooseHeading: "Toʻlov usulini tanlang",
+    payme: "Payme",
+    paymeNote: "UZCARD, HUMO kartalari va Payme ilovasi",
+    click: "Click",
+    clickNote: "UZCARD, HUMO kartalari va Click ilovasi",
+    yookassa: "Bank kartasi",
+    yookassaNote: "Bankning himoyalangan sahifasida karta orqali toʻlov",
+    manual: "Tasdiqlashda toʻlov",
+    manualNote: "Menejer siz bilan bogʻlanadi va rekvizitlarni yuboradi",
   },
 
   catalog: {

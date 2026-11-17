@@ -11,7 +11,8 @@ import { LOCALE_CONFIG, REGION_CONFIG } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
 import { fill } from "@/i18n/format";
 import { isPurchasable, isDeliveryMethod } from "@/lib/constants";
-import { startPayment } from "@/lib/payments";
+import { isProviderOffered, startPayment } from "@/lib/payments";
+import type { PaymentProvider } from "@/lib/constants";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
 import { sendOrderCreatedEmail } from "@/lib/mail/order-mail";
 import { issueOrderClaim, readJobClaim } from "@/lib/claim";
@@ -58,6 +59,13 @@ export type CreateOrderInput = {
   deliveryMethod: string;
   deliveryAddress: string;
   customerComment?: string;
+  /**
+   * The payment provider the customer chose, when this market offers more than
+   * one. Validated server-side against what is actually configured here: a
+   * request naming a provider we do not serve falls back to the default rather
+   * than being honoured.
+   */
+  paymentProvider?: string;
   items: CheckoutItem[];
 };
 
@@ -362,7 +370,11 @@ export async function createOrder(
 
     // Opens a payment attempt. With an online provider configured this returns
     // a redirect URL; otherwise it records payment-on-confirmation.
-    const payment = await startPayment(order.id);
+    const chosen = input.paymentProvider as PaymentProvider | undefined;
+    const payment = await startPayment(
+      order.id,
+      chosen && isProviderOffered(chosen) ? chosen : undefined
+    );
 
     // The confirmation email is not worth failing a placed order over.
     void sendOrderCreatedEmail(order.id).catch(() => {});

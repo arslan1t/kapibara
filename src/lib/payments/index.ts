@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import {
   PAYMENT_PROVIDERS,
+  PAYMENT_PROVIDER_MARKET,
   type PaymentProvider,
   type PaymentAttemptStatus,
 } from "@/lib/constants";
@@ -12,36 +13,65 @@ import { logger } from "@/lib/logger";
 import type { PaymentGateway, ProviderEvent } from "./types";
 import { manualGateway } from "./manual";
 import { yookassaGateway } from "./yookassa";
-import { localeFromSegment } from "@/i18n/market";
+import { paymeGateway } from "./payme";
+import { clickGateway } from "./click";
+import { MARKET, localeFromStored } from "@/i18n/market";
 
 export type { PaymentGateway, ProviderEvent } from "./types";
 
 const GATEWAYS: Record<PaymentProvider, PaymentGateway> = {
   manual: manualGateway,
   yookassa: yookassaGateway,
+  payme: paymeGateway,
+  click: clickGateway,
 };
 
 export function getGateway(provider: PaymentProvider): PaymentGateway {
   return GATEWAYS[provider];
 }
 
-/** Providers that actually have credentials, in the order they are offered. */
+/**
+ * Providers this market can actually charge with, in the order they are
+ * offered.
+ *
+ * Two filters, both necessary. Credentials, because a provider without them
+ * takes the customer to a page that cannot charge their card. And market,
+ * because YooKassa cannot settle in sum and Payme cannot settle in roubles —
+ * offering one outside its country is a dead end dressed as a choice.
+ *
+ * "manual" is excluded: it is the fallback when this list is empty, not an
+ * option alongside the others.
+ */
+export function onlineProviders(): PaymentProvider[] {
+  return PAYMENT_PROVIDERS.filter((provider) => {
+    if (provider === "manual") return false;
+    const market = PAYMENT_PROVIDER_MARKET[provider];
+    if (market !== "any" && market !== MARKET) return false;
+    return GATEWAYS[provider].isConfigured();
+  });
+}
+
+/** Every provider with credentials, including manual. Used by the back office. */
 export function availableProviders(): PaymentProvider[] {
-  return PAYMENT_PROVIDERS.filter((p) => GATEWAYS[p].isConfigured());
+  return ["manual", ...onlineProviders()];
 }
 
 /**
- * Which provider a new order should use.
- *
- * Online payment wins when it is configured, because a customer who can pay now
- * usually wants to. Falls back to payment on confirmation, which always works.
+ * Which provider a new order should use when the customer expressed no
+ * preference. Falls back to payment on agreement, which always works.
  */
 export function defaultProvider(): PaymentProvider {
-  return yookassaGateway.isConfigured() ? "yookassa" : "manual";
+  return onlineProviders()[0] ?? "manual";
 }
 
+/** True when this market can take money online at all. */
 export function isOnlinePaymentEnabled(): boolean {
-  return yookassaGateway.isConfigured();
+  return onlineProviders().length > 0;
+}
+
+/** Whether a provider may be used for an order placed in this market. */
+export function isProviderOffered(provider: PaymentProvider): boolean {
+  return provider === "manual" || onlineProviders().includes(provider);
 }
 
 export interface StartPaymentResult {
@@ -59,7 +89,15 @@ export interface StartPaymentResult {
  * that governs order pricing. An idempotency key is generated per attempt and
  * replayed to the provider so a double-submit cannot produce two charges.
  */
-export async function startPayment(orderId: string): Promise<StartPaymentResult> {
+export async function startPayment(
+  orderId: string,
+  /**
+   * The provider the customer picked. Validated against what this market
+   * offers — a request naming a provider we do not serve is refused rather
+   * than silently redirected to a different one.
+   */
+  requested?: PaymentProvider
+): Promise<StartPaymentResult> {
   const order = await db.order.findUnique({
     where: { id: orderId },
     select: {
@@ -69,6 +107,7 @@ export async function startPayment(orderId: string): Promise<StartPaymentResult>
       customerEmail: true,
       paymentStatus: true,
       locale: true,
+      currency: true,
     },
   });
 
@@ -77,7 +116,8 @@ export async function startPayment(orderId: string): Promise<StartPaymentResult>
     return { ok: false, error: "Заказ уже оплачен" };
   }
 
-  const provider = defaultProvider();
+  const provider =
+    requested && isProviderOffered(requested) ? requested : defaultProvider();
   const gateway = getGateway(provider);
   const idempotencyKey = randomUUID();
 
@@ -87,6 +127,7 @@ export async function startPayment(orderId: string): Promise<StartPaymentResult>
       provider,
       status: "pending",
       amount: order.total,
+      currency: order.currency,
       idempotencyKey,
     },
   });
@@ -97,7 +138,7 @@ export async function startPayment(orderId: string): Promise<StartPaymentResult>
     amount: order.total,
     description: `Заказ ${order.orderNumber} — Капибара`,
     customerEmail: order.customerEmail,
-    returnUrl: absoluteUrl(`/order-success?order=${order.id}`, localeFromSegment(order.locale)),
+    returnUrl: absoluteUrl(`/order-success?order=${order.id}`, localeFromStored(order.locale)),
     idempotencyKey,
   });
 

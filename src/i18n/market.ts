@@ -102,6 +102,26 @@ export function segmentForLocale(locale: Locale): Language {
 }
 
 /**
+ * Narrows a locale read back from the database.
+ *
+ * Distinct from `localeFromSegment`, which takes a URL segment. A stored value
+ * is a full locale id — "ru-uz" — and feeding it to the segment function would
+ * silently fall through to this market's default. They look alike at a call
+ * site, which is exactly why they are two functions with two names.
+ *
+ * A row written by the other market (a database restored from the wrong
+ * backup, say) resolves to this market's default rather than being honoured:
+ * this deployment cannot render Russian prices, so pretending it can would
+ * produce a page that is wrong rather than merely mistranslated.
+ */
+export function localeFromStored(value: string): Locale {
+  return (LOCALES as readonly string[]).includes(value) &&
+    marketLocales().includes(value as Locale)
+    ? (value as Locale)
+    : marketDefaultLocale();
+}
+
+/**
  * Every language code, for the rare caller that must reason about both markets
  * at once — the sitemap's hreflang set, which points at the other site.
  */

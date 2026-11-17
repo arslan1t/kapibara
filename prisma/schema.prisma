@@ -372,7 +372,8 @@ model Payment {
   id      String @id @default(cuid())
   orderId String
 
-  /// See PAYMENT_PROVIDERS in src/lib/constants.ts — "manual" | "yookassa".
+  /// See PAYMENT_PROVIDERS in src/lib/constants.ts —
+  /// "manual" | "yookassa" | "payme" | "click".
   provider          String
   /// The provider's own identifier. Null until the provider has accepted the
   /// payment creation request.
@@ -381,9 +382,11 @@ model Payment {
   /// canceled | failed.
   status            String  @default("pending")
 
-  /// Whole roubles, copied from the order at creation so a later order edit
-  /// cannot silently change what was charged.
+  /// Whole units of `currency`, copied from the order at creation so a later
+  /// order edit cannot silently change what was charged.
   amount   Int
+  /// ISO 4217, stamped from the order. Never re-derived: a market's currency
+  /// can change, a payment that has been taken cannot.
   currency String @default("RUB")
 
   /// Where the customer is sent to pay. Null for providers that take no
@@ -396,6 +399,14 @@ model Payment {
   /// reconciling a disputed payment.
   rawPayload      String?
 
+  /// Provider-specific transaction state, as JSON.
+  ///
+  /// Payme drives a state machine we have to answer questions about later —
+  /// when a transaction was created, performed or cancelled, and under which
+  /// reason code. Click needs the prepare id it will quote back to us. Neither
+  /// means anything to the other, so neither gets a column of its own.
+  providerState String?
+
   /// Guards against a replayed webhook being applied twice.
   idempotencyKey String    @unique
   paidAt         DateTime?
@@ -405,6 +416,7 @@ model Payment {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+  @@index([orderId, status])
   @@index([status])
   @@index([createdAt])
   @@map("payments")

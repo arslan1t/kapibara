@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { storageStatus, verifyStorage } from "@/lib/storage";
 import { activeMailDriver, isMailConfigured } from "@/lib/mail";
-import { isOnlinePaymentEnabled } from "@/lib/payments";
+import { isOnlinePaymentEnabled, onlineProviders } from "@/lib/payments";
 import { isGenerationEnabled } from "@/lib/generation";
 import { queueDepth } from "@/lib/generation/queue";
+import { MARKET } from "@/i18n/market";
 
 /**
  * Health and readiness.
@@ -73,7 +74,15 @@ export async function GET() {
         ...(storageProof.ok ? {} : { detail: storageProof.error }),
       },
       mail: { ok: isMailConfigured(), driver: activeMailDriver() },
-      onlinePayment: { ok: isOnlinePaymentEnabled() },
+      // Which market this deployment is, and which providers it can actually
+      // charge with. Named, not just counted: "onlinePayment: true" on the
+      // Uzbek site tells an operator nothing about whether Click is the one
+      // that is down.
+      market: MARKET,
+      onlinePayment: {
+        ok: isOnlinePaymentEnabled(),
+        providers: onlineProviders(),
+      },
       illustrationProvider: { ok: isGenerationEnabled() },
     },
     ...(queue ? { queue } : {}),

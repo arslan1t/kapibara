@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { isOnlinePaymentEnabled } from "@/lib/payments";
+import { onlineProviders } from "@/lib/payments";
 import CheckoutForm from "./CheckoutForm";
 import { type LangParams } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
@@ -22,5 +22,5 @@ export async function generateMetadata({
 export const dynamic = "force-dynamic";
 
 export default function CheckoutPage() {
-  return <CheckoutForm onlinePaymentEnabled={isOnlinePaymentEnabled()} />;
+  return <CheckoutForm providers={onlineProviders()} />;
 }

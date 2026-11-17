@@ -7,7 +7,7 @@ import { deliver, isMailConfigured } from "./transport";
 import { logger } from "@/lib/logger";
 import type { RenderedEmail } from "./templates";
 import { type Locale } from "@/i18n/config";
-import { marketDefaultLocale } from "@/i18n/market";
+import { marketDefaultLocale, segmentForLocale } from "@/i18n/market";
 
 export {
   isMailConfigured,
@@ -80,11 +80,11 @@ export function absoluteUrl(path: string, locale: Locale = marketDefaultLocale()
     process.env.AUTH_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
   const clean = path.startsWith("/") ? path : `/${path}`;
-  // The locale goes in the link, not left to middleware to guess. Middleware
+  // The language goes in the link, not left to middleware to guess. Middleware
   // would fall back to Accept-Language, and a reader who chose Uzbek on a
-  // Russian-configured browser would land on the Russian site from their own
-  // confirmation email.
-  return `${base}/${locale}${clean}`;
+  // Russian-configured browser would land on the Russian version from their
+  // own confirmation email.
+  return `${base}/${segmentForLocale(locale)}${clean}`;
 }
 
 /**

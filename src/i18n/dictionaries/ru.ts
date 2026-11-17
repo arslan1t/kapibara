@@ -242,7 +242,7 @@ export const ru = {
     paymentTitle: "Оплата",
     /** Shown only when an online payment provider is actually connected. */
     paymentOnline:
-      "Банковской картой онлайн при оформлении заказа. Способ оплаты подтверждается вместе с заказом.",
+      "Онлайн при оформлении заказа. Данные карты вводятся на стороне платёжной системы — мы их не получаем и не храним.",
     /**
      * The honest default. Online payment is not connected, and saying that a
      * card is accepted when the site cannot take one is the kind of promise
@@ -924,6 +924,19 @@ export const ru = {
     in_delivery: "Заказ передан в доставку.",
     completed: "Заказ доставлен. Спасибо, что выбрали {brand}!",
     cancelled: "Заказ отменён. Если это ошибка, напишите нам.",
+  },
+
+  // ─── Payment providers ──────────────────────────────────────────────────────
+  payment: {
+    chooseHeading: "Выберите способ оплаты",
+    payme: "Payme",
+    paymeNote: "Карты UZCARD, HUMO и приложение Payme",
+    click: "Click",
+    clickNote: "Карты UZCARD, HUMO и приложение Click",
+    yookassa: "Банковская карта",
+    yookassaNote: "Оплата картой на защищённой странице банка",
+    manual: "Оплата при подтверждении",
+    manualNote: "Менеджер свяжется с вами и пришлёт реквизиты",
   },
 
   // ─── Catalogue ──────────────────────────────────────────────────────────────

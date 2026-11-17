@@ -10,6 +10,7 @@ import { useCartStore } from "@/store/cart";
 import { createOrder } from "@/app/actions/orders";
 import { AlertCircle } from "lucide-react";
 import type { DeliveryAddress } from "@/types";
+import type { PaymentProvider } from "@/lib/constants";
 import { useDictionary } from "@/i18n/DictionaryProvider";
 import { useLocale } from "@/i18n/navigation";
 import { LOCALE_CONFIG, REGION_CONFIG } from "@/i18n/config";
@@ -17,11 +18,18 @@ import { LOCALE_CONFIG, REGION_CONFIG } from "@/i18n/config";
 type FormData = DeliveryAddress;
 
 export default function CheckoutForm({
-  onlinePaymentEnabled,
+  providers,
 }: {
-  /** True only when a payment provider actually has credentials. */
-  onlinePaymentEnabled: boolean;
+  /**
+   * The online providers this market can actually charge with. Empty means
+   * payment on agreement, which always works.
+   */
+  providers: PaymentProvider[];
 }) {
+  const onlinePaymentEnabled = providers.length > 0;
+  const [provider, setProvider] = useState<PaymentProvider>(
+    providers[0] ?? "manual"
+  );
   const t = useDictionary();
   const locale = useLocale();
   const { region } = LOCALE_CONFIG[locale];
@@ -83,6 +91,7 @@ export default function CheckoutForm({
       customerEmail: data.email,
       customerPhone: data.phone,
       locale,
+      paymentProvider: provider,
       // Courier everywhere it is offered; the region config is the authority
       // on what that list is, and the server refuses anything outside it.
       deliveryMethod: deliveryMethods[0] ?? "courier",
@@ -226,20 +235,58 @@ export default function CheckoutForm({
                   <CreditCard className="h-5 w-5 text-brand-500" strokeWidth={1.9} />
                   {t.checkout.paymentHeading}
                 </h2>
-                {/* Exactly one method is ever available, so this states what
-                    will happen rather than offering a choice that isn't one. */}
-                <div className="mt-6 rounded-3xl border-2 border-brand-300 bg-brand-50 p-5">
-                  <p className="font-semibold text-brown-dark">
-                    {onlinePaymentEnabled
-                      ? t.checkout.paymentOnlineTitle
-                      : t.checkout.paymentManualTitle}
-                  </p>
-                  <p className="mt-1 text-sm leading-relaxed text-brown">
-                    {onlinePaymentEnabled
-                      ? t.checkout.paymentOnlineBody
-                      : t.checkout.paymentManualBody}
-                  </p>
-                </div>
+                {providers.length > 1 ? (
+                  // Uzbekistan has two providers people genuinely choose
+                  // between: a customer with the Click app and no Payme
+                  // account is not served by being sent to Payme.
+                  <fieldset className="mt-6 flex flex-col gap-3">
+                    <legend className="sr-only">
+                      {t.payment.chooseHeading}
+                    </legend>
+                    {providers.map((option) => (
+                      <label
+                        key={option}
+                        className={`flex cursor-pointer items-start gap-3 rounded-3xl border-2 p-5 transition-colors ${
+                          provider === option
+                            ? "border-brand-300 bg-brand-50"
+                            : "border-cream-200 bg-white hover:border-cream-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentProvider"
+                          value={option}
+                          checked={provider === option}
+                          onChange={() => setProvider(option)}
+                          className="mt-1 h-4 w-4 accent-brand-500"
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-semibold text-brown-dark">
+                            {t.payment[option]}
+                          </span>
+                          <span className="mt-1 block text-sm leading-relaxed text-brown">
+                            {t.payment[`${option}Note` as keyof typeof t.payment]}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : (
+                  // One method, so this states what will happen rather than
+                  // offering a choice that isn't one.
+                  <div className="mt-6 rounded-3xl border-2 border-brand-300 bg-brand-50 p-5">
+                    <p className="font-semibold text-brown-dark">
+                      {onlinePaymentEnabled
+                        ? t.payment[provider]
+                        : t.checkout.paymentManualTitle}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-brown">
+                      {onlinePaymentEnabled
+                        ? t.checkout.paymentOnlineBody
+                        : t.checkout.paymentManualBody}
+                    </p>
+                  </div>
+                )}
 
                 <p className="mt-6 flex items-start gap-2.5 rounded-2xl bg-cream-100 px-4 py-3.5 text-sm leading-relaxed text-brown">
                   <Lock

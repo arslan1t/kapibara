@@ -19,7 +19,13 @@ export interface Seller {
   shortName: string;
   /** The trading name customers actually see. */
   brand: string;
-  /** Taxpayer number — ИНН in Russia, СТИР/ИНН in Uzbekistan. */
+  /**
+   * Taxpayer number — ИНН in Russia, ПИНФЛ for an Uzbek self-employed person.
+   *
+   * A self-employed individual in Uzbekistan has no СТИР of their own: the
+   * register identifies them by their personal number, which is what appears
+   * on the certificate and what a buyer can check against it.
+   */
   taxId: string;
   taxIdLabel: string;
   /** State registration number, with the label that country uses for it. */
@@ -79,27 +85,37 @@ export const SELLERS: Record<Region, Seller> = {
   },
 
   /**
-   * Uzbekistan is served by a separate local entity, which is not registered
-   * yet. Placeholders, and a flag that makes every page say so out loud.
+   * Uzbekistan: a self-employed individual, registered through soliq.uz.
+   *
+   * Not a legal entity and not an ИП — in Uzbek law a self-employed person
+   * trades under their own name and personal number, which is why the seller
+   * here is a person rather than a company and why there is no СТИР.
+   *
+   * Contact details are the shared ones: the same team answers both markets,
+   * and the alternative would be inventing a telephone number nobody picks up.
    */
   UZ: {
-    fullName: "",
-    shortName: "",
+    fullName: "Ўзини ўзи банд қилган шахс ABDURAXMONOV ARSLAN SHUXRATOVICH",
+    shortName: "ABDURAXMONOV A. SH.",
     brand: "Капибара",
 
-    taxId: "",
-    taxIdLabel: "СТИР (ИНН)",
-    registrationId: "",
-    registrationIdLabel: "Регистрационный номер",
-    registeredOn: "",
+    taxId: "50801066570024",
+    taxIdLabel: "ПИНФЛ",
+    registrationId: "0014908986",
+    registrationIdLabel: "Справка о самозанятости №",
+    registeredOn: "10.11.2026",
 
-    address: "",
-    email: "",
-    phone: "",
-    phoneHref: "",
+    // No trading premises: the books are printed to order and shipped, and a
+    // self-employed person's registered address is their residence, which is
+    // not something to publish. The buyer reaches the seller by the channels
+    // below, which is what the law requires be available to them.
+    address: "Республика Узбекистан, г. Ташкент",
+    email: "Sshipulin-IP@bk.ru",
+    phone: "+7 (910) 469-68-63",
+    phoneHref: "+79104696863",
 
-    site: "capibara.su",
-    configured: false,
+    site: "capibara.uz",
+    configured: true,
   },
 };
 

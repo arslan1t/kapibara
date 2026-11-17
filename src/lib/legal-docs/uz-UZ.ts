@@ -10,7 +10,7 @@ import type { LegalBundle } from "./types";
  * before the Uzbek storefront takes a real order.
  */
 export const uzUZ: LegalBundle = {
-  version: "2026-09-14",
+  version: "2026-11-17",
   privacy: {
     title: "Shaxsiy maʼlumotlarni qayta ishlash siyosati",
     intro:
@@ -21,7 +21,7 @@ export const uzUZ: LegalBundle = {
         heading: "Umumiy qoidalar",
         clauses: [
           {
-            body: "Shaxsiy maʼlumotlar egasi — {seller} ({taxIdLabel} {taxId}), keyingi oʻrinlarda «Operator». Siyosat Oʻzbekiston Respublikasining 02.07.2019-yildagi OʻRQ-547-son «Shaxsga doir maʼlumotlar toʻgʻrisida»gi Qonuniga muvofiq tuzilgan.",
+            body: "Shaxsiy maʼlumotlar egasi — {seller}, {taxIdLabel} {taxId}, {registrationIdLabel} {registrationId}, {registeredOn} dan, keyingi oʻrinlarda «Operator». Siyosat Oʻzbekiston Respublikasining 02.07.2019-yildagi OʻRQ-547-son «Shaxsga doir maʼlumotlar toʻgʻrisida»gi Qonuniga muvofiq tuzilgan.",
           },
           {
             body: "Siyosat Operator {site} sayti tashrifchilaridan roʻyxatdan oʻtishda, buyurtma rasmiylashtirishda, qoʻllab-quvvatlashga murojaat qilishda va bildirishnomalarga obuna boʻlishda oladigan maʼlumotlarga taalluqli.",
@@ -106,13 +106,16 @@ export const uzUZ: LegalBundle = {
         heading: "Maʼlumotlar qayerda saqlanadi",
         clauses: [
           {
-            body: "Maʼlumotlar bazasi va fayl ombori infratuzilma provayderining Irlandiyadagi (Yevropa Ittifoqi) serverlarida joylashgan. Uzatish transchegaraviy xarakterga ega.",
+            body: "Saytning oʻzbek versiyasi maʼlumotlar bazasi va fayl ombori Oʻzbekiston Respublikasidagi serverlarda joylashgan. Oʻzbekistondagi xaridorlarning shaxsiy maʼlumotlari, shu jumladan bolalarning fotosuratlari, mamlakat tashqarisiga chiqarilmaydi.",
           },
           {
-            body: "OʻRQ-547 27-1-moddasi Oʻzbekiston Respublikasi fuqarolarining shaxsiy maʼlumotlarini qayta ishlash Oʻzbekiston Respublikasi hududida jismonan joylashgan maʼlumotlar bazalaridan foydalangan holda amalga oshirilishini talab qiladi. Ushbu tahrir eʼlon qilingan paytda bunday baza joylashtirilmagan.",
+            body: "Bu OʻRQ-547 27-1-moddasining Oʻzbekiston Respublikasi fuqarolarining shaxsiy maʼlumotlarini respublika hududida jismonan joylashgan maʼlumotlar bazalaridan foydalangan holda qayta ishlash talabini bajaradi.",
           },
           {
-            body: "Bu yerda bu holat ochiq aytilmoqda, chunki talab bajarilmagan ekan, Oʻzbekistonda buyurtmalarni qabul qilish tayyorgarlik xarakteriga ega. Operator oʻzbek versiyasini tijorat asosida ishga tushirishdan oldin maʼlumotlar bazasini Oʻzbekiston Respublikasi hududiga joylashtirish majburiyatini oladi.",
+            body: "Saytning rus versiyasi alohida infratuzilmada ishlaydi va alohida maʼlumotlar bazasiga xizmat qiladi. Oʻzbekistondagi xaridorlar maʼlumotlari unga tushmaydi va aksincha.",
+          },
+          {
+            body: "Istisno — yuklangan fotosurat asosida rasm yaratadigan xizmat: u Oʻzbekiston Respublikasidan tashqarida joylashgan va buyurtmani bajarish uchun fotosurat unga uzatiladi. Bunday uzatishsiz shaxsiy rasm yaratib boʻlmaydi. Uzatish ushbu Siyosatda tavsiflangan boʻlib, unga rozilik roʻyxatdan oʻtishda va buyurtma rasmiylashtirishda tasdiqlanadi.",
           },
         ],
       },
@@ -185,7 +188,7 @@ export const uzUZ: LegalBundle = {
         heading: "Tomonlar va atamalar",
         clauses: [
           {
-            body: "Shartnoma {seller} ({taxIdLabel} {taxId}), keyingi oʻrinlarda «Sotuvchi», va {site} saytidan foydalanadigan har qanday shaxs, keyingi oʻrinlarda «Foydalanuvchi», oʻrtasida tuziladi.",
+            body: "Shartnoma {seller}, {taxIdLabel} {taxId}, keyingi oʻrinlarda «Sotuvchi», va {site} saytidan foydalanadigan har qanday shaxs, keyingi oʻrinlarda «Foydalanuvchi», oʻrtasida tuziladi.",
           },
           {
             body: "«Sayt» — {site} internet resursi va uning barcha sahifalari. «Tovar» — Foydalanuvchining individual buyurtmasi boʻyicha tayyorlanadigan shaxsiy bolalar kitobi.",
@@ -323,7 +326,7 @@ export const uzUZ: LegalBundle = {
         heading: "Umumiy qoidalar",
         clauses: [
           {
-            body: "Ushbu hujjat Oʻzbekiston Respublikasi Fuqarolik kodeksining 367-moddasiga muvofiq {seller} ({taxIdLabel} {taxId}), keyingi oʻrinlarda «Sotuvchi», ning ommaviy ofertasi hisoblanadi.",
+            body: "Ushbu hujjat Oʻzbekiston Respublikasi Fuqarolik kodeksining 367-moddasiga muvofiq {seller}, {taxIdLabel} {taxId}, {registrationIdLabel} {registrationId}, {registeredOn} dan, keyingi oʻrinlarda «Sotuvchi», ning ommaviy ofertasi hisoblanadi.",
           },
           {
             body: "Saytda buyurtma rasmiylashtirish Oʻzbekiston Respublikasi Fuqarolik kodeksining 369-moddasi maʼnosida ofertani aksept qilish deb eʼtirof etiladi va quyida bayon etilgan shartlarda shartnoma tuzilganini anglatadi.",
@@ -374,7 +377,13 @@ export const uzUZ: LegalBundle = {
             body: "Yetkazib berish narxi tovar narxiga kirmaydi va buyurtma tasdiqlanayotganda manzil va yetkazib berish usulidan kelib chiqib alohida hisoblanadi.",
           },
           {
-            body: "Saytda onlayn toʻlov ulanmagan. Buyurtma tasdiqlangandan soʻng Sotuvchi yakuniy summani va toʻlov usulini xabar qiladi. Shu paytgacha pul mablagʻlari yechilmaydi.",
+            body: "Toʻlov Payme va Click toʻlov tizimlari orqali — UZCARD, HUMO, Visa va Mastercard bank kartalari yoki tegishli tizim ilovasi orqali amalga oshiriladi. Toʻlov usulini Xaridor buyurtma rasmiylashtirishda tanlaydi.",
+          },
+          {
+            body: "Bank kartasi maʼlumotlari toʻlov tizimi tomonida kiritiladi. Sotuvchi karta rekvizitlarini olmaydi, qayta ishlamaydi va saqlamaydi.",
+          },
+          {
+            body: "Agar birorta toʻlov tizimi ulanmagan boʻlsa, sayt rasmiylashtirish paytida bu haqda ochiq xabar beradi va toʻlov buyurtma tasdiqlangandan soʻng Xaridor bilan kelishiladi. Shu paytgacha pul mablagʻlari yechilmaydi.",
           },
         ],
       },
@@ -520,7 +529,7 @@ export const uzUZ: LegalBundle = {
     email: "Elektron pochta",
     phone: "Telefon",
     detailsPending:
-      "Oʻzbekiston Respublikasidagi sotuvchi rekvizitlari hali kiritilmagan: mahalliy yuridik shaxs roʻyxatdan oʻtkazilmoqda. Ular koʻrsatilgunga qadar hujjat tanishish uchun joylashtirilgan va ommaviy oferta hisoblanmaydi.",
+      "Ushbu bozor uchun sotuvchi rekvizitlari hali kiritilmagan. Hujjat tanishish uchun joylashtirilgan va ular koʻrsatilgunga qadar ommaviy oferta hisoblanmaydi.",
     notSet: "[koʻrsatilmagan]",
   },
 };

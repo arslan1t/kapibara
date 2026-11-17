@@ -145,16 +145,37 @@ export type ConsentType = (typeof CONSENT_TYPES)[number];
 /**
  * Payment providers the application can drive.
  *
- * "manual" needs no credentials and is the default: the order is confirmed by
- * an administrator and paid on delivery or by invoice. "yookassa" is the online
- * provider; it activates automatically once its credentials are configured.
+ * "manual" needs no credentials and is the fallback: the order is confirmed by
+ * an administrator and paid on agreement. The rest activate on their own once
+ * credentials are configured, and only in the market they serve — YooKassa is
+ * Russian, Payme and Click are Uzbek, and offering one outside its country
+ * would take a customer to a page that cannot charge their card.
  */
-export const PAYMENT_PROVIDERS = ["manual", "yookassa"] as const;
+export const PAYMENT_PROVIDERS = [
+  "manual",
+  "yookassa",
+  "payme",
+  "click",
+] as const;
 export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
 
+/**
+ * Back-office labels. The storefront names providers from the dictionary, in
+ * the customer's language; these are for the admin, which is Russian.
+ */
 export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
   manual: "Оплата при подтверждении",
   yookassa: "Онлайн-оплата картой",
+  payme: "Payme",
+  click: "Click",
+};
+
+/** Which market each provider serves. A provider is never offered outside it. */
+export const PAYMENT_PROVIDER_MARKET: Record<PaymentProvider, "RU" | "UZ" | "any"> = {
+  manual: "any",
+  yookassa: "RU",
+  payme: "UZ",
+  click: "UZ",
 };
 
 /** Lifecycle of a single payment attempt, mirroring what providers report. */
