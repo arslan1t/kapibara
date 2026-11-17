@@ -2,9 +2,10 @@ import "server-only";
 
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
 import { fill } from "@/i18n/format";
+import { marketDefaultLocale } from "@/i18n/market";
 
 /**
  * Fixed-window rate limiting, backed by the database.
@@ -150,7 +151,7 @@ export async function pruneRateLimits(): Promise<void> {
 /** Russian message for a blocked attempt, with a human-readable wait. */
 export function rateLimitMessage(
   retryAfter: number,
-  locale: Locale = DEFAULT_LOCALE
+  locale: Locale = marketDefaultLocale()
 ): string {
   const t = getDictionary(locale);
   const minutes = Math.ceil(retryAfter / 60);

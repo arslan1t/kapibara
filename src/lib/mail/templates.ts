@@ -1,9 +1,10 @@
 import "server-only";
 
 import { type OrderStatus } from "@/lib/constants";
-import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
 import { fill, formatAmount } from "@/i18n/format";
+import { marketDefaultLocale } from "@/i18n/market";
 
 /**
  * Transactional email templates.
@@ -99,7 +100,7 @@ export function emailVerifyTemplate(opts: {
   hours: number;
   locale?: Locale;
 }): RenderedEmail {
-  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const locale = opts.locale ?? marketDefaultLocale();
   const t = getDictionary(locale);
   const v = { name: opts.name, hours: opts.hours, brand: t.common.brand };
 
@@ -133,7 +134,7 @@ export function passwordResetTemplate(opts: {
   minutes: number;
   locale?: Locale;
 }): RenderedEmail {
-  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const locale = opts.locale ?? marketDefaultLocale();
   const t = getDictionary(locale);
   const v = { name: opts.name, minutes: opts.minutes, brand: t.common.brand };
 
@@ -178,7 +179,7 @@ export function orderCreatedTemplate(opts: {
   paymentNote: string;
   locale?: Locale;
 }): RenderedEmail {
-  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const locale = opts.locale ?? marketDefaultLocale();
   const t = getDictionary(locale);
   const v = { orderNumber: opts.orderNumber, name: opts.name, brand: t.common.brand };
   const price = (amount: number) => money(amount, opts.currency, locale);
@@ -253,7 +254,7 @@ export function orderStatusTemplate(opts: {
   reviewUrl?: string;
   locale?: Locale;
 }): RenderedEmail {
-  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const locale = opts.locale ?? marketDefaultLocale();
   const t = getDictionary(locale);
 
   const status = t.orderStatus[opts.status].toLocaleLowerCase(locale);

@@ -6,7 +6,8 @@ import type { MailDriverId } from "./transport";
 import { deliver, isMailConfigured } from "./transport";
 import { logger } from "@/lib/logger";
 import type { RenderedEmail } from "./templates";
-import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { type Locale } from "@/i18n/config";
+import { marketDefaultLocale } from "@/i18n/market";
 
 export {
   isMailConfigured,
@@ -73,7 +74,7 @@ export async function sendEmail(
  * Falls back to localhost only in development; a production deployment that
  * has not set the site URL would otherwise mail out unusable links.
  */
-export function absoluteUrl(path: string, locale: Locale = DEFAULT_LOCALE): string {
+export function absoluteUrl(path: string, locale: Locale = marketDefaultLocale()): string {
   const base =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     process.env.AUTH_URL?.replace(/\/$/, "") ??

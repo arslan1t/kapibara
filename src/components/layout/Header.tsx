@@ -12,7 +12,7 @@ import RegionSwitcher from "@/components/layout/RegionSwitcher";
 import { logout } from "@/app/actions/auth";
 import UserMenu from "@/components/layout/UserMenu";
 import { cn } from "@/lib/utils";
-import { stripLocale } from "@/i18n/config";
+import { isMarketLanguage } from "@/i18n/market";
 
 /** Order is the reading order of the site, not alphabetical. */
 const NAV = [
@@ -35,9 +35,12 @@ export default function Header({ user }: HeaderProps) {
   const items = useCartStore((s) => s.items);
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
-  // Compared against the path with its locale segment removed, so /uz/catalog
-  // lights up the same link /ru/catalog does.
-  const path = stripLocale(pathname).path;
+  // Compared against the path with its language segment removed, so
+  // /uz/catalog lights up the same link /ru/catalog does.
+  const [, first = "", ...rest] = pathname.split("/");
+  const path = isMarketLanguage(first)
+    ? `/${rest.join("/")}`.replace(/\/+$/, "") || "/"
+    : pathname;
   const isActive = (href: string) =>
     path === href || path.startsWith(href + "/");
 

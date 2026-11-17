@@ -1,9 +1,13 @@
 import type { MetadataRoute } from "next";
 import { getPublishedProducts, getAvailableProducts } from "@/lib/products";
-import { SITE_URL_FALLBACK } from "@/lib/constants";
-import { LOCALES, LOCALE_CONFIG, type Locale } from "@/i18n/config";
+import { LOCALE_CONFIG, type Language } from "@/i18n/config";
+import {
+  allMarketLocales,
+  marketLanguages,
+  ownSiteUrl,
+} from "@/i18n/market";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL_FALLBACK;
+const baseUrl = ownSiteUrl();
 
 /** Products come from the database, so the sitemap cannot be prerendered. */
 export const dynamic = "force-dynamic";
@@ -42,23 +46,26 @@ const STATIC_PATHS: Array<{
  * the one that wins is not necessarily the one in the reader's language.
  */
 function alternates(path: string): Record<string, string> {
+  // Spans both sites: the markets are separate domains, and a crawler has to
+  // be told that capibara.su/ru/catalog and capibara.uz/uz/catalog are the
+  // same page in another country's language rather than duplicates.
   return Object.fromEntries(
-    LOCALES.map((locale) => [
-      LOCALE_CONFIG[locale].htmlLang,
-      `${baseUrl}/${locale}${path}`,
+    allMarketLocales().map((entry) => [
+      LOCALE_CONFIG[entry.locale].htmlLang,
+      entry.href(path),
     ])
   );
 }
 
 function entry(
-  locale: Locale,
+  language: Language,
   path: string,
   lastModified: Date,
   changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"],
   priority: number
 ): MetadataRoute.Sitemap[number] {
   return {
-    url: `${baseUrl}/${locale}${path}`,
+    url: `${baseUrl}/${language}${path}`,
     lastModified,
     changeFrequency,
     priority,
@@ -76,15 +83,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getAvailableProducts(),
   ]);
 
-  return LOCALES.flatMap((locale) => [
+  return marketLanguages().flatMap((language) => [
     ...STATIC_PATHS.map((route) =>
-      entry(locale, route.path, now, route.changeFrequency, route.priority)
+      entry(language, route.path, now, route.changeFrequency, route.priority)
     ),
     ...published.map((book) =>
-      entry(locale, `/books/${book.slug}`, now, "weekly", 0.9)
+      entry(language, `/books/${book.slug}`, now, "weekly", 0.9)
     ),
     ...available.map((book) =>
-      entry(locale, `/personalize/${book.slug}`, now, "monthly", 0.7)
+      entry(language, `/personalize/${book.slug}`, now, "monthly", 0.7)
     ),
   ]);
 }

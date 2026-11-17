@@ -5,9 +5,10 @@
  * The wording that explains a failure lives in the dictionaries, because it
  * has to reach the reader in their own language.
  */
-import { DEFAULT_LOCALE, type Locale, type Region } from "@/i18n/config";
+import { type Locale, type Region } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
 import { fill } from "@/i18n/format";
+import { marketDefaultLocale } from "@/i18n/market";
 
 // ─── Child name ───────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export const PASSWORD_MIN_LENGTH = 8;
  * reader in Tashkent in Uzbek and a reader in Moscow in Russian, and server
  * actions are the ones producing most of them.
  */
-export function authErrors(locale: Locale = DEFAULT_LOCALE) {
+export function authErrors(locale: Locale = marketDefaultLocale()) {
   const t = getDictionary(locale).authErrors;
   return {
     ...t,
@@ -108,7 +109,7 @@ export function isPasswordValid(value: string): boolean {
 /** At least 8 characters, containing at least one letter and one digit. */
 export function checkPassword(
   value: string,
-  locale: Locale = DEFAULT_LOCALE
+  locale: Locale = marketDefaultLocale()
 ): { ok: true } | { ok: false; message: string } {
   const errors = authErrors(locale);
   if (value.length < PASSWORD_MIN_LENGTH) {

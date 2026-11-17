@@ -8,12 +8,8 @@ import type {
   ProductImage,
   ProductTranslation,
 } from "@/generated/prisma";
-import {
-  DEFAULT_LOCALE,
-  LOCALE_CONFIG,
-  REGION_CONFIG,
-  type Locale,
-} from "@/i18n/config";
+import { LOCALE_CONFIG, REGION_CONFIG, type Locale } from "@/i18n/config";
+import { marketDefaultLocale } from "@/i18n/market";
 
 /**
  * Server-side catalogue access.
@@ -43,7 +39,7 @@ export const storefrontInclude = {
  * a book described in the wrong language is still orderable, a book that
  * renders as undefined is not.
  */
-export function toBook(product: ProductRow, locale: Locale = DEFAULT_LOCALE): Book {
+export function toBook(product: ProductRow, locale: Locale = marketDefaultLocale()): Book {
   const primary =
     product.images?.find((i) => i.isPrimary) ??
     product.images?.[0] ??
@@ -94,7 +90,7 @@ export function toBook(product: ProductRow, locale: Locale = DEFAULT_LOCALE): Bo
 
 /** Everything visible in the storefront, buyable first. */
 export async function getPublishedProducts(
-  locale: Locale = DEFAULT_LOCALE
+  locale: Locale = marketDefaultLocale()
 ): Promise<Book[]> {
   const rows = await db.product.findMany({
     where: { published: true, status: { not: "archived" } },
@@ -106,7 +102,7 @@ export async function getPublishedProducts(
 
 /** Only products a customer may actually buy. */
 export async function getAvailableProducts(
-  locale: Locale = DEFAULT_LOCALE
+  locale: Locale = marketDefaultLocale()
 ): Promise<Book[]> {
   const rows = await db.product.findMany({
     where: { published: true, status: "available" },
@@ -133,7 +129,7 @@ export async function getProductBySlug(slug: string) {
  */
 export async function getBookBySlugOrId(
   value: string,
-  locale: Locale = DEFAULT_LOCALE
+  locale: Locale = marketDefaultLocale()
 ): Promise<Book | null> {
   const row = await db.product.findFirst({
     where: {

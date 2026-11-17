@@ -9,8 +9,9 @@ import {
 } from "@/lib/mail";
 import { isOnlinePaymentEnabled } from "@/lib/payments";
 import { type OrderStatus } from "@/lib/constants";
-import { asLocale, type Locale } from "@/i18n/config";
+import { type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
+import { localeFromSegment } from "@/i18n/market";
 
 /**
  * Transactional order mail.
@@ -54,7 +55,7 @@ export async function sendOrderCreatedEmail(orderId: string): Promise<boolean> {
 
   if (!order) return false;
 
-  const locale = asLocale(order.locale);
+  const locale = localeFromSegment(order.locale);
 
   const result = await sendEmail(
     order.customerEmail,
@@ -102,7 +103,7 @@ export async function sendOrderStatusEmail(
 
   if (!order) return false;
 
-  const locale = asLocale(order.locale);
+  const locale = localeFromSegment(order.locale);
 
   const result = await sendEmail(
     order.customerEmail,

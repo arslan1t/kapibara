@@ -13,7 +13,7 @@ import {
 import { consentDocumentsFor, CONSENT_TYPES } from "@/lib/constants";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
 import { sendVerificationEmail } from "@/lib/mail/verification";
-import { asLocale } from "@/i18n/config";
+import { localeFromSegment } from "@/i18n/market";
 
 export type ActionResult =
   | { ok: true }
@@ -38,7 +38,7 @@ export async function registerAccount(input: {
   confirmPassword: string;
   consents: Record<string, boolean>;
 }): Promise<ActionResult> {
-  const locale = asLocale(input.locale ?? "");
+  const locale = localeFromSegment(input.locale ?? "");
   const AUTH_ERRORS = authErrors(locale);
   const fullName = input.fullName?.trim() ?? "";
   const email = normalizeEmail(input.email ?? "");
@@ -125,7 +125,7 @@ export async function loginWithPassword(input: {
   email: string;
   password: string;
 }): Promise<ActionResult> {
-  const locale = asLocale(input.locale ?? "");
+  const locale = localeFromSegment(input.locale ?? "");
   const AUTH_ERRORS = authErrors(locale);
   const email = normalizeEmail(input.email ?? "");
 

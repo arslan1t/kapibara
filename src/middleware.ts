@@ -1,31 +1,41 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { LOCALE_CONFIG, type Language } from "@/i18n/config";
 import {
-  DEFAULT_LOCALE,
-  LOCALES,
-  LOCALE_CONFIG,
-  isLocale,
-  type Locale,
-} from "@/i18n/config";
+  MARKET,
+  isMarketLanguage,
+  marketDefaultLocale,
+  marketLanguages,
+} from "@/i18n/market";
 
-/** Remembers the visitor's own choice from the region/language switcher. */
-const LOCALE_COOKIE = "kapibara_locale";
-/** A year: the choice of country is not something people revisit weekly. */
-const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+/** Remembers the visitor's own choice of language. */
+const LANGUAGE_COOKIE = "kapibara_lang";
+/** A year: not something people revisit weekly. */
+const LANGUAGE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 /**
- * Picks a locale for a visitor who has not asked for one.
+ * The language of the current request, for the few server components that
+ * cannot reach the route parameter.
  *
- * The cookie wins, because it records an explicit choice. After that there is
- * only Accept-Language to go on: this deployment sits behind Beget's shared
- * hosting, which passes no country header, so nothing here pretends to know
- * where the request came from. Anyone we guess wrong about is one click from
- * fixing it in the header, and that click is remembered.
+ * `not-found.tsx` is the reason this exists: Next renders it without params,
+ * so a 404 inside the Uzbek site would otherwise come back in Russian.
  */
-function detectLocale(request: NextRequest): Locale {
-  const saved = request.cookies.get(LOCALE_COOKIE)?.value;
-  if (saved && isLocale(saved)) return saved;
+export const LANGUAGE_HEADER = "x-kapibara-lang";
+
+/**
+ * Picks a language for a visitor who has not asked for one.
+ *
+ * Only the language is in question — the country is decided by which domain
+ * they typed, and this deployment serves exactly one. The cookie wins because
+ * it records an explicit choice; after that there is only Accept-Language, and
+ * anyone guessed wrong is one click from fixing it.
+ */
+function detectLanguage(request: NextRequest): Language {
+  const available = marketLanguages();
+
+  const saved = request.cookies.get(LANGUAGE_COOKIE)?.value;
+  if (saved && isMarketLanguage(saved)) return saved;
 
   const header = request.headers.get("accept-language") ?? "";
   const tags = header
@@ -34,22 +44,21 @@ function detectLocale(request: NextRequest): Locale {
     .filter(Boolean);
 
   for (const tag of tags) {
-    if (tag.startsWith("uz")) return "uz";
-    // A Russian speaker in Uzbekistan reports ru-UZ. Worth honouring: it is
-    // the one case where the browser actually knows the country.
-    if (tag === "ru-uz") return "ru-uz";
-    if (tag.startsWith("ru")) return "ru";
+    const base = tag.split("-")[0] ?? "";
+    if (isMarketLanguage(base)) return base;
   }
-  return DEFAULT_LOCALE;
+
+  return available[0] ?? LOCALE_CONFIG[marketDefaultLocale()].language;
 }
 
 /**
- * Routing for a site that exists in three versions.
+ * Routing for one market's site.
  *
- * Two jobs, in this order: make sure every request carries a locale segment,
- * then gate the private areas. The auth gate is a first line of defence for
- * routing only — every page and server action authorizes independently,
- * because middleware alone is not a security boundary.
+ * Two jobs, in this order: make sure every request carries a language segment
+ * this market actually serves, then gate the private areas. The auth gate is a
+ * first line of defence for routing only — every page and server action
+ * authorizes independently, because middleware alone is not a security
+ * boundary.
  */
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -57,31 +66,37 @@ export async function middleware(request: NextRequest) {
   const segments = pathname.split("/");
   const first = segments[1] ?? "";
 
-  // ── No locale in the path ──────────────────────────────────────────────────
-  if (!isLocale(first)) {
-    const locale = detectLocale(request);
-    const url = new URL(`/${locale}${pathname === "/" ? "" : pathname}${search}`, request.url);
-    const response = NextResponse.redirect(url);
-    response.cookies.set(LOCALE_COOKIE, locale, {
-      maxAge: LOCALE_COOKIE_MAX_AGE,
+  // ── No language in the path, or one this market does not serve ────────────
+  //
+  // The second case matters: /uz on capibara.su and /ru-uz anywhere are paths
+  // that used to work when both markets shared a site. They are redirected
+  // rather than 404'd so an old link still lands somewhere useful.
+  if (!isMarketLanguage(first)) {
+    const language = detectLanguage(request);
+    const rest = isStaleLocaleSegment(first)
+      ? `/${segments.slice(2).join("/")}`.replace(/\/+$/, "")
+      : pathname === "/"
+        ? ""
+        : pathname;
+    const url = new URL(`/${language}${rest}${search}`, request.url);
+    const response = NextResponse.redirect(url, 308);
+    response.cookies.set(LANGUAGE_COOKIE, language, {
+      maxAge: LANGUAGE_COOKIE_MAX_AGE,
       sameSite: "lax",
       path: "/",
     });
     return response;
   }
 
-  const locale = first as Locale;
+  const language = first;
   const path = `/${segments.slice(2).join("/")}`.replace(/\/+$/, "") || "/";
 
-  // ── The back office is Russian and Russian only ────────────────────────────
+  // ── The back office is Russian and Russian only ───────────────────────────
   // It is an internal tool: translating it would double the surface for no
-  // reader. A locale prefix on it would also mean two URLs for one screen.
-  if (path === "/admin" || path.startsWith("/admin/")) {
-    if (locale !== DEFAULT_LOCALE) {
-      return NextResponse.redirect(
-        new URL(`/${DEFAULT_LOCALE}${path}${search}`, request.url)
-      );
-    }
+  // reader, and a language prefix on it would mean two URLs for one screen.
+  const isAdmin = path === "/admin" || path.startsWith("/admin/");
+  if (isAdmin && language !== "ru") {
+    return NextResponse.redirect(new URL(`/ru${path}${search}`, request.url));
   }
 
   const token = await getToken({
@@ -91,17 +106,17 @@ export async function middleware(request: NextRequest) {
   });
 
   const isAuthed = Boolean(token?.uid);
-  const isAdmin = token?.role === "admin";
-  const at = (target: string) => new URL(`/${locale}${target}`, request.url);
+  const isAdminUser = token?.role === "admin";
+  const at = (target: string) => new URL(`/${language}${target}`, request.url);
 
-  if (path === "/admin" || path.startsWith("/admin/")) {
+  if (isAdmin) {
     if (!isAuthed) {
       const url = at("/login");
       url.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(url);
     }
-    if (!isAdmin) return NextResponse.redirect(at("/no-access"));
-    return withLocaleCookie(pass(request, locale), locale);
+    if (!isAdminUser) return NextResponse.redirect(at("/no-access"));
+    return remember(pass(request, language), language);
   }
 
   if (path === "/account" || path.startsWith("/account/")) {
@@ -110,7 +125,7 @@ export async function middleware(request: NextRequest) {
       url.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(url);
     }
-    return withLocaleCookie(pass(request, locale), locale);
+    return remember(pass(request, language), language);
   }
 
   // Signed-in users have no reason to see the auth screens.
@@ -118,29 +133,36 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(at("/account"));
   }
 
-  return withLocaleCookie(pass(request, locale), locale);
+  return remember(pass(request, language), language);
 }
 
 /**
- * The locale of the current request, for the few server components that cannot
- * reach the route parameter.
+ * Locale segments from when both markets shared one site.
  *
- * `not-found.tsx` is the reason this exists: Next renders it without params,
- * so a 404 inside the Uzbek site would otherwise come back with a Russian
- * header and footer.
+ * Recognised so that capibara.uz/ru-uz/catalog redirects to /ru/catalog rather
+ * than to /ru/ru-uz/catalog, which is what treating it as an ordinary path
+ * would produce.
  */
-export const LOCALE_HEADER = "x-kapibara-locale";
-
-function pass(request: NextRequest, locale: Locale): NextResponse {
-  const headers = new Headers(request.headers);
-  headers.set(LOCALE_HEADER, locale);
-  return NextResponse.next({ request: { headers } });
+function isStaleLocaleSegment(segment: string): boolean {
+  return segment === "ru" || segment === "uz" || segment === "ru-uz";
 }
 
-/** Keeps the remembered locale in step with the one actually being viewed. */
-function withLocaleCookie(response: NextResponse, locale: Locale): NextResponse {
-  response.cookies.set(LOCALE_COOKIE, locale, {
-    maxAge: LOCALE_COOKIE_MAX_AGE,
+function pass(request: NextRequest, language: Language): NextResponse {
+  const headers = new Headers(request.headers);
+  headers.set(LANGUAGE_HEADER, language);
+  // Belt and braces for a shared cache in front of either site: the response
+  // body differs by host, and a cache that ignores that would serve one
+  // market's prices to the other.
+  const response = NextResponse.next({ request: { headers } });
+  response.headers.set("Vary", "Host, Accept-Language, Cookie");
+  response.headers.set("X-Kapibara-Market", MARKET);
+  return response;
+}
+
+/** Keeps the remembered language in step with the one actually being viewed. */
+function remember(response: NextResponse, language: Language): NextResponse {
+  response.cookies.set(LANGUAGE_COOKIE, language, {
+    maxAge: LANGUAGE_COOKIE_MAX_AGE,
     sameSite: "lax",
     path: "/",
   });
@@ -153,11 +175,11 @@ export const config = {
      * Everything a person can navigate to, and nothing else.
      *
      * API routes are locale-agnostic and must not be redirected — a redirected
-     * POST loses its body. The rest of the exclusions are files served as
-     * themselves: build output, the icons, and anything with an extension.
+     * POST loses its body, and the payment providers' callbacks are POSTs. The
+     * rest of the exclusions are files served as themselves.
      */
     "/((?!api/|_next/|.*\\.[\\w]+$).*)",
   ],
 };
 
-export { LOCALE_COOKIE, LOCALES, LOCALE_CONFIG };
+export { LANGUAGE_COOKIE };

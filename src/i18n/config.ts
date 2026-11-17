@@ -17,10 +17,12 @@ export const LOCALES = ["ru", "ru-uz", "uz"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /**
- * Russia keeps the bare paths it already has. Changing that would break every
- * link that exists in the wild for the sake of symmetry.
+ * There is deliberately no global default locale.
+ *
+ * Each deployment serves one country, so "the default" is a property of the
+ * market — see marketDefaultLocale() in ./market. A constant here would read
+ * as a sensible fallback and would quietly price an Uzbek order in roubles.
  */
-export const DEFAULT_LOCALE: Locale = "ru";
 
 export const REGIONS = ["RU", "UZ"] as const;
 export type Region = (typeof REGIONS)[number];
@@ -139,41 +141,12 @@ export function configOf(locale: Locale): LocaleConfig & { regionConfig: RegionC
   return { ...config, regionConfig: REGION_CONFIG[config.region] };
 }
 
-// ─── Paths ────────────────────────────────────────────────────────────────────
+// ─── Route parameters ─────────────────────────────────────────────────────────
 
 /**
- * Prefixes a path with the locale segment.
+ * The shape every route under app/[lang] receives.
  *
- * Every internal link goes through this. A hardcoded "/catalog" works by
- * accident on the Russian site and silently throws the visitor out of the
- * Uzbek one, which is the kind of bug that is invisible until someone in
- * Tashkent loses their cart.
+ * A language, not a locale: the domain already carries the country. See
+ * ./market for how the pair is resolved.
  */
-export function localePath(locale: Locale, path: string): string {
-  const clean = path === "/" ? "" : path.startsWith("/") ? path : `/${path}`;
-  return `/${locale}${clean}`;
-}
-
-/** Strips a leading locale segment, returning the path as the app knows it. */
-export function stripLocale(pathname: string): { locale: Locale | null; path: string } {
-  const [, first = "", ...rest] = pathname.split("/");
-  if (isLocale(first)) {
-    return { locale: first, path: `/${rest.join("/")}`.replace(/\/$/, "") || "/" };
-  }
-  return { locale: null, path: pathname };
-}
-
-/**
- * Narrows the raw route parameter to a Locale.
- *
- * Next types a dynamic segment as `string`, so every page receives one. The
- * root layout has already rejected anything that is not a locale with a 404 by
- * the time a page renders, which makes the fallback here unreachable in
- * practice — it exists so that a page can be typed without a cast.
- */
-export function asLocale(value: string): Locale {
-  return isLocale(value) ? value : DEFAULT_LOCALE;
-}
-
-/** The shape every route under [locale] receives. */
-export type LocaleParams = { locale: string };
+export type LangParams = { lang: string };

@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL_FALLBACK } from "@/lib/constants";
-import { LOCALES } from "@/i18n/config";
+import { marketLanguages, ownSiteUrl } from "@/i18n/market";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL_FALLBACK;
+const baseUrl = ownSiteUrl();
 
 /**
  * Paths that must never be indexed, in any language.
@@ -26,7 +25,7 @@ const PRIVATE_PATHS = [
 export default function robots(): MetadataRoute.Robots {
   const disallow = PRIVATE_PATHS.flatMap((path) => [
     path,
-    ...LOCALES.map((locale) => `/${locale}${path}`),
+    ...marketLanguages().map((language) => `/${language}${path}`),
   ]);
 
   return {

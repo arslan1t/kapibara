@@ -5,20 +5,36 @@ import { usePathname, useRouter as useNextRouter } from "next/navigation";
 import type { NavigateOptions } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { forwardRef } from "react";
 import type { ComponentPropsWithoutRef } from "react";
-import { DEFAULT_LOCALE, isLocale, localePath, type Locale } from "./config";
+import type { Language, Locale } from "./config";
+import {
+  isMarketLanguage,
+  localeFromSegment,
+  marketDefaultLocale,
+  segmentForLocale,
+} from "./market";
 
 /**
- * The locale the visitor is currently reading, taken from the URL.
+ * The language segment the visitor is currently on.
  *
- * Deliberately read from the path rather than from a context: the path is the
- * single source of truth, it is available to every client component without a
- * provider somewhere above it, and it cannot drift out of step with what the
- * server rendered.
+ * Read from the path rather than from a context: the path is the single source
+ * of truth, it is available to every client component without a provider
+ * somewhere above it, and it cannot drift out of step with what the server
+ * rendered.
  */
-export function useLocale(): Locale {
+export function useLanguage(): Language {
   const pathname = usePathname();
   const first = pathname.split("/")[1] ?? "";
-  return isLocale(first) ? first : DEFAULT_LOCALE;
+  return isMarketLanguage(first)
+    ? first
+    : segmentForLocale(marketDefaultLocale());
+}
+
+/**
+ * The locale the visitor is reading: this market, plus the language in the
+ * path. The market is fixed for the deployment, so the path alone settles it.
+ */
+export function useLocale(): Locale {
+  return localeFromSegment(useLanguage());
 }
 
 type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>;
@@ -37,29 +53,29 @@ const Link = forwardRef<HTMLAnchorElement, NextLinkProps>(function Link(
   { href, ...rest },
   ref
 ) {
-  const locale = useLocale();
-  return <NextLink ref={ref} href={withLocale(href, locale)} {...rest} />;
+  const language = useLanguage();
+  return <NextLink ref={ref} href={withLanguage(href, language)} {...rest} />;
 });
 
 export default Link;
 
-function withLocale(href: NextLinkProps["href"], locale: Locale): NextLinkProps["href"] {
+function withLanguage(href: NextLinkProps["href"], language: Language): NextLinkProps["href"] {
   if (typeof href !== "string") {
     // A UrlObject. Only its pathname needs prefixing; query and hash are ours
     // to leave alone.
     if (href && typeof href === "object" && typeof href.pathname === "string") {
-      return { ...href, pathname: prefix(href.pathname, locale) };
+      return { ...href, pathname: prefix(href.pathname, language) };
     }
     return href;
   }
-  return prefix(href, locale);
+  return prefix(href, language);
 }
 
-function prefix(path: string, locale: Locale): string {
+function prefix(path: string, language: Language): string {
   if (!path.startsWith("/") || path.startsWith("//")) return path;
   const first = path.split("/")[1] ?? "";
-  if (isLocale(first)) return path;
-  return localePath(locale, path);
+  if (isMarketLanguage(first)) return path;
+  return `/${language}${path === "/" ? "" : path}`;
 }
 
 /**
@@ -70,14 +86,14 @@ function prefix(path: string, locale: Locale): string {
  */
 export function useRouter() {
   const router = useNextRouter();
-  const locale = useLocale();
+  const language = useLanguage();
 
   return {
     ...router,
     push: (href: string, options?: NavigateOptions) =>
-      router.push(prefix(href, locale), options),
+      router.push(prefix(href, language), options),
     replace: (href: string, options?: NavigateOptions) =>
-      router.replace(prefix(href, locale), options),
-    prefetch: (href: string) => router.prefetch(prefix(href, locale)),
+      router.replace(prefix(href, language), options),
+    prefetch: (href: string) => router.prefetch(prefix(href, language)),
   };
 }

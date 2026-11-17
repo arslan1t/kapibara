@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { TOKEN_TTL_MINUTES } from "@/lib/constants";
 import { issueToken, pruneExpiredTokens } from "@/lib/tokens";
 import { sendEmail, absoluteUrl, emailVerifyTemplate } from "@/lib/mail";
-import { asLocale } from "@/i18n/config";
+import { localeFromSegment } from "@/i18n/market";
 
 /**
  * Issues a verification token and mails the link.
@@ -20,7 +20,7 @@ export async function sendVerificationEmail(userId: string): Promise<boolean> {
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user || user.emailVerified) return false;
 
-  const locale = asLocale(user.locale);
+  const locale = localeFromSegment(user.locale);
   const { token } = await issueToken(user.id, "email_verify");
   const result = await sendEmail(
     user.email,

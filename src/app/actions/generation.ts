@@ -8,11 +8,12 @@ import {
   nameScriptFor,
   sanitizeChildName,
 } from "@/lib/validation";
-import { asLocale, LOCALE_CONFIG } from "@/i18n/config";
+import { LOCALE_CONFIG } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
 import { issueJobClaim } from "@/lib/claim";
 import { recordAudit } from "@/lib/audit";
+import { localeFromSegment } from "@/i18n/market";
 
 export type GenerationActionResult =
   | { ok: true; jobId: string }
@@ -38,7 +39,7 @@ export async function requestPreviewGeneration(input: {
   /** The storefront the customer is on — decides language and name script. */
   locale: string;
 }): Promise<GenerationActionResult> {
-  const locale = asLocale(input.locale ?? "");
+  const locale = localeFromSegment(input.locale ?? "");
   const t = getDictionary(locale);
   const nameScript = nameScriptFor(LOCALE_CONFIG[locale].region);
 

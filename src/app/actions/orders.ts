@@ -7,7 +7,7 @@ import {
   nameScriptFor,
   sanitizeChildName,
 } from "@/lib/validation";
-import { asLocale, LOCALE_CONFIG, REGION_CONFIG } from "@/i18n/config";
+import { LOCALE_CONFIG, REGION_CONFIG } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
 import { fill } from "@/i18n/format";
 import { isPurchasable, isDeliveryMethod } from "@/lib/constants";
@@ -17,6 +17,7 @@ import { sendOrderCreatedEmail } from "@/lib/mail/order-mail";
 import { issueOrderClaim, readJobClaim } from "@/lib/claim";
 import { getJobForUser } from "@/lib/generation";
 import { logger } from "@/lib/logger";
+import { localeFromSegment } from "@/i18n/market";
 
 export type CheckoutItem = {
   productSlug: string;
@@ -144,7 +145,7 @@ export async function createOrder(
 ): Promise<CreateOrderResult> {
   const user = await getCurrentUser();
 
-  const locale = asLocale(input.locale ?? "");
+  const locale = localeFromSegment(input.locale ?? "");
   const t = getDictionary(locale);
   const { region } = LOCALE_CONFIG[locale];
   const {

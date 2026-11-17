@@ -24,7 +24,7 @@ import {
   passwordResetTemplate,
 } from "@/lib/mail";
 import { rateLimit, rateLimitMessage, clientIp } from "@/lib/rate-limit";
-import { asLocale } from "@/i18n/config";
+import { localeFromSegment } from "@/i18n/market";
 
 export type RecoveryResult =
   | { ok: true; notice: string }
@@ -36,7 +36,7 @@ export type RecoveryResult =
 export async function resendVerificationEmail(
   rawLocale?: string
 ): Promise<RecoveryResult> {
-  const locale = asLocale(rawLocale ?? "");
+  const locale = localeFromSegment(rawLocale ?? "");
   const AUTH_ERRORS = authErrors(locale);
   const session = await auth();
   const userId = session?.user?.id;
@@ -71,7 +71,7 @@ export async function verifyEmailToken(
   token: string,
   rawLocale?: string
 ): Promise<VerifyOutcome> {
-  const locale = asLocale(rawLocale ?? "");
+  const locale = localeFromSegment(rawLocale ?? "");
   const AUTH_ERRORS = authErrors(locale);
   const consumed = await consumeToken(token, "email_verify");
 
@@ -116,7 +116,7 @@ export async function requestPasswordReset(input: {
   locale?: string;
   email: string;
 }): Promise<RecoveryResult> {
-  const locale = asLocale(input.locale ?? "");
+  const locale = localeFromSegment(input.locale ?? "");
   const AUTH_ERRORS = authErrors(locale);
   const email = normalizeEmail(input.email ?? "");
 
@@ -146,7 +146,7 @@ export async function requestPasswordReset(input: {
   // The account's own language, not the one the request came in on: the link
   // is a credential for that account, and its owner may not be the person at
   // the keyboard.
-  const userLocale = asLocale(user.locale);
+  const userLocale = localeFromSegment(user.locale);
   const { token } = await issueToken(user.id, "password_reset");
   await sendEmail(
     user.email,
@@ -175,7 +175,7 @@ export async function inspectResetToken(
   token: string,
   rawLocale?: string
 ): Promise<ResetTokenState> {
-  const AUTH_ERRORS = authErrors(asLocale(rawLocale ?? ""));
+  const AUTH_ERRORS = authErrors(localeFromSegment(rawLocale ?? ""));
   const check = await checkToken(token, "password_reset");
   if (check.ok) return { valid: true };
 
@@ -206,7 +206,7 @@ export async function resetPassword(input: {
   password: string;
   confirmPassword: string;
 }): Promise<RecoveryResult> {
-  const locale = asLocale(input.locale ?? "");
+  const locale = localeFromSegment(input.locale ?? "");
   const AUTH_ERRORS = authErrors(locale);
   const strength = checkPassword(input.password ?? "", locale);
   if (!strength.ok) {
