@@ -4,10 +4,12 @@
 #
 #   UZ_HOST=1.2.3.4 ./scripts/deploy-uz.sh
 #
-# Targets a Linux server with root (or sudo) and a systemd init: a PS Cloud
-# VPS, a cloud server, or any other. NOT the "Хостинг сайтов" shared plan —
-# that one runs PHP through Plesk and ships no Node.js, and Next.js is a
-# long-lived Node process, not a set of scripts a web server calls.
+# Targets a server already prepared by scripts/provision-uz.sh: Node,
+# PostgreSQL, nginx, the application user and the data directory. Run that
+# once first.
+#
+# NOT a PHP shared-hosting plan. Next.js is a long-lived Node process, not a
+# set of scripts a web server calls.
 #
 # Everything is built ON the server. Prisma and sharp ship native binaries, so
 # a bundle built on a Mac cannot run on Linux; building here also means the
@@ -19,10 +21,12 @@
 # ── What must exist first ────────────────────────────────────────────────────
 #
 #   1. SSH access as $UZ_USER with sudo, by key.
-#   2. $REMOTE_DIR/.env on the server, populated from .env.example, with
-#      NEXT_PUBLIC_MARKET="UZ" and a DATABASE_URL pointing at a PostgreSQL
-#      inside Uzbekistan. That last part is not a preference: article 27-1 of
-#      ЗРУ-547 requires it, and the published privacy policy states it as fact.
+#   2. $REMOTE_DIR/.env on the server. provision-uz.sh writes most of it,
+#      including a database password and AUTH_SECRET generated there so they
+#      never cross the wire. NEXT_PUBLIC_MARKET must be "UZ" and DATABASE_URL
+#      must point at a PostgreSQL inside Uzbekistan — not a preference:
+#      article 27-1 of ЗРУ-547 requires it, and the published privacy policy
+#      states it as fact.
 #
 #      Upload it once, explicitly:
 #
@@ -31,11 +35,8 @@
 #      Never a path inside the repository: the file holds the database password
 #      and the Payme and Click secrets.
 #
-#   3. nginx in front, terminating TLS for capibara.uz and proxying to
-#      127.0.0.1:$APP_PORT. The script prints a working server block on first
-#      run rather than editing nginx itself, because a deploy script that
-#      rewrites the web server configuration of a host it does not own is a
-#      good way to take down a neighbouring site.
+#   3. nginx in front, terminating TLS for capibara.uz. provision-uz.sh writes
+#      the server block; certbot issues the certificate once DNS resolves.
 #
 set -euo pipefail
 
@@ -47,7 +48,9 @@ REMOTE_DIR="${REMOTE_DIR:-/srv/capibara-uz}"
 BRANCH="${BRANCH:-main}"
 REPO="${REPO:-https://github.com/arslan1t/kapibara.git}"
 APP_PORT="${APP_PORT:-3100}"
+DATA_DIR="${DATA_DIR:-/srv/capibara-uz-data}"
 SERVICE="${SERVICE:-capibara-uz}"
+APP_USER="${APP_USER:-kapibara}"
 SITE_URL="${SITE_URL:-https://capibara.uz}"
 
 say() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
@@ -65,25 +68,21 @@ if ! ssh "${ssh_opts[@]}" -o BatchMode=yes "$UZ_USER@$UZ_HOST" true 2>/dev/null;
   exit 1
 fi
 
-# ── Node ─────────────────────────────────────────────────────────────────────
-say "Making sure Node is present"
-ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
+# ── Preconditions ────────────────────────────────────────────────────────────
+say "Checking the server was provisioned"
+ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "APP_USER='$APP_USER' bash -s" <<'REMOTE'
 set -euo pipefail
-if command -v node >/dev/null 2>&1 && [ "$(node -v | cut -d. -f1 | tr -d v)" -ge 20 ]; then
-  echo "node $(node -v) already installed"
-else
-  # NodeSource rather than the distribution package: Debian and AlmaLinux both
-  # ship a Node too old for Next 15, and discovering that during a build is a
-  # worse failure than installing a known-good one here.
-  if command -v apt-get >/dev/null 2>&1; then
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-    apt-get install -y nodejs
-  else
-    curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
-    dnf install -y nodejs
-  fi
-  echo "installed node $(node -v)"
+missing=""
+command -v node >/dev/null 2>&1 || missing="$missing node"
+command -v psql >/dev/null 2>&1 || missing="$missing postgresql"
+command -v nginx >/dev/null 2>&1 || missing="$missing nginx"
+id -u "$APP_USER" >/dev/null 2>&1 || missing="$missing user:$APP_USER"
+if [ -n "$missing" ]; then
+  echo "Not provisioned — missing:$missing" >&2
+  echo "Run scripts/provision-uz.sh against this host first." >&2
+  exit 1
 fi
+echo "node $(node -v), $(psql --version | head -1), nginx present, user $APP_USER exists"
 REMOTE
 
 # ── Code ─────────────────────────────────────────────────────────────────────
@@ -177,7 +176,8 @@ npx prisma migrate deploy
 REMOTE
 
 say "Assembling the standalone runtime"
-ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
+ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" \
+  "REMOTE_DIR='$REMOTE_DIR' APP_USER='$APP_USER' bash -s" <<'REMOTE'
 set -euo pipefail
 cd "$REMOTE_DIR"
 # `output: "standalone"` emits a minimal server, but Next deliberately leaves
@@ -187,13 +187,19 @@ cp -r .next/static .next/standalone/.next/static
 [ -d public ] && cp -r public .next/standalone/public
 cp .env .next/standalone/.env
 chmod 600 .next/standalone/.env
+# systemd refuses to start a unit whose ReadWritePaths do not exist, so the
+# image cache directory is made here rather than left to the first request.
+mkdir -p .next/standalone/.next/cache
+# The service runs as $APP_USER, so the tree it reads must belong to it.
+chown -R "$APP_USER:$APP_USER" "$REMOTE_DIR"
 echo "standalone ready: $(du -sh .next/standalone | cut -f1)"
 REMOTE
 
 # ── Service ──────────────────────────────────────────────────────────────────
 say "Installing the systemd unit and restarting"
 ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" \
-  "REMOTE_DIR='$REMOTE_DIR' APP_PORT='$APP_PORT' SERVICE='$SERVICE' bash -s" <<'REMOTE'
+  "REMOTE_DIR='$REMOTE_DIR' APP_PORT='$APP_PORT' SERVICE='$SERVICE' \
+   APP_USER='$APP_USER' DATA_DIR='$DATA_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
 
 cat > "/etc/systemd/system/${SERVICE}.service" <<UNIT
@@ -203,6 +209,10 @@ After=network.target
 
 [Service]
 Type=simple
+# Not root. A flaw in a dependency then reaches the application's own files
+# and nothing else on the machine.
+User=${APP_USER}
+Group=${APP_USER}
 WorkingDirectory=${REMOTE_DIR}/.next/standalone
 # The env file is read by systemd rather than sourced by a shell, so a value
 # containing a space or a quote arrives intact.
@@ -213,11 +223,20 @@ Environment=HOSTNAME=127.0.0.1
 ExecStart=$(command -v node) server.js
 Restart=always
 RestartSec=3
-# The process only ever needs to read its own tree and write nothing outside
-# it; uploads go to object storage.
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=full
+# The whole filesystem is read-only to this process except the two paths
+# below. Both must exist before the unit starts, or systemd refuses to start
+# it at all — they are created in the assembly step above.
+ProtectSystem=strict
+ProtectHome=true
+# Uploads, which live outside the application tree precisely so that a deploy
+# cannot replace them.
+ReadWritePaths=${DATA_DIR}
+# Next's image optimiser writes resized images here. Without it every <Image>
+# fails at runtime with a read-only filesystem error, which looks nothing like
+# a permissions problem in the logs.
+ReadWritePaths=${REMOTE_DIR}/.next/standalone/.next/cache
 
 [Install]
 WantedBy=multi-user.target
@@ -229,41 +248,6 @@ systemctl restart "${SERVICE}"
 sleep 3
 systemctl is-active --quiet "${SERVICE}" && echo "${SERVICE} is running on 127.0.0.1:${APP_PORT}"
 REMOTE
-
-# ── nginx, printed rather than written ───────────────────────────────────────
-say "nginx server block (install it yourself if it is not there yet)"
-cat <<NGINX
-server {
-    server_name capibara.uz www.capibara.uz;
-
-    # Next streams responses; buffering them delays the first byte for no gain.
-    proxy_buffering off;
-
-    location / {
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Host              \$host;
-        proxy_set_header X-Real-IP         \$remote_addr;
-        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header Upgrade           \$http_upgrade;
-        proxy_set_header Connection        "upgrade";
-    }
-
-    # Payme and Click POST here. Their bodies are small, but a redirect would
-    # lose them, so this must never be rewritten.
-    location /api/payments/ {
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Host            \$host;
-        proxy_set_header X-Real-IP       \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    }
-
-    listen 443 ssl;
-    # certbot --nginx -d capibara.uz -d www.capibara.uz
-}
-NGINX
 
 say "Checking the public address"
 code=$(curl -s -o /tmp/kapibara-uz-health.json -w '%{http_code}' --max-time 20 "$SITE_URL/api/health" || true)

@@ -123,3 +123,87 @@ describe("storage credential verification", () => {
     assert.equal(result.ok, true, "the local storage directory is not writable");
   });
 });
+
+describe("local storage durability", () => {
+  /**
+   * NODE_ENV is restored inside every case rather than in an `after` hook.
+   * Several modules read it at call time — cookie security, token expiry — and
+   * leaving it as "production" for even one later test changes behaviour far
+   * from here. Learned by doing it the other way and watching the auth suite
+   * fail.
+   */
+  async function withEnv(
+    upload: string | undefined,
+    product: string | undefined,
+    body: (storage: typeof import("../src/lib/storage")) => void
+  ) {
+    const before = {
+      upload: process.env.UPLOAD_DIR,
+      product: process.env.PRODUCT_IMAGE_DIR,
+      driver: process.env.STORAGE_DRIVER,
+      env: process.env.NODE_ENV,
+    };
+    const env = process.env as Record<string, string | undefined>;
+    try {
+      process.env.STORAGE_DRIVER = "local";
+      env.NODE_ENV = "production";
+      if (upload === undefined) delete process.env.UPLOAD_DIR;
+      else process.env.UPLOAD_DIR = upload;
+      if (product === undefined) delete process.env.PRODUCT_IMAGE_DIR;
+      else process.env.PRODUCT_IMAGE_DIR = product;
+
+      body(await import("../src/lib/storage"));
+    } finally {
+      env.UPLOAD_DIR = before.upload;
+      env.PRODUCT_IMAGE_DIR = before.product;
+      env.STORAGE_DRIVER = before.driver;
+      env.NODE_ENV = before.env;
+    }
+  }
+
+  const refuses = /OUTSIDE the application directory/;
+
+  test("a path inside the application tree is refused in production", async () => {
+    await withEnv(
+      `${process.cwd()}/private-uploads`,
+      `${process.cwd()}/public-uploads`,
+      ({ assertStorageReady, storageStatus }) => {
+        assert.equal(storageStatus().durable, false);
+        assert.throws(() => assertStorageReady(), refuses);
+      }
+    );
+  });
+
+  test("a relative path is refused — it resolves into the tree", async () => {
+    await withEnv("./private-uploads", "./public-uploads", ({ assertStorageReady }) => {
+      assert.throws(() => assertStorageReady(), refuses);
+    });
+  });
+
+  test("unset paths are refused rather than defaulted", async () => {
+    await withEnv(undefined, undefined, ({ assertStorageReady }) => {
+      assert.throws(() => assertStorageReady(), refuses);
+    });
+  });
+
+  test("absolute paths outside the tree are accepted — a VPS disk is durable", async () => {
+    await withEnv(
+      "/srv/capibara-data/uploads",
+      "/srv/capibara-data/public",
+      ({ assertStorageReady, storageStatus }) => {
+        assert.equal(storageStatus().durable, true);
+        assert.doesNotThrow(() => assertStorageReady());
+      }
+    );
+  });
+
+  test("one good path and one bad is still refused", async () => {
+    await withEnv(
+      "/srv/capibara-data/uploads",
+      `${process.cwd()}/public-uploads`,
+      ({ assertStorageReady }) => {
+        assert.throws(() => assertStorageReady(), refuses);
+      }
+    );
+  });
+});

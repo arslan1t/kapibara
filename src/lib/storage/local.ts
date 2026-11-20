@@ -5,16 +5,21 @@ import path from "node:path";
 import type { Bucket, StorageDriver, StoredObject } from "./types";
 
 /**
- * Local filesystem storage — development only.
+ * Local filesystem storage.
  *
- * Kept because it makes the whole application runnable with no cloud account,
- * which is worth a lot when onboarding or running tests. It is not suitable for
- * production: on any platform with an ephemeral or per-instance filesystem
- * (Vercel, Cloud Run, Fly machines, containers behind a load balancer) files
- * vanish on deploy or are invisible to the other instances.
+ * The default in development, because it makes the whole application runnable
+ * with no cloud account. Usable in production only on a host with a real,
+ * persistent disk — a VPS — and only with UPLOAD_DIR and PRODUCT_IMAGE_DIR
+ * pointed outside the application tree, which the standalone build replaces on
+ * every deploy. `assertStorageReady()` in ./index.ts checks exactly that and
+ * refuses to start otherwise, so the mistake cannot be made silently.
  *
- * `assertStorageReady()` in ./index.ts refuses to start with this driver when
- * NODE_ENV is production, so the mistake cannot be made silently.
+ * On a platform with an ephemeral or per-instance filesystem (Vercel, Cloud
+ * Run, containers behind a load balancer) no path is durable and this driver
+ * must not be used at all.
+ *
+ * For the Uzbek deployment it is the point rather than a compromise: a child's
+ * photograph has to stay inside the country, and a disk in Tashkent does that.
  */
 
 function dirFor(bucket: Bucket): string {

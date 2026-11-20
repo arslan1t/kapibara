@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import type { Bucket, StorageDriver, StorageVerification } from "./types";
 import { localDriver } from "./local";
 import { s3Driver } from "./s3";
@@ -91,12 +92,40 @@ export async function verifyStorage(): Promise<StorageVerification> {
   return activeDriver().verify();
 }
 
+/**
+ * Whether local storage would actually survive a deploy.
+ *
+ * The old rule was "local is never durable", which was right about the
+ * platforms it was written for: on Vercel, Cloud Run or a container behind a
+ * load balancer the filesystem is ephemeral or per-instance, and uploads
+ * vanish or become invisible to the next request.
+ *
+ * On a plain VPS it is not true, and the Uzbek deployment needs it to not be
+ * true: a child's photograph has to stay inside Uzbekistan, and a disk on a
+ * Tashkent server does that while Supabase in Ireland does not.
+ *
+ * So the test is the property rather than the driver name. A directory is
+ * durable when it is an absolute path outside the application tree — outside,
+ * because `output: "standalone"` replaces that tree wholesale on every deploy,
+ * which is the original failure this guard exists to prevent.
+ */
+function localStorageIsDurable(): boolean {
+  const dirs = [process.env.UPLOAD_DIR, process.env.PRODUCT_IMAGE_DIR];
+  const appRoot = process.cwd();
+
+  return dirs.every((dir) => {
+    if (!dir || !path.isAbsolute(dir)) return false;
+    const resolved = path.resolve(dir);
+    return resolved !== appRoot && !resolved.startsWith(appRoot + path.sep);
+  });
+}
+
 export function storageStatus(): StorageStatus {
   const driver = activeDriver();
   return {
     driver: driver.id,
     configured: driver.isConfigured(),
-    durable: driver.id !== "local",
+    durable: driver.id !== "local" || localStorageIsDurable(),
   };
 }
 
@@ -112,8 +141,12 @@ export function assertStorageReady(): void {
 
   if (process.env.NODE_ENV === "production" && !status.durable) {
     throw new Error(
-      "STORAGE_DRIVER=local cannot be used in production: uploaded files would " +
-        "be lost on deploy. Configure Supabase Storage or S3 — see README §5."
+      "STORAGE_DRIVER=local in production needs UPLOAD_DIR and " +
+        "PRODUCT_IMAGE_DIR set to absolute paths OUTSIDE the application " +
+        "directory — the standalone build replaces that directory on every " +
+        "deploy, taking the uploads with it. Point them at something like " +
+        "/srv/capibara-data/uploads, or configure Supabase Storage or S3 — " +
+        "see README §5."
     );
   }
   if (!status.configured) {
