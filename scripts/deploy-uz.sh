@@ -309,9 +309,14 @@ REMOTE
 say "Checking the 404 page"
 ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "DOMAIN='${SITE_URL#https://}' bash -s" <<'REMOTE'
 set -euo pipefail
-body=$(curl -s --max-time 20 -H "Host: $DOMAIN" "http://127.0.0.1/ru/$(date +%s)-no-such-page")
-case "$body" in
-  *"This page could not be found"*)
+# Read the title, not the whole document. Next inlines its own default
+# wording into the flight payload of every page it renders, our 404 page
+# included, so searching the body finds that text whichever page came back.
+title=$(curl -s --max-time 20 -H "Host: $DOMAIN" "http://127.0.0.1/ru/$(date +%s)-no-such-page" \
+        | sed -n 's|.*<title>\([^<]*\)</title>.*|\1|p' | head -1)
+echo "  title: ${title:-none}"
+case "$title" in
+  *"This page could not be found"*|"")
     echo "FAIL: an unmatched URL falls through to Next's own English 404" >&2
     echo "      instead of the site's page. The catch-all route under" >&2
     echo "      app/[lang]/(main) is missing from this build." >&2
