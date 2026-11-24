@@ -90,15 +90,27 @@ say "Fetching $BRANCH"
 ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" \
   "REMOTE_DIR='$REMOTE_DIR' REPO='$REPO' BRANCH='$BRANCH' bash -s" <<'REMOTE'
 set -euo pipefail
-if [ -d "$REMOTE_DIR/.git" ]; then
-  cd "$REMOTE_DIR"
-  git fetch --depth 1 origin "$BRANCH"
-  git reset --hard "origin/$BRANCH"
-else
-  mkdir -p "$(dirname "$REMOTE_DIR")"
-  git clone --depth 1 --branch "$BRANCH" "$REPO" "$REMOTE_DIR"
-  cd "$REMOTE_DIR"
-fi
+# provision-uz.sh writes .env into this directory before the first deploy ever
+# runs, so `git clone` refuses it as non-empty. Initialising the repository in
+# place covers all three states the directory can be in — new, holding only
+# .env, or already a clone — and `git reset --hard` rewrites tracked files
+# without touching an untracked .env.
+mkdir -p "$REMOTE_DIR"
+# The tree belongs to the unprivileged app user and git runs here as root, so
+# git's ownership check would refuse the repository outright. Marking the one
+# path safe is narrower than relaxing the check globally, and idempotent.
+git config --global --add safe.directory "$REMOTE_DIR" 2>/dev/null || true
+[ -d "$REMOTE_DIR/.git" ] || git init -q "$REMOTE_DIR"
+cd "$REMOTE_DIR"
+# `add` on a fresh repository, `set-url` on one an interrupted run left behind:
+# a deploy that dies between `init` and `remote add` leaves .git with no remote
+# at all, and the next run has to recover from that rather than fail on it.
+git remote add origin "$REPO" 2>/dev/null || git remote set-url origin "$REPO"
+# Never let git stop for a credential prompt: a private repository or a bad
+# URL would otherwise hang the deploy indefinitely instead of failing.
+export GIT_TERMINAL_PROMPT=0
+git fetch --depth 1 origin "$BRANCH"
+git reset --hard FETCH_HEAD
 echo "at $(git rev-parse --short HEAD)"
 REMOTE
 
@@ -161,6 +173,17 @@ say "Installing dependencies and building"
 ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
 cd "$REMOTE_DIR"
+# package-lock.json is written by the npm that ships with the Node used for
+# development, which runs ahead of the npm bundled with Node 22 here. The
+# older npm resolves the `overrides` block differently, concludes the lockfile
+# is out of sync and refuses to install. Raising npm on the server is the
+# honest fix: regenerating the lockfile here would mean deploying a dependency
+# tree nobody has tested.
+LOCKFILE_NPM_MAJOR=11
+if [ "$(npm -v | cut -d. -f1)" -lt "$LOCKFILE_NPM_MAJOR" ]; then
+  npm i -g "npm@${LOCKFILE_NPM_MAJOR}" >/dev/null
+fi
+echo "node $(node -v), npm $(npm -v)"
 npm ci
 set -a; . ./.env; set +a
 export NODE_ENV=production
@@ -184,7 +207,9 @@ cd "$REMOTE_DIR"
 # static assets and /public for the deployer to place.
 rm -rf .next/standalone/.next/static .next/standalone/public
 cp -r .next/static .next/standalone/.next/static
-[ -d public ] && cp -r public .next/standalone/public
+# Written as an if, not `[ -d public ] && cp`: under `set -e` the AND-list
+# returns non-zero when the directory is absent and kills the deploy.
+if [ -d public ]; then cp -r public .next/standalone/public; fi
 cp .env .next/standalone/.env
 chmod 600 .next/standalone/.env
 # systemd refuses to start a unit whose ReadWritePaths do not exist, so the

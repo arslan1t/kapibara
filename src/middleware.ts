@@ -60,6 +60,29 @@ function detectLanguage(request: NextRequest): Language {
  * authorizes independently, because middleware alone is not a security
  * boundary.
  */
+/**
+ * Redirect to a path on this same site.
+ *
+ * `NextResponse.redirect` insists on an absolute URL, and behind a reverse
+ * proxy the origin Next derives is the loopback address the Node process is
+ * bound to — so the browser is handed `http://localhost:3100/ru` and the
+ * request dies on the visitor's own machine. Nothing the proxy sets fixes it:
+ * the origin is baked in before the Host header is ever consulted.
+ *
+ * Overwriting Location with the path alone sidesteps the question. A relative
+ * Location has been legal since RFC 7231 §7.1.2 (2014), and every browser
+ * resolves it against the address the visitor actually typed, which is the
+ * only origin that is certainly right.
+ */
+function sameSiteRedirect(url: URL, status?: 307 | 308): NextResponse {
+  const response =
+    status === undefined
+      ? NextResponse.redirect(url)
+      : NextResponse.redirect(url, status);
+  response.headers.set("location", `${url.pathname}${url.search}`);
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -79,7 +102,7 @@ export async function middleware(request: NextRequest) {
         ? ""
         : pathname;
     const url = new URL(`/${language}${rest}${search}`, request.url);
-    const response = NextResponse.redirect(url, 308);
+    const response = sameSiteRedirect(url, 308);
     response.cookies.set(LANGUAGE_COOKIE, language, {
       maxAge: LANGUAGE_COOKIE_MAX_AGE,
       sameSite: "lax",
@@ -96,7 +119,7 @@ export async function middleware(request: NextRequest) {
   // reader, and a language prefix on it would mean two URLs for one screen.
   const isAdmin = path === "/admin" || path.startsWith("/admin/");
   if (isAdmin && language !== "ru") {
-    return NextResponse.redirect(new URL(`/ru${path}${search}`, request.url));
+    return sameSiteRedirect(new URL(`/ru${path}${search}`, request.url));
   }
 
   const token = await getToken({
@@ -113,9 +136,9 @@ export async function middleware(request: NextRequest) {
     if (!isAuthed) {
       const url = at("/login");
       url.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(url);
+      return sameSiteRedirect(url);
     }
-    if (!isAdminUser) return NextResponse.redirect(at("/no-access"));
+    if (!isAdminUser) return sameSiteRedirect(at("/no-access"));
     return remember(pass(request, language), language);
   }
 
@@ -123,14 +146,14 @@ export async function middleware(request: NextRequest) {
     if (!isAuthed) {
       const url = at("/login");
       url.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(url);
+      return sameSiteRedirect(url);
     }
     return remember(pass(request, language), language);
   }
 
   // Signed-in users have no reason to see the auth screens.
   if (isAuthed && (path === "/login" || path === "/register")) {
-    return NextResponse.redirect(at("/account"));
+    return sameSiteRedirect(at("/account"));
   }
 
   return remember(pass(request, language), language);
