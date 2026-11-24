@@ -300,6 +300,29 @@ case "$location" in
 esac
 REMOTE
 
+# ── The 404 page, through nginx ──────────────────────────────────────────────
+#
+# A URL matching no route never enters the app's tree, so none of its
+# not-found boundaries run and Next answers with its own built-in page, in
+# English. The shop's readers are Russian and Uzbek, and nothing in a build
+# or a unit test notices: the status code is right either way.
+say "Checking the 404 page"
+ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "DOMAIN='${SITE_URL#https://}' bash -s" <<'REMOTE'
+set -euo pipefail
+body=$(curl -s --max-time 20 -H "Host: $DOMAIN" "http://127.0.0.1/ru/$(date +%s)-no-such-page")
+case "$body" in
+  *"This page could not be found"*)
+    echo "FAIL: an unmatched URL falls through to Next's own English 404" >&2
+    echo "      instead of the site's page. The catch-all route under" >&2
+    echo "      app/[lang]/(main) is missing from this build." >&2
+    exit 1
+    ;;
+  *)
+    echo "  an unknown URL reaches the site's own 404 page"
+    ;;
+esac
+REMOTE
+
 say "Checking the public address"
 code=$(curl -s -o /tmp/kapibara-uz-health.json -w '%{http_code}' --max-time 20 "$SITE_URL/api/health" || true)
 echo "  $SITE_URL/api/health -> HTTP ${code:-no answer}"
