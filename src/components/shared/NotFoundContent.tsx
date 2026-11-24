@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "@/i18n/navigation";
 import { BookOpen, Home, Search, Compass } from "lucide-react";
 import { useDictionary } from "@/i18n/DictionaryProvider";

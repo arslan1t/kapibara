@@ -1,3 +1,5 @@
+"use client";
+
 import { Star, Quote, BadgeCheck } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 import { useDictionary } from "@/i18n/DictionaryProvider";
