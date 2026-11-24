@@ -264,6 +264,16 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header Upgrade           \$http_upgrade;
         proxy_set_header Connection        "upgrade";
+
+        # Next builds the origin of a redirect from the address its own
+        # process is bound to, not from the Host header, so every redirect
+        # leaves the app pointing at http://localhost:${APP_PORT} — which, in
+        # a browser, is the visitor's own machine. nginx rewrites those to a
+        # bare path, which the browser resolves against the address it asked
+        # for. Both spellings appear: the bound address and the name Next
+        # prints for it.
+        proxy_redirect http://localhost:${APP_PORT}/ /;
+        proxy_redirect http://127.0.0.1:${APP_PORT}/ /;
     }
 }
 NGINX

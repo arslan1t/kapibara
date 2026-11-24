@@ -5,20 +5,21 @@ import { NextRequest } from "next/server";
 import { middleware } from "../src/middleware";
 
 /**
- * The app runs behind nginx, bound to loopback. Next builds the absolute URL
- * for a redirect from the address the process is bound to rather than from
- * the Host header, so an absolute Location sends the visitor to
- * http://localhost:3100 — an address that, from a browser, is their own
- * machine. The symptom is a site that answers every request with a redirect
- * into nowhere, and it appears only once there is a proxy in front, which is
- * to say only in production.
+ * Routing rules, checked at the level of the path a visitor ends up on.
  *
- * Every redirect the middleware issues must therefore carry a relative
- * Location, which the browser resolves against the address it actually asked
- * for. These tests pin that down for the paths that redirect without needing
- * a session.
+ * The Location header these redirects carry is a full URL whose origin is the
+ * address the Node process is bound to, not the address the visitor asked
+ * for. That is Next's doing and it cannot be changed from here: a relative
+ * Location makes Next's own runtime throw `ERR_INVALID_URL` before the
+ * response ever leaves. nginx rewrites the origin away in front of the app —
+ * see the proxy_redirect lines in provision-uz.sh — and deploy-uz.sh fails
+ * the deployment if that rewriting is missing, because this is a fault no
+ * test of the middleware alone can see.
+ *
+ * So these assertions read the path out of the Location and ignore its
+ * origin, which is the part that is nginx's business.
  */
-describe("middleware redirects", () => {
+describe("middleware routing", () => {
   const ask = (path: string) =>
     middleware(
       new NextRequest(
@@ -28,44 +29,40 @@ describe("middleware redirects", () => {
       ),
     );
 
-  const assertRelative = (location: string | null) => {
+  const target = (response: Response) => {
+    const location = response.headers.get("location");
     assert.ok(location, "a redirect must carry a Location header");
-    assert.doesNotMatch(
-      location,
-      /^[a-z]+:\/\//i,
-      `Location must not name an origin, got ${location}`,
-    );
-    assert.ok(
-      location.startsWith("/"),
-      `Location must be an absolute path, got ${location}`,
-    );
+    const url = new URL(location);
+    return `${url.pathname}${url.search}`;
   };
 
-  test("a path with no language segment", async () => {
+  test("a path with no language segment gains one", async () => {
     const response = await ask("/");
     assert.equal(response.status, 308);
-    assertRelative(response.headers.get("location"));
+    assert.match(target(response), /^\/[a-z-]+$/);
   });
 
-  test("a deep path with no language segment", async () => {
+  test("the rest of the path survives", async () => {
     const response = await ask("/catalog/some-book");
     assert.equal(response.status, 308);
-    const location = response.headers.get("location");
-    assertRelative(location);
-    assert.ok(location?.endsWith("/catalog/some-book"));
+    assert.ok(target(response).endsWith("/catalog/some-book"));
   });
 
-  test("a query string survives the redirect", async () => {
+  test("the query string survives", async () => {
     const response = await ask("/catalog?sort=price");
-    assertRelative(response.headers.get("location"));
-    assert.ok(response.headers.get("location")?.includes("?sort=price"));
+    assert.ok(target(response).endsWith("/catalog?sort=price"));
   });
 
-  test("a locale segment from when the markets shared a site", async () => {
+  test("a locale segment from when the markets shared a site is replaced", async () => {
     const response = await ask("/ru-uz/catalog");
     assert.equal(response.status, 308);
-    const location = response.headers.get("location");
-    assertRelative(location);
-    assert.ok(location?.endsWith("/catalog"));
+    const path = target(response);
+    assert.ok(path.endsWith("/catalog"), path);
+    assert.ok(!path.includes("ru-uz"), path);
+  });
+
+  test("a language this market serves is left alone", async () => {
+    const response = await ask("/ru/catalog");
+    assert.equal(response.status, 200);
   });
 });

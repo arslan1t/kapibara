@@ -274,6 +274,32 @@ sleep 3
 systemctl is-active --quiet "${SERVICE}" && echo "${SERVICE} is running on 127.0.0.1:${APP_PORT}"
 REMOTE
 
+# ── Redirect sanity, through nginx ───────────────────────────────────────────
+#
+# Checked on the server rather than from here, so it runs before DNS points
+# anywhere and reports on this deployment rather than on whatever the domain
+# currently resolves to.
+#
+# Next derives the origin of a redirect from the address its own process is
+# bound to, so without nginx rewriting it the site answers "/" with a 308 to
+# http://localhost:PORT — the visitor's own machine. Nothing in the app can
+# be tested for this: it needs a proxy in front to appear at all.
+say "Checking redirects through nginx"
+ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "DOMAIN='${SITE_URL#https://}' bash -s" <<'REMOTE'
+set -euo pipefail
+location=$(curl -s -o /dev/null -D- --max-time 20 -H "Host: $DOMAIN" http://127.0.0.1/ \
+           | awk 'tolower($1) == "location:" { print $2 }' | tr -d '\r')
+echo "  / -> ${location:-no Location header}"
+case "$location" in
+  *localhost*|*127.0.0.1*)
+    echo "FAIL: the redirect points at the loopback address, so every visitor" >&2
+    echo "      is sent to their own machine. nginx is missing its" >&2
+    echo "      proxy_redirect lines — re-run provision-uz.sh." >&2
+    exit 1
+    ;;
+esac
+REMOTE
+
 say "Checking the public address"
 code=$(curl -s -o /tmp/kapibara-uz-health.json -w '%{http_code}' --max-time 20 "$SITE_URL/api/health" || true)
 echo "  $SITE_URL/api/health -> HTTP ${code:-no answer}"
