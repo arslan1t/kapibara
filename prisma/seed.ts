@@ -12,6 +12,12 @@ import { PrismaClient } from "../src/generated/prisma";
 const db = new PrismaClient();
 
 const BOOK_PRICE = 9990;
+/**
+ * Whole sum, for the Uzbek storefront. A separate figure rather than a
+ * converted rouble price: the two markets are priced independently, and a
+ * book with no price here is not buyable at all, whatever its status says.
+ */
+const BOOK_PRICE_UZS = 500_000;
 const PAGE_COUNT = 40;
 
 /** The six supplied photographs, in the order they appear in the gallery. */
@@ -363,6 +369,7 @@ async function main() {
       shortDescription:
         "Волшебное приключение о дружбе, смелости и говорящем автомобильчике Колёсике, где главным героем становится ваш мальчик.",
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       status: "available",
       published: true,
       featured: true,
@@ -377,6 +384,7 @@ async function main() {
       description:
         "В глубине волшебного леса, где солнце пробивается сквозь листву, а тропинки светятся золотыми искрами, живёт добрый говорящий автомобильчик Колёсик. Однажды он встречает мальчика — и этим мальчиком становится ваш сын. Вместе они отправляются в путь: мимо поющего водопада, через поляны светящихся грибов, навстречу новым друзьям и большим маленьким открытиям. Тёплая история о дружбе, смелости и любопытстве, где имя и лицо ребёнка вплетены в каждую страницу.",
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       status: "available",
       published: true,
       featured: true,
@@ -408,7 +416,12 @@ async function main() {
   // ── The girl's edition: real, but not yet released ──
   await db.product.upsert({
     where: { slug: "priklyucheniya-devochki-i-kolesika" },
-    update: { price: BOOK_PRICE, status: "coming_soon", published: true },
+    update: {
+      price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
+      status: "coming_soon",
+      published: true,
+    },
     create: {
       slug: "priklyucheniya-devochki-i-kolesika",
       title: "Приключения Девочки и Колёсика",
@@ -418,6 +431,7 @@ async function main() {
       description:
         "За старым мостом, там где лесная дорога уходит к сияющему водопаду, ждёт своего друга голубой автомобильчик Колёсик. В этой истории рядом с ним оказывается девочка — и это ваша дочь. Их ждёт дорога сквозь заколдованную чащу, встречи с лесными жителями и вечер, полный светлячков и тихих чудес. Добрая сказка о смелости и дружбе, в которой имя и лицо вашей девочки живут на каждой странице.",
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       // Announced but not purchasable — the storefront shows it as «Скоро».
       status: "coming_soon",
       published: true,
@@ -440,6 +454,7 @@ async function main() {
     where: { slug: "priklyucheniya-devochki-i-ogonka" },
     update: {
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       status: "coming_soon",
       published: true,
       coverImage: "/images/books/girl-ogonek-cover.png",
@@ -453,6 +468,7 @@ async function main() {
       description:
         "Высоко в горах, где туман ложится на луга, а колокольчики звенят от ветра, живёт маленький дракончик Огонёк — со светящимися крыльями и тёплым огоньком на хвосте. Однажды он встречает девочку, и этой девочкой становится ваша дочь. Вместе они учатся не бояться высоты, беречь чужие секреты и находить дорогу домой по светящимся камням. Нежная акварельная сказка о дружбе и доверии, где имя и лицо вашего ребёнка вплетены в каждую страницу.",
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       status: "coming_soon",
       published: true,
       featured: false,
@@ -473,6 +489,7 @@ async function main() {
     where: { slug: "priklyucheniya-malchika-i-ogonka" },
     update: {
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       status: "coming_soon",
       published: true,
       coverImage: "/images/books/boy-ogonek-cover.png",
@@ -486,6 +503,7 @@ async function main() {
       description:
         "Высоко в горах, где туман ложится на луга, а колокольчики звенят от ветра, живёт маленький дракончик Огонёк — со светящимися крыльями и тёплым огоньком на хвосте. Однажды он встречает мальчика, и этим мальчиком становится ваш сын. Вместе они учатся не бояться высоты, беречь чужие секреты и находить дорогу домой по светящимся камням. Нежная акварельная сказка о дружбе и доверии, где имя и лицо вашего ребёнка вплетены в каждую страницу.",
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       status: "coming_soon",
       published: true,
       featured: false,
@@ -512,6 +530,7 @@ async function main() {
       shortDescription,
       description: `${book.idea} Имя и лицо вашего ребёнка вплетены в каждую страницу: он и есть главный герой этой истории, а рядом с ним — дружба с ${book.companion}.`,
       price: BOOK_PRICE,
+      priceUzs: BOOK_PRICE_UZS,
       status: "available",
       published: true,
       featured: false,
@@ -537,6 +556,7 @@ async function main() {
         shortDescription: content.shortDescription,
         description: content.description,
         price: content.price,
+        priceUzs: content.priceUzs,
         coverImage: content.coverImage,
         // Age band too: it is content, not an operator decision, and leaving it
         // out meant a corrected range never reached a book that already existed.
