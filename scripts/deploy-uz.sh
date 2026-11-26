@@ -287,7 +287,18 @@ REMOTE
 say "Checking redirects through nginx"
 ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "DOMAIN='${SITE_URL#https://}' bash -s" <<'REMOTE'
 set -euo pipefail
-location=$(curl -s -o /dev/null -D- --max-time 20 -H "Host: $DOMAIN" http://127.0.0.1/ \
+# Once a certificate is installed, port 80 only answers with a redirect to
+# https, so a plain http request would test certbot's rewrite instead of the
+# app's. Ask over https when it answers, and keep the request on the loopback
+# either way so the check reports on this machine and not on wherever the
+# domain currently points.
+if curl -sf -o /dev/null --max-time 10 --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/ru"; then
+  base="https://$DOMAIN"; resolve=(--resolve "$DOMAIN:443:127.0.0.1")
+else
+  base="http://$DOMAIN"; resolve=(--resolve "$DOMAIN:80:127.0.0.1")
+fi
+echo "  asking $base"
+location=$(curl -s -o /dev/null -D- --max-time 20 "${resolve[@]}" "$base/" \
            | awk 'tolower($1) == "location:" { print $2 }' | tr -d '\r')
 echo "  / -> ${location:-no Location header}"
 case "$location" in
@@ -309,10 +320,15 @@ REMOTE
 say "Checking the 404 page"
 ssh "${ssh_opts[@]}" "$UZ_USER@$UZ_HOST" "DOMAIN='${SITE_URL#https://}' bash -s" <<'REMOTE'
 set -euo pipefail
+if curl -sf -o /dev/null --max-time 10 --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/ru"; then
+  base="https://$DOMAIN"; resolve=(--resolve "$DOMAIN:443:127.0.0.1")
+else
+  base="http://$DOMAIN"; resolve=(--resolve "$DOMAIN:80:127.0.0.1")
+fi
 # Read the title, not the whole document. Next inlines its own default
 # wording into the flight payload of every page it renders, our 404 page
 # included, so searching the body finds that text whichever page came back.
-title=$(curl -s --max-time 20 -H "Host: $DOMAIN" "http://127.0.0.1/ru/$(date +%s)-no-such-page" \
+title=$(curl -s --max-time 20 "${resolve[@]}" "$base/ru/$(date +%s)-no-such-page" \
         | sed -n 's|.*<title>\([^<]*\)</title>.*|\1|p' | head -1)
 echo "  title: ${title:-none}"
 case "$title" in

@@ -271,9 +271,14 @@ server {
         # a browser, is the visitor's own machine. nginx rewrites those to a
         # bare path, which the browser resolves against the address it asked
         # for. Both spellings appear: the bound address and the name Next
-        # prints for it.
+        # prints for it. The scheme comes from X-Forwarded-Proto, so once a
+        # certificate is installed the same redirects arrive as https — all
+        # four spellings have to be rewritten or the site breaks the day TLS
+        # is turned on.
         proxy_redirect http://localhost:${APP_PORT}/ /;
         proxy_redirect http://127.0.0.1:${APP_PORT}/ /;
+        proxy_redirect https://localhost:${APP_PORT}/ /;
+        proxy_redirect https://127.0.0.1:${APP_PORT}/ /;
     }
 }
 NGINX
