@@ -17,7 +17,13 @@
  * administrator's password is usually that someone else may hold the old one.
  *
  * Omit the password on any path and it is read from the terminal instead, so it
- * never enters the shell history.
+ * never enters the shell history — and it is not echoed, so it does not stay in
+ * the terminal's scrollback either.
+ *
+ * The address is checked before anything is written. An administrator whose
+ * address cannot receive mail cannot reset their own password, and the way
+ * that happens in practice is the example line above being pasted in with its
+ * placeholder still in place.
  */
 import { PrismaClient } from "../src/generated/prisma";
 import bcrypt from "bcryptjs";
@@ -40,11 +46,81 @@ function rejectWeakPassword(password: string | undefined): asserts password is s
   }
 }
 
+/**
+ * An address a person can actually receive mail at.
+ *
+ * Narrow on purpose — ASCII, a dotted domain, a letters-only suffix. The one
+ * thing this script must never do is mint an administrator whose password can
+ * never be reset, and the way that happens in practice is the placeholder
+ * from the usage line above being pasted in unchanged.
+ */
+const EMAIL_SHAPE = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
+
+function rejectUnusableEmail(email: string): void {
+  if (EMAIL_SHAPE.test(email)) return;
+  console.error(
+    `«${email}» не похоже на почтовый адрес.\n` +
+      "Нужен настоящий: на него восстанавливают пароль, а другого входа в админку нет."
+  );
+  process.exit(1);
+}
+
+/**
+ * Reads a password without putting it on the screen.
+ *
+ * readline echoes every keystroke, so a password answered at its prompt stays
+ * visible and sits in the terminal's scrollback long after the command exits
+ * — which is exactly where a password must never be. There is no "silent"
+ * option, and the usual trick of overriding readline's internal writer stopped
+ * working somewhere before Node 26, silently: the prompt looks the same and
+ * the password is echoed anyway. So the keys are read directly instead, with
+ * the terminal in raw mode, where nothing is echoed unless we echo it.
+ *
+ * With input piped in there is no terminal, no echo and nothing to hide, so
+ * that path keeps using readline.
+ */
 async function promptPassword(label: string): Promise<string> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await rl.question(label);
-  rl.close();
-  return answer;
+  if (!process.stdin.isTTY) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = await rl.question(label);
+    rl.close();
+    return answer;
+  }
+
+  // Raw mode first, prompt second. The terminal driver echoes what it
+  // receives, and anything typed — or pasted — between printing the prompt
+  // and switching modes would be echoed by the kernel before this process
+  // ever sees it.
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.setEncoding("utf8");
+  process.stdout.write(label);
+
+  let value = "";
+  try {
+    outer: for await (const chunk of process.stdin) {
+      for (const ch of chunk as string) {
+        // Raw mode means the signal keys arrive as plain bytes: answer them
+        // ourselves or the prompt cannot be escaped.
+        if (ch === "\u0003" || ch === "\u0004") {
+          process.stdout.write("\n");
+          process.exit(130);
+        }
+        if (ch === "\r" || ch === "\n") break outer;
+        if (ch === "\u007f" || ch === "\b") {
+          value = value.slice(0, -1);
+          continue;
+        }
+        value += ch;
+      }
+    }
+  } finally {
+    process.stdin.setRawMode(false);
+    process.stdin.pause();
+  }
+
+  process.stdout.write("\n");
+  return value;
 }
 
 async function main() {
@@ -65,6 +141,7 @@ async function main() {
   }
 
   const email = emailArg.trim().toLowerCase();
+  rejectUnusableEmail(email);
   const existing = await db.user.findUnique({ where: { email } });
 
   // ── Password reset ─────────────────────────────────────────────────────────
